@@ -1,0 +1,101 @@
+name: fluentmusic
+description: "FluentMusic - Modern Liquid Glass Music Player for Android"
+publish_to: "none"
+version: 1.0.9+109
+
+environment:
+  sdk: ">=3.2.0 <4.0.0"
+  flutter: ">=3.16.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State Management
+  flutter_riverpod: ^2.6.1
+
+  # Liquid Glass & Shaders (Music OS 26 Engine)
+  liquid_glass_widgets: ^0.4.0-dev.3
+  inspire_blur: ^0.2.1
+  mesh_gradient: ^1.5.0
+  flutter_shaders: ^0.1.2
+
+  # Audio Pipeline & Service
+  just_audio: ^0.9.46
+  audio_service: ^0.18.18
+  audio_session: ^0.1.25
+
+  # Innertube & Media Discovery
+  youtube_explode_dart: ^2.5.0
+
+  # Local Media Storage
+  on_audio_query: ^2.9.0
+
+  # UI Components & Motion
+  flutter_animate: ^4.5.2
+  cached_network_image: ^3.4.1
+  palette_generator: ^0.3.3+6
+  sliding_up_panel: ^2.0.8
+  marquee: ^2.3.0
+  pull_down_button: ^0.10.2
+  cupertino_icons: ^1.0.8
+
+  # Networking & Caching
+  dio: ^5.8.0+1
+  http: ^1.3.0
+  path_provider: ^2.1.5
+  shared_preferences: ^2.5.4
+  permission_handler: ^11.4.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/
+    - assets/images/
+    - assets/shaders/
+
+  shaders:
+    - assets/shaders/animated_mesh_gradient.frag
+    - assets/shaders/aurora.frag
+    - assets/shaders/box.frag
+    - assets/shaders/fire.frag
+    - assets/shaders/gaussian.frag
+    - assets/shaders/glass.frag
+    - assets/shaders/glow_orb.frag
+    - assets/shaders/horizontal_blur_shader.frag
+    - assets/shaders/ink_sparkle.frag
+    - assets/shaders/inspire_blur_backdrop.frag
+    - assets/shaders/inspire_blur_child.frag
+    - assets/shaders/interactive_indicator.frag
+    - assets/shaders/ios18_blur_h.frag
+    - assets/shaders/ios18_blur_v.frag
+    - assets/shaders/ios18_gradient_blur.frag
+    - assets/shaders/lightweight_glass.frag
+    - assets/shaders/liquid_glass_final_render.frag
+    - assets/shaders/liquid_glass_geometry_blended.frag
+    - assets/shaders/motion.frag
+    - assets/shaders/music_gradient.frag
+    - assets/shaders/name_drop.frag
+    - assets/shaders/point_mesh_gradient.frag
+    - assets/shaders/progressive_blur.frag
+    - assets/shaders/pulse.frag
+    - assets/shaders/radial.frag
+    - assets/shaders/ripple.frag
+    - assets/shaders/shimmer.frag
+    - assets/shaders/snow.frag
+    - assets/shaders/stretch_effect.frag
+    - assets/shaders/surface.frag
+    - assets/shaders/tilt_shift.frag
+    - assets/shaders/tilt_shift_gaussian.frag
+    - assets/shaders/tilt_shift_gaussian_bottom.frag
+    - assets/shaders/tilt_shift_gaussian_bottom_optimized.frag
+    - assets/shaders/tilt_shift_horizontal.frag
+    - assets/shaders/tilt_shift_vertical.frag
+    - assets/shaders/water.frag
+    - assets/shaders/wave.frag

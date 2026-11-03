@@ -1,0 +1,92 @@
+name: Build & Release FluentMusic Flutter APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'main'
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build FluentMusic Flutter APKs
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Verify Flutter Version
+        run: flutter --version
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build Universal Release APK
+        run: flutter build apk --release
+
+      - name: Build Universal Debug APK
+        run: flutter build apk --debug
+
+      - name: Prepare APK Outputs
+        run: |
+          mkdir -p release_artifacts
+          echo "Finding all generated APKs..."
+          find build/app/outputs/flutter-apk -type f -name "*.apk"
+
+          # Copy release APK
+          RELEASE_APK=$(find build/app/outputs/flutter-apk -type f -name "*release*.apk" | head -n 1)
+          if [ -n "$RELEASE_APK" ]; then
+            cp "$RELEASE_APK" release_artifacts/FluentMusic-universal-release.apk
+            echo "Copied: $RELEASE_APK -> release_artifacts/FluentMusic-universal-release.apk"
+          fi
+
+          # Copy debug APK
+          DEBUG_APK=$(find build/app/outputs/flutter-apk -type f -name "*debug*.apk" | head -n 1)
+          if [ -n "$DEBUG_APK" ]; then
+            cp "$DEBUG_APK" release_artifacts/FluentMusic-universal-debug.apk
+            echo "Copied: $DEBUG_APK -> release_artifacts/FluentMusic-universal-debug.apk"
+          fi
+
+          ls -la release_artifacts
+
+      - name: Upload APK Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: FluentMusic-Flutter-APKs
+          path: release_artifacts/*.apk
+          retention-days: 30
+
+      - name: Create GitHub Release on Tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "FluentMusic ${{ github.ref_name }}"
+          files: release_artifacts/*.apk
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
