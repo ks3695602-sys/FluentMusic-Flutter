@@ -41,6 +41,11 @@ jobs:
       - name: Verify Flutter Version
         run: flutter --version
 
+      - name: Accept Android SDK Licenses & Install Platform 36
+        run: |
+          yes | sdkmanager --licenses || true
+          sdkmanager "platforms;android-36" || true
+
       - name: Install Dependencies
         run: flutter pub get
 
