@@ -44,9 +44,28 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Patch Legacy Plugin Namespaces for AGP 8+
+      - name: Auto-patch Legacy Plugin Namespaces for AGP 8+
         run: |
-          find /home/runner/.pub-cache/hosted/pub.dev/on_audio_query_android* -name "build.gradle" -exec sed -i '/android {/a \    namespace "com.lucasjosino.on_audio_query"' {} + || true
+          echo "Scanning pub cache for Android library plugins without namespace..."
+          find /home/runner/.pub-cache/hosted/pub.dev -name "build.gradle" 2>/dev/null | while read -r f; do
+            if grep -q "com.android.library" "$f" 2>/dev/null && ! grep -q "namespace" "$f" 2>/dev/null; then
+              manifest="$(dirname "$f")/src/main/AndroidManifest.xml"
+              if [ -f "$manifest" ]; then
+                pkg_name=$(grep -o 'package="[^"]*"' "$manifest" | head -n 1 | cut -d'"' -f2)
+                if [ -n "$pkg_name" ]; then
+                  echo "Patching namespace '$pkg_name' in $f"
+                  sed -i "/android {/a \    namespace \"$pkg_name\"" "$f"
+                fi
+              fi
+            fi
+          done
+          # Explicit check for on_audio_query_android
+          find /home/runner/.pub-cache/hosted/pub.dev/on_audio_query_android* -name "build.gradle" 2>/dev/null | while read -r f; do
+            if ! grep -q "namespace" "$f"; then
+              echo "Explicitly patching on_audio_query_android: $f"
+              sed -i '/android {/a \    namespace "com.lucasjosino.on_audio_query"' "$f"
+            fi
+          done
 
       - name: Build Universal Release APK
         run: flutter build apk --release --android-skip-build-dependency-validation
