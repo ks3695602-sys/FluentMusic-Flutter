@@ -24,7 +24,7 @@ dependencies:
   just_audio: ^0.10.6
   audio_service: ^0.18.19
   audio_session: ^0.2.4
-  flutter_lyric: ^2.0.4
+  flutter_lyric: ^4.1.0
 
   # Innertube & Media Discovery
   youtube_explode_dart: ^3.1.0

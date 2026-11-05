@@ -3,96 +3,12 @@ import 'package:audio_service/audio_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_lyric/lyric_ui/lyric_ui.dart';
-import 'package:flutter_lyric/lyrics_model_builder.dart';
-import 'package:flutter_lyric/lyrics_reader.dart';
-import 'package:flutter_lyric/lyrics_reader_model.dart';
+import 'package:flutter_lyric/flutter_lyric.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../../core/audio/audio_handler.dart';
 import '../../core/lyrics/lyrics_service.dart';
 import '../../core/lyrics/synced_line.dart';
-
-/// Apple Music Custom Lyric UI Theme for flutter_lyric
-class AppleMusicLyricUI extends LyricUI {
-  double defaultSize;
-  double defaultExtSize;
-  double otherMainSize;
-  double bias;
-  double lineGap;
-  bool isKaraoke;
-
-  AppleMusicLyricUI({
-    this.defaultSize = 22,
-    this.defaultExtSize = 14,
-    this.otherMainSize = 17,
-    this.bias = 0.5,
-    this.lineGap = 24,
-    this.isKaraoke = true,
-  });
-
-  @override
-  TextStyle getPlayingTextStyle() {
-    return TextStyle(
-      fontSize: defaultSize,
-      fontWeight: FontWeight.w800,
-      color: Colors.white,
-      shadows: [
-        Shadow(
-          color: const Color(0xFFFA2D48).withValues(alpha: 0.5),
-          blurRadius: 14,
-        ),
-      ],
-    );
-  }
-
-  @override
-  TextStyle getNormalTextStyle() {
-    return TextStyle(
-      fontSize: otherMainSize,
-      fontWeight: FontWeight.w600,
-      color: Colors.white.withValues(alpha: 0.32),
-    );
-  }
-
-  @override
-  TextStyle getOtherMainTextStyle() {
-    return TextStyle(
-      fontSize: otherMainSize,
-      fontWeight: FontWeight.w500,
-      color: Colors.white.withValues(alpha: 0.22),
-    );
-  }
-
-  @override
-  TextStyle getPlayingExtTextStyle() {
-    return TextStyle(
-      fontSize: defaultExtSize,
-      color: const Color(0xFFFA2D48),
-      fontWeight: FontWeight.w600,
-    );
-  }
-
-  @override
-  TextStyle getOtherExtTextStyle() {
-    return TextStyle(
-      fontSize: defaultExtSize,
-      color: Colors.white30,
-    );
-  }
-
-  @override
-  double getLineGap() => lineGap;
-
-  @override
-  double getInlineGap() => 8;
-
-  @override
-  LyricAlign getLyricAlign() => LyricAlign.LEFT;
-
-  @override
-  LyricHighlightDirection getHighlightDirection() => LyricHighlightDirection.LTR;
-}
 
 class PlayerScreen extends StatefulWidget {
   final FluentAudioHandler audioHandler;
@@ -105,9 +21,9 @@ class PlayerScreen extends StatefulWidget {
 
 class _PlayerScreenState extends State<PlayerScreen> {
   final LyricsService _lyricsService = LyricsService();
-  final AppleMusicLyricUI _lyricUI = AppleMusicLyricUI();
+  final LyricController _lyricController = LyricController();
 
-  LyricsReaderModel? _lyricModel;
+  bool _hasLyrics = false;
   bool _showLyrics = false;
   String _currentTrackId = '';
 
@@ -115,6 +31,12 @@ class _PlayerScreenState extends State<PlayerScreen> {
   void initState() {
     super.initState();
     _fetchLyricsForCurrentTrack();
+  }
+
+  @override
+  void dispose() {
+    _lyricController.dispose();
+    super.dispose();
   }
 
   void _fetchLyricsForCurrentTrack() async {
@@ -130,7 +52,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
     if (mounted) {
       if (lines.isNotEmpty) {
-        // Construct LRC string for flutter_lyric
+        // Construct standard LRC string for flutter_lyric
         final StringBuffer sb = StringBuffer();
         for (final l in lines) {
           final m = l.time.inMinutes.toString().padLeft(2, '0');
@@ -138,13 +60,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
           final ms = ((l.time.inMilliseconds % 1000) ~/ 10).toString().padLeft(2, '0');
           sb.writeln('[$m:$s.$ms]${l.text}');
         }
-        setState(() {
-          _lyricModel = LyricsModelBuilder.create()
-              .bindLyricToMain(sb.toString())
-              .getModel();
-        });
+        _lyricController.load(sb.toString());
+        setState(() => _hasLyrics = true);
       } else {
-        setState(() => _lyricModel = null);
+        setState(() => _hasLyrics = false);
       }
     }
   }
@@ -284,7 +203,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   }
 
   Widget _buildLyricsView() {
-    if (_lyricModel == null) {
+    if (!_hasLyrics) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -304,27 +223,19 @@ class _PlayerScreenState extends State<PlayerScreen> {
       stream: widget.audioHandler.player.positionStream,
       builder: (context, posSnapshot) {
         final position = posSnapshot.data ?? Duration.zero;
-        final playing = widget.audioHandler.player.playing;
+        _lyricController.setPosition(position);
 
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 10.0),
-          child: LyricsReader(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            model: _lyricModel,
-            position: position.inMilliseconds,
-            playing: playing,
-            lyricUi: _lyricUI,
-            size: Size(MediaQuery.of(context).size.width, 360),
-            emptyBuilder: () => Center(
-              child: Text(
-                'Searching lyrics...',
-                style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
-              ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: LyricView(
+              controller: _lyricController,
+              preset: LyricPresets.appleMusic,
+              onLineTap: (line) {
+                widget.audioHandler.seek(line.seekPosition);
+              },
             ),
-            selectLineBuilder: (progress, confirm) {
-              widget.audioHandler.seek(Duration(milliseconds: progress));
-              confirm.call();
-            },
           ),
         );
       },
