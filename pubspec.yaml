@@ -1,7 +1,7 @@
 name: fluentmusic
 description: "FluentMusic - Modern Liquid Glass Music Player for Android"
 publish_to: "none"
-version: 1.0.9+109
+version: 1.1.0+110
 
 environment:
   sdk: ">=3.2.0 <4.0.0"
@@ -24,6 +24,7 @@ dependencies:
   just_audio: ^0.10.6
   audio_service: ^0.18.19
   audio_session: ^0.2.4
+  flutter_lyric: ^2.0.4
 
   # Innertube & Media Discovery
   youtube_explode_dart: ^3.1.0

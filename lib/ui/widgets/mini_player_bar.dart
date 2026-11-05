@@ -1,10 +1,12 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:marquee/marquee.dart';
+
 import '../../core/audio/audio_handler.dart';
 import '../screens/player_screen.dart';
-import 'liquid_glass_container.dart';
 
 class MiniPlayerBar extends StatelessWidget {
   final FluentAudioHandler audioHandler;
@@ -24,52 +26,59 @@ class MiniPlayerBar extends StatelessWidget {
           builder: (context, playStateSnapshot) {
             final playing = playStateSnapshot.data?.playing ?? false;
 
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 6.0),
-              child: LiquidGlassContainer(
-                borderRadius: 22,
+            return GestureDetector(
+              onTap: () {
+                Navigator.of(context).push(
+                  PageRouteBuilder(
+                    pageBuilder: (context, animation, secondaryAnimation) =>
+                        PlayerScreen(audioHandler: audioHandler),
+                    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                      return SlideTransition(
+                        position: Tween<Offset>(
+                          begin: const Offset(0, 1),
+                          end: Offset.zero,
+                        ).animate(CurvedAnimation(
+                          parent: animation,
+                          curve: Curves.easeOutCubic,
+                        )),
+                        child: child,
+                      );
+                    },
+                  ),
+                );
+              },
+              child: GlassContainer(
+                useOwnLayer: true,
+                shape: const LiquidShape.roundedRectangle(borderRadius: 22),
                 padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-                tintColor: const Color(0xFF1E2130).withValues(alpha: 0.65),
-                onTap: () {
-                  Navigator.of(context).push(
-                    PageRouteBuilder(
-                      pageBuilder: (context, animation, secondaryAnimation) =>
-                          PlayerScreen(audioHandler: audioHandler),
-                      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                        return SlideTransition(
-                          position: Tween<Offset>(
-                            begin: const Offset(0, 1),
-                            end: Offset.zero,
-                          ).animate(CurvedAnimation(
-                            parent: animation,
-                            curve: Curves.easeOutCubic,
-                          )),
-                          child: child,
-                        );
-                      },
-                    ),
-                  );
-                },
                 child: Row(
                   children: [
-                    // Artwork
+                    // Album Art
                     ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(10),
                       child: SizedBox(
-                        width: 46,
-                        height: 46,
+                        width: 44,
+                        height: 44,
                         child: mediaItem.artUri != null
                             ? CachedNetworkImage(
                                 imageUrl: mediaItem.artUri.toString(),
                                 fit: BoxFit.cover,
                                 errorWidget: (_, __, ___) => Container(
-                                  color: Colors.white10,
-                                  child: const Icon(Icons.music_note, color: Colors.white54),
+                                  color: Colors.white12,
+                                  child: const Icon(
+                                    CupertinoIcons.music_note,
+                                    color: Colors.white54,
+                                    size: 20,
+                                  ),
                                 ),
                               )
                             : Container(
-                                color: Colors.white10,
-                                child: const Icon(Icons.music_note, color: Colors.white54),
+                                color: Colors.white12,
+                                child: const Icon(
+                                  CupertinoIcons.music_note,
+                                  color: Colors.white54,
+                                  size: 20,
+                                ),
                               ),
                       ),
                     ),
@@ -83,7 +92,7 @@ class MiniPlayerBar extends StatelessWidget {
                         children: [
                           SizedBox(
                             height: 18,
-                            child: mediaItem.title.length > 28
+                            child: mediaItem.title.length > 26
                                 ? Marquee(
                                     text: mediaItem.title,
                                     style: const TextStyle(
@@ -107,7 +116,7 @@ class MiniPlayerBar extends StatelessWidget {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            mediaItem.artist ?? 'Unknown Artist',
+                            mediaItem.artist ?? 'FluentMusic',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
@@ -119,12 +128,12 @@ class MiniPlayerBar extends StatelessWidget {
                       ),
                     ),
 
-                    // Play / Pause Button
+                    // Play / Pause Icon Button
                     IconButton(
                       icon: Icon(
-                        playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                        playing ? CupertinoIcons.pause_fill : CupertinoIcons.play_fill,
                         color: Colors.white,
-                        size: 30,
+                        size: 26,
                       ),
                       onPressed: () {
                         if (playing) {
@@ -138,9 +147,9 @@ class MiniPlayerBar extends StatelessWidget {
                     // Skip Next Button
                     IconButton(
                       icon: const Icon(
-                        Icons.skip_next_rounded,
+                        CupertinoIcons.forward_fill,
                         color: Colors.white70,
-                        size: 26,
+                        size: 22,
                       ),
                       onPressed: () => audioHandler.skipToNext(),
                     ),

@@ -1,12 +1,98 @@
 import 'dart:ui';
 import 'package:audio_service/audio_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_lyric/lyric_ui/lyric_ui.dart';
+import 'package:flutter_lyric/lyrics_model_builder.dart';
+import 'package:flutter_lyric/lyrics_reader.dart';
+import 'package:flutter_lyric/lyrics_reader_model.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
+
 import '../../core/audio/audio_handler.dart';
 import '../../core/lyrics/lyrics_service.dart';
 import '../../core/lyrics/synced_line.dart';
-import '../widgets/liquid_glass_container.dart';
-import '../widgets/mesh_canvas.dart';
+
+/// Apple Music Custom Lyric UI Theme for flutter_lyric
+class AppleMusicLyricUI extends LyricUI {
+  double defaultSize;
+  double defaultExtSize;
+  double otherMainSize;
+  double bias;
+  double lineGap;
+  bool isKaraoke;
+
+  AppleMusicLyricUI({
+    this.defaultSize = 22,
+    this.defaultExtSize = 14,
+    this.otherMainSize = 17,
+    this.bias = 0.5,
+    this.lineGap = 24,
+    this.isKaraoke = true,
+  });
+
+  @override
+  TextStyle getPlayingTextStyle() {
+    return TextStyle(
+      fontSize: defaultSize,
+      fontWeight: FontWeight.w800,
+      color: Colors.white,
+      shadows: [
+        Shadow(
+          color: const Color(0xFFFA2D48).withValues(alpha: 0.5),
+          blurRadius: 14,
+        ),
+      ],
+    );
+  }
+
+  @override
+  TextStyle getNormalTextStyle() {
+    return TextStyle(
+      fontSize: otherMainSize,
+      fontWeight: FontWeight.w600,
+      color: Colors.white.withValues(alpha: 0.32),
+    );
+  }
+
+  @override
+  TextStyle getOtherMainTextStyle() {
+    return TextStyle(
+      fontSize: otherMainSize,
+      fontWeight: FontWeight.w500,
+      color: Colors.white.withValues(alpha: 0.22),
+    );
+  }
+
+  @override
+  TextStyle getPlayingExtTextStyle() {
+    return TextStyle(
+      fontSize: defaultExtSize,
+      color: const Color(0xFFFA2D48),
+      fontWeight: FontWeight.w600,
+    );
+  }
+
+  @override
+  TextStyle getOtherExtTextStyle() {
+    return TextStyle(
+      fontSize: defaultExtSize,
+      color: Colors.white30,
+    );
+  }
+
+  @override
+  double getLineGap() => lineGap;
+
+  @override
+  double getInlineGap() => 8;
+
+  @override
+  LyricAlign getLyricAlign() => LyricAlign.LEFT;
+
+  @override
+  LyricHighlightDirection getHighlightDirection() => LyricHighlightDirection.LTR;
+}
 
 class PlayerScreen extends StatefulWidget {
   final FluentAudioHandler audioHandler;
@@ -19,9 +105,9 @@ class PlayerScreen extends StatefulWidget {
 
 class _PlayerScreenState extends State<PlayerScreen> {
   final LyricsService _lyricsService = LyricsService();
-  final ScrollController _lyricsScrollController = ScrollController();
+  final AppleMusicLyricUI _lyricUI = AppleMusicLyricUI();
 
-  List<SyncedLine> _lyrics = [];
+  LyricsReaderModel? _lyricModel;
   bool _showLyrics = false;
   String _currentTrackId = '';
 
@@ -43,7 +129,23 @@ class _PlayerScreenState extends State<PlayerScreen> {
     );
 
     if (mounted) {
-      setState(() => _lyrics = lines);
+      if (lines.isNotEmpty) {
+        // Construct LRC string for flutter_lyric
+        final StringBuffer sb = StringBuffer();
+        for (final l in lines) {
+          final m = l.time.inMinutes.toString().padLeft(2, '0');
+          final s = (l.time.inSeconds % 60).toString().padLeft(2, '0');
+          final ms = ((l.time.inMilliseconds % 1000) ~/ 10).toString().padLeft(2, '0');
+          sb.writeln('[$m:$s.$ms]${l.text}');
+        }
+        setState(() {
+          _lyricModel = LyricsModelBuilder.create()
+              .bindLyricToMain(sb.toString())
+              .getModel();
+        });
+      } else {
+        setState(() => _lyricModel = null);
+      }
     }
   }
 
@@ -58,77 +160,84 @@ class _PlayerScreenState extends State<PlayerScreen> {
         }
 
         return Scaffold(
-          body: MeshCanvas(
-            colors: const [
-              Color(0xFF6C5CE7),
-              Color(0xFF00CEC9),
-              Color(0xFFFD79A8),
-            ],
-            child: SafeArea(
-              child: Column(
-                children: [
-                  // Top App Bar
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        LiquidGlassContainer(
-                          borderRadius: 20,
-                          padding: const EdgeInsets.all(8),
-                          tintColor: Colors.white.withValues(alpha: 0.1),
-                          onTap: () => Navigator.of(context).pop(),
-                          child: const Icon(Icons.keyboard_arrow_down_rounded,
-                              color: Colors.white, size: 28),
-                        ),
-                        Column(
-                          children: [
-                            Text(
-                              'PLAYING FROM PLAYLIST',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1.2,
-                                color: Colors.white.withValues(alpha: 0.5),
-                              ),
-                            ),
-                            const Text(
-                              'FluentMusic Mix',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
-                        ),
-                        LiquidGlassContainer(
-                          borderRadius: 20,
-                          padding: const EdgeInsets.all(8),
-                          tintColor: _showLyrics
-                              ? const Color(0xFF6C5CE7).withValues(alpha: 0.4)
-                              : Colors.white.withValues(alpha: 0.1),
-                          onTap: () => setState(() => _showLyrics = !_showLyrics),
-                          child: Icon(
-                            Icons.lyrics_rounded,
-                            color: _showLyrics ? const Color(0xFF00CEC9) : Colors.white,
-                            size: 22,
-                          ),
-                        ),
-                      ],
+          backgroundColor: Colors.black, // Pure OLED Black
+          body: Stack(
+            fit: StackFit.expand,
+            children: [
+              // 1. Subtle Ambient Album Glow Backdrop
+              if (item?.artUri != null)
+                Positioned.fill(
+                  child: Opacity(
+                    opacity: 0.22,
+                    child: ImageFiltered(
+                      imageFilter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
+                      child: CachedNetworkImage(
+                        imageUrl: item!.artUri.toString(),
+                        fit: BoxFit.cover,
+                        errorWidget: (_, __, ___) => const SizedBox.shrink(),
+                      ),
                     ),
                   ),
+                ),
 
-                  // Middle Content: Artwork OR Word-by-Word Synced Lyrics
-                  Expanded(
-                    child: _showLyrics ? _buildLyricsView() : _buildArtworkView(item),
-                  ),
+              // 2. Main Content
+              SafeArea(
+                child: Column(
+                  children: [
+                    // Top App Bar
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          GlassIconButton(
+                            icon: const Icon(CupertinoIcons.chevron_down, color: Colors.white, size: 22),
+                            onPressed: () => Navigator.of(context).pop(),
+                          ),
+                          Column(
+                            children: [
+                              Text(
+                                'PLAYING FROM PLAYLIST',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.2,
+                                  color: Colors.white.withValues(alpha: 0.5),
+                                ),
+                              ),
+                              const Text(
+                                'FluentMusic',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                          GlassIconButton(
+                            icon: Icon(
+                              _showLyrics ? CupertinoIcons.quote_bubble_fill : CupertinoIcons.quote_bubble,
+                              color: _showLyrics ? const Color(0xFFFA2D48) : Colors.white70,
+                              size: 20,
+                            ),
+                            onPressed: () => setState(() => _showLyrics = !_showLyrics),
+                          ),
+                        ],
+                      ),
+                    ),
 
-                  // Bottom Controls
-                  _buildBottomControls(item),
-                ],
+                    // Middle: Artwork OR flutter_lyric synced karaoke
+                    Expanded(
+                      child: _showLyrics ? _buildLyricsView() : _buildArtworkView(item),
+                    ),
+
+                    // Bottom Controls Platter
+                    _buildBottomControls(item),
+                  ],
+                ),
               ),
-            ),
+            ],
           ),
         );
       },
@@ -137,35 +246,35 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   Widget _buildArtworkView(MediaItem? item) {
     return Padding(
-      padding: const EdgeInsets.all(32.0),
+      padding: const EdgeInsets.symmetric(horizontal: 36.0, vertical: 20.0),
       child: Center(
         child: AspectRatio(
           aspectRatio: 1.0,
           child: Container(
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(30),
+              borderRadius: BorderRadius.circular(26),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.4),
-                  blurRadius: 30,
-                  offset: const Offset(0, 16),
+                  color: Colors.black.withValues(alpha: 0.6),
+                  blurRadius: 36,
+                  offset: const Offset(0, 18),
                 ),
               ],
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(30),
+              borderRadius: BorderRadius.circular(26),
               child: item?.artUri != null
                   ? CachedNetworkImage(
                       imageUrl: item!.artUri.toString(),
                       fit: BoxFit.cover,
                       errorWidget: (_, __, ___) => Container(
-                        color: Colors.white10,
-                        child: const Icon(Icons.music_note, size: 80, color: Colors.white38),
+                        color: Colors.white12,
+                        child: const Icon(CupertinoIcons.music_note, size: 80, color: Colors.white24),
                       ),
                     )
                   : Container(
-                      color: Colors.white10,
-                      child: const Icon(Icons.music_note, size: 80, color: Colors.white38),
+                      color: Colors.white12,
+                      child: const Icon(CupertinoIcons.music_note, size: 80, color: Colors.white24),
                     ),
             ),
           ),
@@ -175,16 +284,16 @@ class _PlayerScreenState extends State<PlayerScreen> {
   }
 
   Widget _buildLyricsView() {
-    if (_lyrics.isEmpty) {
+    if (_lyricModel == null) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.lyrics_outlined, size: 48, color: Colors.white38),
+            const Icon(CupertinoIcons.quote_bubble, size: 48, color: Colors.white30),
             const SizedBox(height: 12),
             Text(
-              'No lyrics found for this track',
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
+              'No lyrics found for this song',
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
             ),
           ],
         ),
@@ -195,52 +304,28 @@ class _PlayerScreenState extends State<PlayerScreen> {
       stream: widget.audioHandler.player.positionStream,
       builder: (context, posSnapshot) {
         final position = posSnapshot.data ?? Duration.zero;
+        final playing = widget.audioHandler.player.playing;
 
-        // Find active line
-        int activeIndex = 0;
-        for (int i = 0; i < _lyrics.length; i++) {
-          if (position >= _lyrics[i].time) {
-            activeIndex = i;
-          } else {
-            break;
-          }
-        }
-
-        // Auto-scroll to center active line
-        if (_lyricsScrollController.hasClients) {
-          _lyricsScrollController.animateTo(
-            (activeIndex * 60.0) - 120.0,
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOut,
-          );
-        }
-
-        return ListView.builder(
-          controller: _lyricsScrollController,
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 40.0),
-          itemCount: _lyrics.length,
-          itemBuilder: (context, index) {
-            final line = _lyrics[index];
-            final isActive = index == activeIndex;
-
-            return GestureDetector(
-              onTap: () => widget.audioHandler.seek(line.time),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12.0),
-                child: Text(
-                  line.text,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: isActive ? 22 : 16,
-                    fontWeight: isActive ? FontWeight.w800 : FontWeight.w500,
-                    color: isActive
-                        ? const Color(0xFF00CEC9)
-                        : Colors.white.withValues(alpha: 0.4),
-                  ),
-                ),
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 10.0),
+          child: LyricsReader(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            model: _lyricModel,
+            position: position.inMilliseconds,
+            playing: playing,
+            lyricUi: _lyricUI,
+            size: Size(MediaQuery.of(context).size.width, 360),
+            emptyBuilder: () => Center(
+              child: Text(
+                'Searching lyrics...',
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
               ),
-            );
-          },
+            ),
+            selectLineBuilder: (progress, confirm) {
+              widget.audioHandler.seek(Duration(milliseconds: progress));
+              confirm.call();
+            },
+          ),
         );
       },
     );
@@ -248,7 +333,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   Widget _buildBottomControls(MediaItem? item) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 28),
+      padding: const EdgeInsets.fromLTRB(26, 0, 26, 26),
       child: Column(
         children: [
           // Track Info
@@ -266,16 +351,18 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w800,
+                        letterSpacing: -0.4,
                         color: Colors.white,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      item?.artist ?? 'Select a song to start',
+                      item?.artist ?? 'FluentMusic',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: 15,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
                         color: Colors.white.withValues(alpha: 0.65),
                       ),
                     ),
@@ -283,14 +370,14 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.favorite_border_rounded, color: Colors.white, size: 28),
+                icon: const Icon(CupertinoIcons.heart, color: Colors.white70, size: 26),
                 onPressed: () {},
               ),
             ],
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 16),
 
-          // Seek Bar
+          // Seeker Slider with Apple Red Accent
           StreamBuilder<Duration>(
             stream: widget.audioHandler.player.positionStream,
             builder: (context, snapshot) {
@@ -303,12 +390,12 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 children: [
                   SliderTheme(
                     data: SliderTheme.of(context).copyWith(
-                      trackHeight: 4,
-                      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-                      activeTrackColor: const Color(0xFF00CEC9),
+                      trackHeight: 3.5,
+                      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5.5),
+                      activeTrackColor: const Color(0xFFFA2D48), // Apple Red
                       inactiveTrackColor: Colors.white24,
                       thumbColor: Colors.white,
-                      overlayColor: const Color(0xFF00CEC9).withValues(alpha: 0.2),
+                      overlayColor: const Color(0xFFFA2D48).withValues(alpha: 0.2),
                     ),
                     child: Slider(
                       value: current,
@@ -320,7 +407,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    padding: const EdgeInsets.symmetric(horizontal: 14.0),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -341,7 +428,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
           ),
           const SizedBox(height: 14),
 
-          // Playback Buttons
+          // Playback Buttons Capsule
           StreamBuilder<PlaybackState>(
             stream: widget.audioHandler.playbackState,
             builder: (context, snapshot) {
@@ -351,17 +438,14 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.shuffle_rounded, color: Colors.white60),
+                    icon: const Icon(CupertinoIcons.shuffle, color: Colors.white54, size: 22),
                     onPressed: () {},
                   ),
                   IconButton(
-                    icon: const Icon(Icons.skip_previous_rounded, color: Colors.white, size: 38),
+                    icon: const Icon(CupertinoIcons.backward_fill, color: Colors.white, size: 34),
                     onPressed: () => widget.audioHandler.skipToPrevious(),
                   ),
-                  LiquidGlassContainer(
-                    borderRadius: 36,
-                    padding: const EdgeInsets.all(16),
-                    tintColor: Colors.white.withValues(alpha: 0.25),
+                  GestureDetector(
                     onTap: () {
                       if (playing) {
                         widget.audioHandler.pause();
@@ -369,18 +453,30 @@ class _PlayerScreenState extends State<PlayerScreen> {
                         widget.audioHandler.play();
                       }
                     },
-                    child: Icon(
-                      playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                      color: Colors.white,
-                      size: 38,
+                    child: Container(
+                      width: 68,
+                      height: 68,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withValues(alpha: 0.16),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.25),
+                          width: 1.2,
+                        ),
+                      ),
+                      child: Icon(
+                        playing ? CupertinoIcons.pause_fill : CupertinoIcons.play_fill,
+                        color: Colors.white,
+                        size: 34,
+                      ),
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.skip_next_rounded, color: Colors.white, size: 38),
+                    icon: const Icon(CupertinoIcons.forward_fill, color: Colors.white, size: 34),
                     onPressed: () => widget.audioHandler.skipToNext(),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.repeat_rounded, color: Colors.white60),
+                    icon: const Icon(CupertinoIcons.repeat, color: Colors.white54, size: 22),
                     onPressed: () {},
                   ),
                 ],

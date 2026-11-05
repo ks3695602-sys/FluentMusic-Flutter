@@ -74,7 +74,7 @@ class _SearchScreenState extends State<SearchScreen> {
           child: TextField(
             controller: _searchController,
             style: const TextStyle(color: Colors.white, fontSize: 16),
-            cursorColor: const Color(0xFF6C5CE7),
+            cursorColor: const Color(0xFFFA2D48),
             onChanged: _onQueryChanged,
             onSubmitted: _executeSearch,
             decoration: InputDecoration(
@@ -135,7 +135,7 @@ class _SearchScreenState extends State<SearchScreen> {
           const Center(
             child: Padding(
               padding: EdgeInsets.all(32.0),
-              child: CircularProgressIndicator(color: Color(0xFF6C5CE7)),
+              child: CircularProgressIndicator(color: Color(0xFFFA2D48)),
             ),
           ),
 
@@ -193,7 +193,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 ),
               ),
               trailing: const Icon(Icons.play_circle_fill_rounded,
-                  color: Color(0xFF6C5CE7), size: 30),
+                  color: Color(0xFFFA2D48), size: 30),
               onTap: () {
                 widget.audioHandler.playTrack(track, queue: _searchResults);
               },

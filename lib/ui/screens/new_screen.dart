@@ -40,13 +40,13 @@ class _NewScreenState extends State<NewScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return const Center(
-        child: CircularProgressIndicator(color: Color(0xFF00CEC9)),
+        child: CircularProgressIndicator(color: Color(0xFFFA2D48)),
       );
     }
 
     return RefreshIndicator(
       onRefresh: _loadNewFeed,
-      color: const Color(0xFF00CEC9),
+      color: const Color(0xFFFA2D48),
       child: ListView(
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
@@ -67,9 +67,9 @@ class _NewScreenState extends State<NewScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF00CEC9).withValues(alpha: 0.2),
+                  color: const Color(0xFFFA2D48).withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF00CEC9), width: 1),
+                  border: Border.all(color: const Color(0xFFFA2D48), width: 1),
                 ),
                 child: const Text(
                   'GLOBAL',
@@ -77,7 +77,7 @@ class _NewScreenState extends State<NewScreen> {
                     fontSize: 10,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 1.0,
-                    color: Color(0xFF00CEC9),
+                    color: Color(0xFFFA2D48),
                   ),
                 ),
               ),
@@ -123,7 +123,7 @@ class _NewScreenState extends State<NewScreen> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 16, color: const Color(0xFF00CEC9)),
+            Icon(icon, size: 16, color: const Color(0xFFFA2D48)),
             const SizedBox(width: 6),
             Text(
               label,

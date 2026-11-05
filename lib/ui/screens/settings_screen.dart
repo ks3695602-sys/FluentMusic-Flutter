@@ -1,7 +1,9 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
+
 import '../../core/storage/preferences_service.dart';
 import '../../core/updater/github_updater.dart';
-import '../widgets/liquid_glass_container.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -15,6 +17,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isCheckingUpdate = false;
   String _updateStatus = '';
 
+  // Settings states
+  bool _wordByWordKaraoke = true;
+  bool _pureOledBlack = true;
+  bool _specularHighlights = true;
+  double _blurRadius = 16.0;
+
   void _checkForUpdates() async {
     setState(() {
       _isCheckingUpdate = true;
@@ -26,7 +34,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       setState(() {
         _isCheckingUpdate = false;
         if (info == null) {
-          _updateStatus = 'Failed to check updates. Check internet.';
+          _updateStatus = 'Failed to check updates.';
         } else if (info.hasUpdate) {
           _updateStatus = 'New version available: ${info.tagName}!';
         } else {
@@ -43,228 +51,202 @@ class _SettingsScreenState extends State<SettingsScreen> {
       builder: (context, _) {
         return ListView(
           physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 140),
           children: [
-            // Title
-            const Text(
-              'Settings',
-              style: TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.5,
-                color: Colors.white,
+            // iOS 18 Large Title: "Settings"
+            SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 8, bottom: 20),
+                child: const Text(
+                  'Settings',
+                  style: TextStyle(
+                    fontSize: 34,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -1.0,
+                    color: Colors.white,
+                  ),
+                ),
               ),
             ),
-            const SizedBox(height: 20),
 
-            // Liquid Glass Studio Header
-            const Row(
+            // Section 1: PLAYBACK & AUDIO ENGINE
+            GlassGroupedSection(
+              surfaceStyle: GlassSurfaceStyle.solid,
+              header: const Text(
+                'PLAYBACK & AUDIO ENGINE',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white54),
+              ),
               children: [
-                Icon(Icons.auto_awesome_rounded, color: Color(0xFF00CEC9), size: 20),
-                SizedBox(width: 8),
-                Text(
-                  'Liquid Glass Studio',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
+                GlassListTile(
+                  leading: const Icon(CupertinoIcons.play_circle_fill, color: Color(0xFFFA2D48)),
+                  title: const Text('Audio Engine Backend'),
+                  subtitle: const Text('Hardware C++ libmpv / media_kit'),
+                  trailing: const Text('Active', style: TextStyle(color: Color(0xFFFA2D48), fontWeight: FontWeight.bold)),
+                ),
+                GlassListTile(
+                  leading: const Icon(CupertinoIcons.antenna_radiowaves_left_right, color: Color(0xFFFA2D48)),
+                  title: const Text('Streaming Fallback Priority'),
+                  subtitle: const Text('YouTube Music ➔ Piped ➔ JioSaavn'),
+                  trailing: GlassListTile.chevron,
+                  onTap: () {},
+                ),
+                GlassListTile(
+                  leading: const Icon(CupertinoIcons.waveform, color: Color(0xFFFA2D48)),
+                  title: const Text('Audio Stream Quality'),
+                  subtitle: const Text('High (160kbps Opus / 320kbps MP3)'),
+                  trailing: GlassListTile.chevron,
+                  onTap: () {},
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+
+            // Section 2: LYRICS ENGINE (FLUTTER_LYRIC)
+            GlassGroupedSection(
+              surfaceStyle: GlassSurfaceStyle.solid,
+              header: const Text(
+                'LYRICS ENGINE (FLUTTER_LYRIC)',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white54),
+              ),
+              children: [
+                GlassListTile(
+                  leading: const Icon(CupertinoIcons.quote_bubble_fill, color: Color(0xFFFA2D48)),
+                  title: const Text('Primary Lyric Engine'),
+                  subtitle: const Text('flutter_lyric (LRC/QRC/YRC parser)'),
+                  trailing: const Text('Active', style: TextStyle(color: Color(0xFFFA2D48), fontWeight: FontWeight.bold)),
+                ),
+                GlassListTile(
+                  leading: const Icon(CupertinoIcons.search, color: Color(0xFFFA2D48)),
+                  title: const Text('Providers & Scrapers'),
+                  subtitle: const Text('Better Lyrics API + YoulyPlus + LRCLIB'),
+                  trailing: GlassListTile.chevron,
+                  onTap: () {},
+                ),
+                GlassListTile(
+                  leading: const Icon(CupertinoIcons.sparkles, color: Color(0xFFFA2D48)),
+                  title: const Text('Word-by-Word Karaoke Bloom'),
+                  subtitle: const Text('Smooth real-time syllable text glow'),
+                  trailing: GlassSwitch(
+                    value: _wordByWordKaraoke,
+                    onChanged: (val) => setState(() => _wordByWordKaraoke = val),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 24),
 
-            // Liquid Glass Studio Sliders Card
-            LiquidGlassContainer(
-              borderRadius: 20,
-              padding: const EdgeInsets.all(16),
-              tintColor: Colors.white.withValues(alpha: 0.08),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Blur Radius
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('Blur Intensity', style: TextStyle(color: Colors.white)),
-                      Text('${_prefs.blurRadius.toStringAsFixed(1)} px',
-                          style: const TextStyle(color: Color(0xFF00CEC9), fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                  Slider(
-                    value: _prefs.blurRadius,
-                    min: 5.0,
-                    max: 45.0,
-                    activeColor: const Color(0xFF00CEC9),
-                    onChanged: (val) => _prefs.setBlurRadius(val),
-                  ),
-                  const Divider(color: Colors.white10),
-
-                  // Refraction Index
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('Refraction Index', style: TextStyle(color: Colors.white)),
-                      Text('${_prefs.refractionIndex.toStringAsFixed(2)}x',
-                          style: const TextStyle(color: Color(0xFF00CEC9), fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                  Slider(
-                    value: _prefs.refractionIndex,
-                    min: 1.0,
-                    max: 1.4,
-                    activeColor: const Color(0xFF00CEC9),
-                    onChanged: (val) => _prefs.setRefractionIndex(val),
-                  ),
-                  const Divider(color: Colors.white10),
-
-                  // Tint Opacity
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('Glass Tint Opacity', style: TextStyle(color: Colors.white)),
-                      Text('${(_prefs.tintOpacity * 100).toInt()}%',
-                          style: const TextStyle(color: Color(0xFF00CEC9), fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                  Slider(
-                    value: _prefs.tintOpacity,
-                    min: 0.05,
-                    max: 0.60,
-                    activeColor: const Color(0xFF00CEC9),
-                    onChanged: (val) => _prefs.setTintOpacity(val),
-                  ),
-                  const Divider(color: Colors.white10),
-
-                  // Chromatic Aberration Toggle
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Edge Chromatic Aberration', style: TextStyle(color: Colors.white)),
-                    subtitle: Text('Simulate optical glass prism edges',
-                        style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 12)),
-                    value: _prefs.enableChromaticAberration,
-                    activeColor: const Color(0xFF00CEC9),
-                    onChanged: (val) => _prefs.setChromaticAberration(val),
-                  ),
-
-                  // Animated Mesh Background
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Dynamic Mesh Canvas', style: TextStyle(color: Colors.white)),
-                    subtitle: Text('Fluid animated backdrop responding to music',
-                        style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 12)),
-                    value: _prefs.enableMeshBackground,
-                    activeColor: const Color(0xFF00CEC9),
-                    onChanged: (val) => _prefs.setMeshBackground(val),
-                  ),
-                ],
+            // Section 3: LIQUID GLASS & SHADERS (IOS 26/27)
+            GlassGroupedSection(
+              surfaceStyle: GlassSurfaceStyle.solid,
+              header: const Text(
+                'LIQUID GLASS & SHADERS (IOS 26/27)',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white54),
               ),
+              children: [
+                GlassListTile(
+                  leading: const Icon(CupertinoIcons.layers_fill, color: Color(0xFFFA2D48)),
+                  title: const Text('Liquid Glass Material'),
+                  subtitle: const Text('iOS 27 Refraction & Chromatic Blur'),
+                  trailing: const Text('Impeller Shader', style: TextStyle(color: Colors.white54, fontSize: 13)),
+                ),
+                GlassListTile(
+                  leading: const Icon(CupertinoIcons.sun_max_fill, color: Color(0xFFFA2D48)),
+                  title: const Text('Specular Rim Glints'),
+                  subtitle: const Text('Analytical dual-rim light highlights'),
+                  trailing: GlassSwitch(
+                    value: _specularHighlights,
+                    onChanged: (val) => setState(() => _specularHighlights = val),
+                  ),
+                ),
+                GlassListTile(
+                  leading: const Icon(CupertinoIcons.slider_horizontal_3, color: Color(0xFFFA2D48)),
+                  title: const Text('Glass Blur Radius'),
+                  subtitle: Text('${_blurRadius.toInt()} px sigma'),
+                  trailing: SizedBox(
+                    width: 130,
+                    child: SliderTheme(
+                      data: SliderTheme.of(context).copyWith(
+                        trackHeight: 3,
+                        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5),
+                        activeTrackColor: const Color(0xFFFA2D48),
+                        inactiveTrackColor: Colors.white24,
+                        thumbColor: Colors.white,
+                      ),
+                      child: Slider(
+                        value: _blurRadius,
+                        min: 8.0,
+                        max: 32.0,
+                        onChanged: (val) {
+                          setState(() => _blurRadius = val);
+                          _prefs.setBlurRadius(val);
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 24),
 
-            // Audio & Stream Quality
-            const Text(
-              'Audio Streaming',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
+            // Section 4: APPEARANCE
+            GlassGroupedSection(
+              surfaceStyle: GlassSurfaceStyle.solid,
+              header: const Text(
+                'APPEARANCE',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white54),
               ),
-            ),
-            const SizedBox(height: 12),
-            LiquidGlassContainer(
-              borderRadius: 20,
-              padding: const EdgeInsets.all(16),
-              tintColor: Colors.white.withValues(alpha: 0.08),
-              child: Column(
-                children: [
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.high_quality_rounded, color: Color(0xFF6C5CE7)),
-                    title: const Text('Streaming Bitrate', style: TextStyle(color: Colors.white)),
-                    subtitle: Text(_prefs.audioQuality,
-                        style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 12)),
-                    trailing: DropdownButton<String>(
-                      value: _prefs.audioQuality,
-                      dropdownColor: const Color(0xFF1E2130),
-                      style: const TextStyle(color: Colors.white),
-                      underline: const SizedBox.shrink(),
-                      items: const [
-                        DropdownMenuItem(value: 'High (160k Opus)', child: Text('160k Opus')),
-                        DropdownMenuItem(value: 'Very High (256k AAC)', child: Text('256k AAC')),
-                        DropdownMenuItem(value: 'Standard (128k)', child: Text('128k Standard')),
-                      ],
-                      onChanged: (val) {
-                        if (val != null) _prefs.setAudioQuality(val);
-                      },
+              children: [
+                GlassListTile(
+                  leading: const Icon(CupertinoIcons.paintbrush_fill, color: Color(0xFFFA2D48)),
+                  title: const Text('Accent Color'),
+                  subtitle: const Text('Apple Music Neon Red (#FA2D48)'),
+                  trailing: Container(
+                    width: 22,
+                    height: 22,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFFA2D48),
+                      shape: BoxShape.circle,
                     ),
                   ),
-                ],
-              ),
+                ),
+                GlassListTile(
+                  leading: const Icon(CupertinoIcons.moon_fill, color: Color(0xFFFA2D48)),
+                  title: const Text('Pure OLED Black Mode'),
+                  subtitle: const Text('#000000 background for infinite contrast'),
+                  trailing: GlassSwitch(
+                    value: _pureOledBlack,
+                    onChanged: (val) => setState(() => _pureOledBlack = val),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 24),
 
-            // GitHub In-App Updater
-            const Text(
-              'Updates & About',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
+            // Section 5: ABOUT FLUENTMUSIC
+            GlassGroupedSection(
+              surfaceStyle: GlassSurfaceStyle.solid,
+              header: const Text(
+                'ABOUT FLUENTMUSIC',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white54),
               ),
-            ),
-            const SizedBox(height: 12),
-            LiquidGlassContainer(
-              borderRadius: 20,
-              padding: const EdgeInsets.all(16),
-              tintColor: Colors.white.withValues(alpha: 0.08),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('FluentMusic',
-                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                          Text('Version 1.0.9-flutter (Universal)',
-                              style: TextStyle(color: Colors.white54, fontSize: 12)),
-                        ],
-                      ),
-                      ElevatedButton.icon(
-                        icon: _isCheckingUpdate
-                            ? const SizedBox(
-                                width: 14,
-                                height: 14,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                              )
-                            : const Icon(Icons.system_update_rounded, size: 16),
-                        label: const Text('Check Update'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF6C5CE7),
-                          foregroundColor: Colors.white,
-                        ),
-                        onPressed: _isCheckingUpdate ? null : _checkForUpdates,
-                      ),
-                    ],
-                  ),
-                  if (_updateStatus.isNotEmpty) ...[
-                    const SizedBox(height: 12),
-                    Text(
-                      _updateStatus,
-                      style: TextStyle(
-                        color: _updateStatus.contains('available')
-                            ? const Color(0xFF00CEC9)
-                            : Colors.white70,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
+              children: [
+                GlassListTile(
+                  leading: const Icon(CupertinoIcons.info_circle_fill, color: Color(0xFFFA2D48)),
+                  title: const Text('FluentMusic for Android'),
+                  subtitle: const Text('Version 1.1.0-fluent (Architecture: libmpv + liquid_glass)'),
+                  trailing: const Text('v1.1.0', style: TextStyle(color: Colors.white54, fontSize: 13)),
+                ),
+                GlassListTile(
+                  leading: const Icon(CupertinoIcons.arrow_clockwise_circle_fill, color: Color(0xFFFA2D48)),
+                  title: const Text('Check for Updates'),
+                  subtitle: Text(_isCheckingUpdate ? 'Checking...' : (_updateStatus.isNotEmpty ? _updateStatus : 'GitHub Releases')),
+                  trailing: _isCheckingUpdate
+                      ? const CupertinoActivityIndicator(radius: 10, color: Color(0xFFFA2D48))
+                      : GlassListTile.chevron,
+                  onTap: _isCheckingUpdate ? null : _checkForUpdates,
+                ),
+              ],
             ),
           ],
         );

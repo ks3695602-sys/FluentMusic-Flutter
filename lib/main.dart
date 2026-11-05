@@ -1,4 +1,5 @@
 import 'package:audio_service/audio_service.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,7 +16,7 @@ late final FluentAudioHandler globalAudioHandler;
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Edge to Edge Transparent System Bars
+  // Edge to Edge Transparent System Bars (OLED Full Immersive)
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.light,
@@ -25,7 +26,7 @@ Future<void> main() async {
   ));
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
-  // Initialize Glass & Shader Engines
+  // Initialize Glass & Shader Pipeline (Non-blocking async disk-to-RAM pre-warm)
   try {
     await LiquidGlassWidgets.initialize();
   } catch (e) {
@@ -38,7 +39,7 @@ Future<void> main() async {
     debugPrint('[Main] Inspire warmUp: $e');
   }
 
-  // Initialize Preferences
+  // Initialize Local Preferences
   await PreferencesService().init();
 
   // Initialize Background Audio Service
@@ -50,11 +51,23 @@ Future<void> main() async {
       androidNotificationOngoing: true,
       androidStopForegroundOnPause: true,
       androidShowNotificationBadge: true,
-      notificationColor: Color(0xFF6C5CE7),
+      notificationColor: Color(0xFFFA2D48), // Apple Red
     ),
   );
 
-  runApp(const ProviderScope(child: FluentMusicApp()));
+  runApp(
+    LiquidGlassWidgets.wrap(
+      adaptiveQuality: true,
+      respectSystemAccessibility: true,
+      brightnessResolver: Theme.maybeBrightnessOf,
+      theme: GlassThemeData.simple(
+        blur: 16,
+        thickness: 28,
+        quality: GlassQuality.standard,
+      ),
+      child: const ProviderScope(child: FluentMusicApp()),
+    ),
+  );
 }
 
 class FluentMusicApp extends StatelessWidget {

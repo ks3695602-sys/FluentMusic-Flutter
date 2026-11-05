@@ -94,7 +94,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
               child: LiquidGlassContainer(
                 borderRadius: 18,
                 padding: const EdgeInsets.all(14),
-                tintColor: const Color(0xFF6C5CE7).withValues(alpha: 0.25),
+                tintColor: const Color(0xFFFA2D48).withValues(alpha: 0.2),
                 child: const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -117,11 +117,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
               child: LiquidGlassContainer(
                 borderRadius: 18,
                 padding: const EdgeInsets.all(14),
-                tintColor: const Color(0xFF00CEC9).withValues(alpha: 0.25),
+                tintColor: Colors.white.withValues(alpha: 0.08),
                 child: const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.favorite_rounded, color: Colors.white, size: 24),
+                    Icon(Icons.favorite_rounded, color: Color(0xFFFA2D48), size: 24),
                     SizedBox(height: 8),
                     Text(
                       'Favorites',
@@ -154,7 +154,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
           const Center(
             child: Padding(
               padding: EdgeInsets.all(32.0),
-              child: CircularProgressIndicator(color: Color(0xFF6C5CE7)),
+              child: CircularProgressIndicator(color: Color(0xFFFA2D48)),
             ),
           )
         else if (!_hasPermission)
@@ -179,7 +179,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   ElevatedButton(
                     onPressed: _checkPermissionAndScan,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF6C5CE7),
+                      backgroundColor: const Color(0xFFFA2D48),
                       foregroundColor: Colors.white,
                     ),
                     child: const Text('Grant Permission'),
