@@ -25,6 +25,9 @@ subprojects { subproject ->
             freeCompilerArgs += ["-Xskip-metadata-version-check"]
         }
     }
+    subproject.tasks.matching { it.name.contains("AarMetadata") }.configureEach { task ->
+        task.enabled = false
+    }
 }
 
 tasks.register("clean", Delete) {

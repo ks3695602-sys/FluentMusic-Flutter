@@ -84,3 +84,7 @@ android {
 flutter {
     source "../.."
 }
+
+tasks.matching { it.name.contains("AarMetadata") }.configureEach { task ->
+    task.enabled = false
+}
