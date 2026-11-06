@@ -67,7 +67,7 @@ class _NewScreenState extends State<NewScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFA2D48).withValues(alpha: 0.2),
+                  color: const Color(0xFFFA2D48).withOpacity(0.2),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: const Color(0xFFFA2D48), width: 1),
                 ),
@@ -119,7 +119,7 @@ class _NewScreenState extends State<NewScreen> {
       child: LiquidGlassContainer(
         borderRadius: 16,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        tintColor: Colors.white.withValues(alpha: 0.08),
+        tintColor: Colors.white.withOpacity(0.08),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -159,7 +159,7 @@ class _NewScreenState extends State<NewScreen> {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
-                color: Colors.white.withValues(alpha: 0.5),
+                color: Colors.white.withOpacity(0.5),
               ),
             ),
           ],

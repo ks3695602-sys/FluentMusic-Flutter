@@ -34,7 +34,7 @@ class MeshCanvas extends StatelessWidget {
                 gradient: RadialGradient(
                   colors: [
                     (colors != null && colors!.isNotEmpty ? colors!.first : const Color(0xFFFA2D48))
-                        .withValues(alpha: 0.18),
+                        .withOpacity(0.18),
                     Colors.transparent,
                   ],
                 ),

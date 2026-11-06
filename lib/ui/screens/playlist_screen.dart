@@ -85,12 +85,12 @@ class PlaylistScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(22),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFFFA2D48).withValues(alpha: 0.28),
+                            color: const Color(0xFFFA2D48).withOpacity(0.28),
                             blurRadius: 40,
                             offset: const Offset(0, 16),
                           ),
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.6),
+                            color: Colors.black.withOpacity(0.6),
                             blurRadius: 24,
                             offset: const Offset(0, 10),
                           ),
@@ -149,7 +149,7 @@ class PlaylistScreen extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 13,
-                        color: Colors.white.withValues(alpha: 0.6),
+                        color: Colors.white.withOpacity(0.6),
                         height: 1.35,
                       ),
                     ),
@@ -173,9 +173,9 @@ class PlaylistScreen extends StatelessWidget {
                             height: 46,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(23),
-                              color: Colors.white.withValues(alpha: 0.12),
+                              color: Colors.white.withOpacity(0.12),
                               border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.18),
+                                color: Colors.white.withOpacity(0.18),
                                 width: 1.0,
                               ),
                             ),
@@ -214,7 +214,7 @@ class PlaylistScreen extends StatelessWidget {
                               color: Colors.white,
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.white.withValues(alpha: 0.25),
+                                  color: Colors.white.withOpacity(0.25),
                                   blurRadius: 18,
                                   offset: const Offset(0, 4),
                                 ),
@@ -248,9 +248,9 @@ class PlaylistScreen extends StatelessWidget {
                           height: 46,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: Colors.white.withValues(alpha: 0.12),
+                            color: Colors.white.withOpacity(0.12),
                             border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.18),
+                              color: Colors.white.withOpacity(0.18),
                               width: 1.0,
                             ),
                           ),
@@ -286,7 +286,7 @@ class PlaylistScreen extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
-                                color: Colors.white.withValues(alpha: 0.4),
+                                color: Colors.white.withOpacity(0.4),
                               ),
                             ),
                           ),
@@ -330,7 +330,7 @@ class PlaylistScreen extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.6),
+                          color: Colors.white.withOpacity(0.6),
                           fontSize: 13,
                         ),
                       ),

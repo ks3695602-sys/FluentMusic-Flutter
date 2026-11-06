@@ -57,7 +57,7 @@ class LiquidGlassCard extends StatelessWidget {
                   child: LiquidGlassContainer(
                     borderRadius: 24,
                     padding: const EdgeInsets.all(8.0),
-                    tintColor: Colors.black.withValues(alpha: 0.45),
+                    tintColor: Colors.black.withOpacity(0.45),
                     child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 20),
                   ),
                 ),
@@ -81,7 +81,7 @@ class LiquidGlassCard extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 12,
-                color: Colors.white.withValues(alpha: 0.65),
+                color: Colors.white.withOpacity(0.65),
               ),
             ),
           ],

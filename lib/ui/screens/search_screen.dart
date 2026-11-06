@@ -70,7 +70,7 @@ class _SearchScreenState extends State<SearchScreen> {
         LiquidGlassContainer(
           borderRadius: 18,
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-          tintColor: Colors.white.withValues(alpha: 0.08),
+          tintColor: Colors.white.withOpacity(0.08),
           child: TextField(
             controller: _searchController,
             style: const TextStyle(color: Colors.white, fontSize: 16),
@@ -80,7 +80,7 @@ class _SearchScreenState extends State<SearchScreen> {
             decoration: InputDecoration(
               icon: const Icon(Icons.search_rounded, color: Colors.white70),
               hintText: 'Songs, artists, podcasts...',
-              hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.4)),
+              hintStyle: TextStyle(color: Colors.white.withOpacity(0.4)),
               border: InputBorder.none,
               suffixIcon: _searchController.text.isNotEmpty
                   ? IconButton(
@@ -108,7 +108,7 @@ class _SearchScreenState extends State<SearchScreen> {
               return LiquidGlassContainer(
                 borderRadius: 16,
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                tintColor: Colors.white.withValues(alpha: 0.06),
+                tintColor: Colors.white.withOpacity(0.06),
                 onTap: () {
                   _searchController.text = s;
                   _executeSearch(s);
@@ -188,7 +188,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.6),
+                  color: Colors.white.withOpacity(0.6),
                   fontSize: 12,
                 ),
               ),

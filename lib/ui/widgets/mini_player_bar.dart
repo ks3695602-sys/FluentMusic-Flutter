@@ -121,7 +121,7 @@ class MiniPlayerBar extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.white.withValues(alpha: 0.65),
+                              color: Colors.white.withOpacity(0.65),
                             ),
                           ),
                         ],

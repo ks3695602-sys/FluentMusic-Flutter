@@ -121,7 +121,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
                                   letterSpacing: 1.2,
-                                  color: Colors.white.withValues(alpha: 0.5),
+                                  color: Colors.white.withOpacity(0.5),
                                 ),
                               ),
                               const Text(
@@ -174,7 +174,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
               borderRadius: BorderRadius.circular(26),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.6),
+                  color: Colors.black.withOpacity(0.6),
                   blurRadius: 36,
                   offset: const Offset(0, 18),
                 ),
@@ -212,7 +212,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
             const SizedBox(height: 12),
             Text(
               'No lyrics found for this song',
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+              style: TextStyle(color: Colors.white.withOpacity(0.5)),
             ),
           ],
         ),
@@ -274,7 +274,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
-                        color: Colors.white.withValues(alpha: 0.65),
+                        color: Colors.white.withOpacity(0.65),
                       ),
                     ),
                   ],
@@ -306,7 +306,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       activeTrackColor: const Color(0xFFFA2D48), // Apple Red
                       inactiveTrackColor: Colors.white24,
                       thumbColor: Colors.white,
-                      overlayColor: const Color(0xFFFA2D48).withValues(alpha: 0.2),
+                      overlayColor: const Color(0xFFFA2D48).withOpacity(0.2),
                     ),
                     child: Slider(
                       value: current,
@@ -324,11 +324,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       children: [
                         Text(
                           _formatDuration(position),
-                          style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 12),
+                          style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12),
                         ),
                         Text(
                           _formatDuration(duration),
-                          style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 12),
+                          style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12),
                         ),
                       ],
                     ),
@@ -369,9 +369,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       height: 68,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: Colors.white.withValues(alpha: 0.16),
+                        color: Colors.white.withOpacity(0.16),
                         border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.25),
+                          color: Colors.white.withOpacity(0.25),
                           width: 1.2,
                         ),
                       ),

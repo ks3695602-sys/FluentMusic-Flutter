@@ -75,7 +75,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     height: 38,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Colors.white.withValues(alpha: 0.12),
+                      color: Colors.white.withOpacity(0.12),
                     ),
                     child: const Icon(
                       CupertinoIcons.person_crop_circle_fill,

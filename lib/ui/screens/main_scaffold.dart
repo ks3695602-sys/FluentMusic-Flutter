@@ -80,7 +80,7 @@ class _MainScaffoldState extends State<MainScaffold> {
                       CupertinoIcons.search,
                       color: _isSearchActive
                           ? const Color(0xFFFA2D48)
-                          : Colors.white.withValues(alpha: 0.9),
+                          : Colors.white.withOpacity(0.9),
                       size: 22,
                     ),
                     onPressed: () {

@@ -94,7 +94,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
               child: LiquidGlassContainer(
                 borderRadius: 18,
                 padding: const EdgeInsets.all(14),
-                tintColor: const Color(0xFFFA2D48).withValues(alpha: 0.2),
+                tintColor: const Color(0xFFFA2D48).withOpacity(0.2),
                 child: const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -117,7 +117,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
               child: LiquidGlassContainer(
                 borderRadius: 18,
                 padding: const EdgeInsets.all(14),
-                tintColor: Colors.white.withValues(alpha: 0.08),
+                tintColor: Colors.white.withOpacity(0.08),
                 child: const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -173,7 +173,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   Text(
                     'Grant permission to scan and play music from your device storage.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 12),
+                    style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12),
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton(
@@ -194,7 +194,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
               padding: const EdgeInsets.all(32.0),
               child: Text(
                 'No local audio tracks found on this device.',
-                style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+                style: TextStyle(color: Colors.white.withOpacity(0.5)),
               ),
             ),
           )
@@ -230,7 +230,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.6),
+                  color: Colors.white.withOpacity(0.6),
                   fontSize: 12,
                 ),
               ),
