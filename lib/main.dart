@@ -29,7 +29,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:just_audio_media_kit/just_audio_media_kit.dart';
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' hide ColorScheme, DynamicColorBuilder;
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' show LiquidGlassWidgets, GlassWarmUpMode;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';

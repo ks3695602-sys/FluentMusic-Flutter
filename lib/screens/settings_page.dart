@@ -214,7 +214,7 @@ class SettingsPage extends StatelessWidget {
           },
         ),
         const GlassListTile(
-          leading: Icon(CupertinoIcons.cpu, color: Color(0xFF34C759)),
+          leading: Icon(CupertinoIcons.device_desktop, color: Color(0xFF34C759)),
           title: Text('Impeller Optics Engine', style: TextStyle(color: Colors.white)),
           subtitle: Text(
             'Multi-pass blur, chromatic aberration & specular highlights',
@@ -364,7 +364,7 @@ class SettingsPage extends StatelessWidget {
           valueListenable: offlineMode,
           builder: (_, val, __) {
             return GlassListTile(
-              leading: const Icon(CupertinoIcons.cloud_slash, color: Color(0xFFFF453A)),
+              leading: const Icon(CupertinoIcons.slash_circle, color: Color(0xFFFF453A)),
               title: Text(context.l10n?.offlineMode ?? 'Offline Mode', style: const TextStyle(color: Colors.white)),
               subtitle: Text(
                 context.l10n?.offlineModeDescription ?? 'Browse downloaded tracks only',
