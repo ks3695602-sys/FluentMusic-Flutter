@@ -41,12 +41,40 @@ class AppleMusicLyricUI extends LyricUI {
       );
 
   @override
+  TextStyle getPlayingExtTextStyle() => const TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+        color: Color(0xFFFA2D48),
+        height: 1.4,
+      );
+
+  @override
   TextStyle getOtherMainTextStyle() => TextStyle(
         fontSize: 16,
         fontWeight: FontWeight.w600,
         color: Colors.white.withValues(alpha: 0.38),
         height: 1.4,
       );
+
+  @override
+  TextStyle getOtherExtTextStyle() => TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+        color: Colors.white.withValues(alpha: 0.38),
+        height: 1.4,
+      );
+
+  @override
+  double getLineSpace() => 24.0;
+
+  @override
+  double getInlineSpace() => 12.0;
+
+  @override
+  double getPlayingLineBias() => 0.45;
+
+  @override
+  LyricAlign getLyricHorizontalAlign() => LyricAlign.CENTER;
 
   @override
   double get bias => 0.45;
