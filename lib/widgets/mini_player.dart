@@ -1,4 +1,4 @@
-/*
+﻿/*
  *     Copyright (C) 2026 Valeri Gokadze
  *
  *     Musify is free software: you can redistribute it and/or modify
@@ -24,8 +24,8 @@ import 'dart:math' as math;
 import 'package:audio_service/audio_service.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
-import 'package:material_ui/material_ui.dart';
 import 'package:musify/main.dart';
 import 'package:musify/models/full_player_state.dart';
 import 'package:musify/models/position_data.dart';
@@ -188,11 +188,11 @@ class _MiniPlayerBodyState extends State<_MiniPlayerBody>
             onVerticalDragUpdate: _handleVerticalDrag,
             onTap: _navigateToNowPlaying,
             child: GlassContainer.card(
-              quality: GlassQuality.standard,
+              quality: GlassQuality.premium,
               settings: const LiquidGlassSettings(
-                thickness: 25,
-                blur: 14,
-                specularSharpness: GlassSpecularSharpness.medium,
+                thickness: 35,
+                blur: 18,
+                specularSharpness: GlassSpecularSharpness.sharp,
               ),
               child: SizedBox(
                 height: MiniPlayer.playerHeight,

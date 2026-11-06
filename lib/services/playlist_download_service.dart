@@ -1,4 +1,4 @@
-// ignore_for_file: invalid_use_of_protected_member, invalid_use_of_visible_for_testing_member
+﻿// ignore_for_file: invalid_use_of_protected_member, invalid_use_of_visible_for_testing_member
 
 /*
  *     Copyright (C) 2026 Valeri Gokadze
@@ -26,7 +26,7 @@ import 'dart:collection';
 import 'dart:io';
 
 import 'package:hive/hive.dart';
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:musify/extensions/l10n.dart';
 import 'package:musify/main.dart';
 import 'package:musify/services/common_services.dart';

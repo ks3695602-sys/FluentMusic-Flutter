@@ -1,4 +1,4 @@
-/*
+﻿/*
  *     Copyright (C) 2026 Valeri Gokadze
  *
  *     Musify is free software: you can redistribute it and/or modify
@@ -20,7 +20,7 @@
  */
 
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:musify/utilities/artwork_provider.dart';
 import 'package:musify/widgets/no_artwork_cube.dart';
 

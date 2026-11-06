@@ -1,4 +1,4 @@
-/*
+﻿/*
  *     Copyright (C) 2026 Valeri Gokadze
  *
  *     Musify is free software: you can redistribute it and/or modify
@@ -18,7 +18,8 @@
  *     For more information about Musify, including how to contribute,
  *     please visit: https://github.com/gokadzev/Musify
  */
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:musify/constants/app_constants.dart';
 import 'package:musify/database/radio_stations.db.dart';
 import 'package:musify/extensions/l10n.dart';

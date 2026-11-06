@@ -21,11 +21,11 @@
 
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
-import 'package:material_ui/material_ui.dart';
 import 'package:musify/constants/app_constants.dart';
 import 'package:musify/extensions/l10n.dart';
 import 'package:musify/main.dart';
@@ -85,6 +85,19 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
 
               return GlassScaffold(
                 contentAwareBrightness: true,
+                background: Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Color(0xFF0E0B12),
+                        Color(0xFF1C0D1B),
+                        Color(0xFF120D1A),
+                      ],
+                    ),
+                  ),
+                ),
                 body: SafeArea(
                   child: Row(
                     children: [
@@ -105,56 +118,49 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
                               _onTabTapped(index, items),
                         ),
                       Expanded(
-                        child: StreamBuilder<bool>(
-                          initialData: audioHandler.mediaItem.value != null,
-                          stream: _miniPlayerVisibilityStream,
-                          builder: (context, snapshot) {
-                            final mediaQuery = MediaQuery.of(context);
-                            final isMiniPlayerVisible = snapshot.data ?? false;
-                            final bottomPadding = !isMiniPlayerVisible
-                                ? mediaQuery.padding.bottom
-                                : mediaQuery.padding.bottom +
-                                      miniPlayerTotalHeight;
-
-                            return Stack(
-                              alignment: Alignment.bottomCenter,
-                              children: [
-                                MediaQuery(
-                                  data: mediaQuery.copyWith(
-                                    padding: mediaQuery.padding.copyWith(
-                                      bottom: bottomPadding,
-                                    ),
-                                  ),
-                                  child: widget.child,
-                                ),
-                                const Padding(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 8,
-                                  ),
-                                  child: MiniPlayer(),
-                                ),
-                              ],
-                            );
-                          },
-                        ),
+                        child: widget.child,
                       ),
                     ],
                   ),
                 ),
                 bottomBar: !isLargeScreen
-                    ? GlassTabBar.bottom(
-                        selectedIndex: _getCurrentIndex(items, isOfflineMode),
-                        onTabSelected: (index) =>
-                            _onTabTapped(index, items),
-                        tabs: items
-                            .map(
-                              (item) => GlassTab(
-                                icon: Icon(item.icon),
-                                label: item.label,
-                              ),
-                            )
-                            .toList(),
+                    ? Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          StreamBuilder<bool>(
+                            initialData: audioHandler.mediaItem.value != null,
+                            stream: _miniPlayerVisibilityStream,
+                            builder: (context, snapshot) {
+                              final isMiniPlayerVisible =
+                                  snapshot.data ?? false;
+                              if (!isMiniPlayerVisible) {
+                                return const SizedBox.shrink();
+                              }
+                              return const Padding(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
+                                child: MiniPlayer(),
+                              );
+                            },
+                          ),
+                          GlassTabBar.minimizable(
+                            selectedIndex:
+                                _getCurrentIndex(items, isOfflineMode),
+                            onTabSelected: (index) =>
+                                _onTabTapped(index, items),
+                            tabs: items
+                                .map(
+                                  (item) => GlassTab(
+                                    icon: Icon(item.icon),
+                                    label: item.label,
+                                  ),
+                                )
+                                .toList(),
+                          ),
+                          const SizedBox(height: 6),
+                        ],
                       )
                     : null,
               );

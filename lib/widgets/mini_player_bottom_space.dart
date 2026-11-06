@@ -1,4 +1,4 @@
-/*
+﻿/*
  *     Copyright (C) 2026 Valeri Gokadze
  *
  *     Musify is free software: you can redistribute it and/or modify
@@ -19,7 +19,7 @@
  *     please visit: https://github.com/gokadzev/Musify
  */
 
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/cupertino.dart';
 
 /// Adds the current bottom [MediaQuery] padding as scrollable space for the
 /// floating mini player.

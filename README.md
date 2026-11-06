@@ -39,6 +39,7 @@ Universal Release and Debug APKs are built automatically with 100% test passing 
 
 ## 📄 License & Credits
 
-FluentMusic is licensed under the **GNU General Public License v3.0**.
-Based on the upstream open-source Musify core by Valeri Gokadze.
+FluentMusic is developed by **jaypakash sahu**.
+Licensed under the **GNU General Public License v3.0**.
+Audio core based on Musify by Valeri Gokadze.
 Liquid Glass toolkit developed by Pixel Innovations.

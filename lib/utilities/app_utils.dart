@@ -1,4 +1,4 @@
-/*
+﻿/*
  *     Copyright (C) 2026 Valeri Gokadze
  *
  *     Musify is free software: you can redistribute it and/or modify
@@ -20,7 +20,7 @@
  */
 
 import 'package:intl/intl.dart';
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:musify/constants/app_constants.dart';
 import 'package:musify/services/settings_manager.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart';

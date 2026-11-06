@@ -21,7 +21,7 @@
 
 import 'package:audio_service/audio_service.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:musify/screens/playlist_page.dart';
 import 'package:musify/screens/user_songs_page.dart';
 import 'package:musify/utilities/language_utils.dart';
@@ -115,11 +115,11 @@ final appleMusicLyricsEnabled = ValueNotifier<bool>(
 );
 
 final liquidGlassQualitySetting = ValueNotifier<String>(
-  Hive.box('settings').get('liquidGlassQuality', defaultValue: 'standard'),
+  Hive.box('settings').get('liquidGlassQuality', defaultValue: 'premium'),
 );
 
 final liquidGlassBlurSetting = ValueNotifier<double>(
-  Hive.box('settings').get('liquidGlassBlur', defaultValue: 12.0),
+  Hive.box('settings').get('liquidGlassBlur', defaultValue: 18.0),
 );
 
 final shuffleNotifier = ValueNotifier<bool>(
@@ -217,6 +217,18 @@ void reloadSettingsFromStorage() {
   }
 
   shuffleNotifier.value = settings.get('shuffleEnabled', defaultValue: false);
+  appleMusicLyricsEnabled.value = settings.get(
+    'appleMusicLyricsEnabled',
+    defaultValue: true,
+  );
+  liquidGlassQualitySetting.value = settings.get(
+    'liquidGlassQuality',
+    defaultValue: 'premium',
+  );
+  liquidGlassBlurSetting.value = settings.get(
+    'liquidGlassBlur',
+    defaultValue: 18.0,
+  );
   final restoredRepeatIndex = settings.get('repeatMode', defaultValue: 0);
   if (restoredRepeatIndex is int &&
       restoredRepeatIndex >= 0 &&

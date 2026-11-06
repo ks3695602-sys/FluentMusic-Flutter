@@ -21,7 +21,8 @@
 
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:musify/constants/app_constants.dart';
 import 'package:musify/constants/version.dart';
 import 'package:musify/extensions/l10n.dart';
@@ -124,20 +125,29 @@ class AboutPage extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'FluentMusic Team',
+                            'jaypakash sahu',
                             style: TextStyle(
                               color: colorScheme.onSurface,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
                             ),
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'Based on Musify by Valeri Gokadze',
+                            'FluentMusic Lead Developer',
+                            style: TextStyle(
+                              color: colorScheme.primary,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Audio engine based on Musify by Valeri Gokadze',
                             style: TextStyle(
                               color: colorScheme.onSurfaceVariant,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w400,
                             ),
                           ),
                         ],

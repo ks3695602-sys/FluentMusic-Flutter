@@ -1,4 +1,4 @@
-/*
+﻿/*
  *     Copyright (C) 2026 Valeri Gokadze
  *
  *     Musify is free software: you can redistribute it and/or modify
@@ -30,7 +30,8 @@ import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:just_audio_media_kit/just_audio_media_kit.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:musify/extensions/l10n.dart';
 import 'package:musify/localization/app_localizations.dart';
 import 'package:musify/services/audio_service.dart';
@@ -266,6 +267,7 @@ class _MusifyState extends State<Musify> with WidgetsBindingObserver {
                 : Brightness.dark,
           ),
           child: MaterialApp.router(
+            title: 'FluentMusic',
             builder: (context, child) => Material(
               type: MaterialType.transparency,
               child: child!,
@@ -289,17 +291,19 @@ class _MusifyState extends State<Musify> with WidgetsBindingObserver {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await LiquidGlassWidgets.initialize();
+  await LiquidGlassWidgets.initialize(
+    warmUpMode: GlassWarmUpMode.always,
+  );
   await initialisation();
 
   runApp(
     LiquidGlassWidgets.wrap(
       brightnessResolver: Theme.maybeBrightnessOf,
-      adaptiveQuality: true,
-      theme: GlassThemeData.simple(
-        blur: 10,
-        thickness: 30,
-        quality: GlassQuality.standard,
+      theme: GlassThemeData(
+        style: GlassStyle.ios27,
+        quality: GlassQuality.premium,
+        thickness: 32,
+        blur: 18,
       ),
       child: const Musify(),
     ),

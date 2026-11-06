@@ -1,12 +1,12 @@
 /*
- *     Copyright (C) 2026 Valeri Gokadze
+ *     Copyright (C) 2026 jaypakash sahu
  *
- *     Musify is free software: you can redistribute it and/or modify
+ *     FluentMusic is free software: you can redistribute it and/or modify
  *     it under the terms of the GNU General Public License as published by
  *     the Free Software Foundation, either version 3 of the License, or
  *     (at your option) any later version.
  *
- *     Musify is distributed in the hope that it will be useful,
+ *     FluentMusic is distributed in the hope that it will be useful,
  *     but WITHOUT ANY WARRANTY; without even the implied warranty of
  *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *     GNU General Public License for more details.
@@ -14,17 +14,15 @@
  *     You should have received a copy of the GNU General Public License
  *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
- *
- *     For more information about Musify, including how to contribute,
- *     please visit: https://github.com/gokadzev/Musify
+ *     FluentMusic by jaypakash sahu
+ *     https://github.com/ks3695602-sys/FluentMusic-Flutter
  */
 
 import 'package:audio_service/audio_service.dart';
-import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
-import 'package:material_ui/material_ui.dart';
 import 'package:musify/constants/app_constants.dart';
 import 'package:musify/extensions/l10n.dart';
 import 'package:musify/main.dart';
@@ -46,66 +44,104 @@ import 'package:musify/utilities/platform_utils.dart';
 import 'package:musify/utilities/url_launcher.dart';
 import 'package:musify/widgets/bottom_sheet_bar.dart';
 import 'package:musify/widgets/confirmation_dialog.dart';
-import 'package:musify/widgets/custom_bar.dart';
 import 'package:musify/widgets/mini_player_bottom_space.dart';
-import 'package:musify/widgets/section_header.dart';
-import 'package:musify/widgets/shapes/four_sided_cookie_shape.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final primaryColor = Theme.of(context).colorScheme.primary;
-    final activatedColor = Theme.of(context).colorScheme.secondaryContainer;
-    final inactivatedColor = Theme.of(context).colorScheme.surfaceContainerHigh;
-
-    final content = Column(
-      children: <Widget>[
-        _buildLiquidGlassSection(context),
-        _buildPreferencesSection(
-          context,
-          primaryColor,
-          activatedColor,
-          inactivatedColor,
-        ),
-        if (!offlineMode.value) _buildOnlineFeaturesSection(context),
-        _buildOthersSection(context),
-        const SizedBox(height: 20),
-        const MiniPlayerBottomSpace(),
-      ],
-    );
-
     return GlassScaffold(
       contentAwareBrightness: true,
-      appBar: GlassAppBar(title: Text(context.l10n!.settings)),
-      body: SingleChildScrollView(
-        padding: commonSingleChildScrollViewPadding,
-        child: isDesktopPlatform
-            ? Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 880),
-                  child: content,
-                ),
-              )
-            : content,
+      background: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF0C0910),
+              Color(0xFF1A0B1C),
+              Color(0xFF100B18),
+            ],
+          ),
+        ),
+      ),
+      appBar: GlassAppBar(
+        title: Text(
+          context.l10n?.settings ?? 'Settings',
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+      ),
+      body: ListView(
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        children: [
+          // 1. LIQUID GLASS & GRAPHICS PIPELINE
+          _buildSectionHeader('LIQUID GLASS & GRAPHICS PIPELINE'),
+          _buildLiquidGlassSection(context),
+
+          const SizedBox(height: 20),
+
+          // 2. PREFERENCES & APPEARANCE
+          _buildSectionHeader(context.l10n?.preferences?.toUpperCase() ?? 'PREFERENCES'),
+          _buildPreferencesSection(context),
+
+          const SizedBox(height: 20),
+
+          // 3. PLAYBACK & ONLINE FEATURES
+          if (!offlineMode.value) ...[
+            _buildSectionHeader('PLAYBACK & ONLINE FEATURES'),
+            _buildOnlineFeaturesSection(context),
+            const SizedBox(height: 20),
+          ],
+
+          // 4. TOOLS & DATA MANAGEMENT
+          _buildSectionHeader(context.l10n?.tools?.toUpperCase() ?? 'TOOLS & STORAGE'),
+          _buildToolsSection(context),
+
+          const SizedBox(height: 20),
+
+          // 5. ABOUT FLUENTMUSIC
+          _buildSectionHeader('ABOUT FLUENTMUSIC'),
+          _buildAboutSection(context),
+
+          const SizedBox(height: 24),
+          const MiniPlayerBottomSpace(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 8),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: Colors.white54,
+          letterSpacing: 0.8,
+        ),
       ),
     );
   }
 
   Widget _buildLiquidGlassSection(BuildContext context) {
-    return Column(
+    return GlassGroupedSection(
+      surfaceStyle: GlassSurfaceStyle.solid,
       children: [
-        const SectionHeader(title: 'Liquid Glass & Apple Music Experience'),
         ValueListenableBuilder<bool>(
           valueListenable: appleMusicLyricsEnabled,
           builder: (_, value, __) {
-            return CustomBar(
-              'Apple Music Synced Lyrics',
-              CupertinoIcons.music_mic,
-              description: 'Real-time glowing lyrics with active line tracking',
-              borderRadius: commonCustomBarRadiusFirst,
-              trailing: Switch(
+            return GlassListTile(
+              leading: const Icon(CupertinoIcons.music_mic, color: Color(0xFFFA2D48)),
+              title: const Text('Apple Music Synced Lyrics', style: TextStyle(color: Colors.white)),
+              subtitle: const Text(
+                'Dynamic glowing lyrics with real-time word tracking',
+                style: TextStyle(color: Colors.white54, fontSize: 12),
+              ),
+              trailing: GlassSwitch(
                 value: value,
                 onChanged: (val) {
                   addOrUpdateData<bool>('settings', 'appleMusicLyricsEnabled', val);
@@ -118,175 +154,285 @@ class SettingsPage extends StatelessWidget {
         ),
         ValueListenableBuilder<String>(
           valueListenable: liquidGlassQualitySetting,
-          builder: (_, value, __) {
-            return CustomBar(
-              'Liquid Glass Quality',
-              CupertinoIcons.sparkles,
-              description: 'Shader refraction tier: ${value.toUpperCase()}',
-              trailing: DropdownButton<String>(
-                value: value,
-                underline: const SizedBox.shrink(),
-                items: const [
-                  DropdownMenuItem(value: 'standard', child: Text('Standard (GPU Shader)')),
-                  DropdownMenuItem(value: 'premium', child: Text('Premium (Impeller Multi-pass)')),
-                  DropdownMenuItem(value: 'minimal', child: Text('Minimal (Fallback)')),
-                ],
-                onChanged: (newVal) {
-                  if (newVal != null) {
-                    addOrUpdateData<String>('settings', 'liquidGlassQuality', newVal);
-                    liquidGlassQualitySetting.value = newVal;
-                    showToast(context, context.l10n!.settingChangedMsg);
-                  }
-                },
-              ),
-            );
-          },
-        ),
-        ValueListenableBuilder<double>(
-          valueListenable: liquidGlassBlurSetting,
-          builder: (_, value, __) {
-            return CustomBar(
-              'Glass Refraction & Blur',
-              CupertinoIcons.slider_horizontal_3,
-              description: 'Adjust glass blur intensity: ${value.toInt()}px',
-              borderRadius: commonCustomBarRadiusLast,
-              trailing: SizedBox(
-                width: 140,
-                child: Slider(
-                  value: value,
-                  min: 4,
-                  max: 30,
-                  divisions: 13,
-                  label: '${value.toInt()}px',
-                  onChanged: (newVal) {
-                    addOrUpdateData<double>('settings', 'liquidGlassBlur', newVal);
-                    liquidGlassBlurSetting.value = newVal;
+          builder: (_, quality, __) {
+            final selectedIndex = quality == 'premium' ? 0 : (quality == 'standard' ? 1 : 2);
+            return GlassListTile(
+              leading: const Icon(CupertinoIcons.sparkles, color: Color(0xFFAF52DE)),
+              title: const Text('Impeller Shader Tier', style: TextStyle(color: Colors.white)),
+              subtitle: Padding(
+                padding: const EdgeInsets.only(top: 8, bottom: 4),
+                child: GlassSegmentedControl(
+                  segments: const [
+                    GlassSegment(label: 'Premium'),
+                    GlassSegment(label: 'Standard'),
+                    GlassSegment(label: 'Minimal'),
+                  ],
+                  selectedIndex: selectedIndex,
+                  onSegmentSelected: (index) {
+                    final newTier = index == 0 ? 'premium' : (index == 1 ? 'standard' : 'minimal');
+                    addOrUpdateData<String>('settings', 'liquidGlassQuality', newTier);
+                    liquidGlassQualitySetting.value = newTier;
+                    showToast(context, 'Shader tier set to ${newTier.toUpperCase()}');
                   },
                 ),
               ),
             );
           },
         ),
-        const SizedBox(height: 12),
+        ValueListenableBuilder<double>(
+          valueListenable: liquidGlassBlurSetting,
+          builder: (_, blurValue, __) {
+            return GlassListTile(
+              leading: const Icon(CupertinoIcons.slider_horizontal_3, color: Color(0xFF32ADE6)),
+              title: const Text('Refraction & Blur Intensity', style: TextStyle(color: Colors.white)),
+              subtitle: Padding(
+                padding: const EdgeInsets.only(top: 4, bottom: 2),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: CupertinoSlider(
+                        value: blurValue,
+                        min: 6,
+                        max: 32,
+                        divisions: 13,
+                        activeColor: const Color(0xFFFA2D48),
+                        onChanged: (val) {
+                          addOrUpdateData<double>('settings', 'liquidGlassBlur', val);
+                          liquidGlassBlurSetting.value = val;
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${blurValue.toInt()}px',
+                      style: const TextStyle(color: Colors.white70, fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+        const GlassListTile(
+          leading: Icon(CupertinoIcons.cpu, color: Color(0xFF34C759)),
+          title: Text('Impeller Optics Engine', style: TextStyle(color: Colors.white)),
+          subtitle: Text(
+            'Multi-pass blur, chromatic aberration & specular highlights',
+            style: TextStyle(color: Colors.white54, fontSize: 12),
+          ),
+          trailing: Icon(CupertinoIcons.checkmark_seal_fill, color: Color(0xFF34C759), size: 20),
+        ),
       ],
     );
   }
 
-  Widget _buildPreferencesSection(
-    BuildContext context,
-    Color primaryColor,
-    Color activatedColor,
-    Color inactivatedColor,
-  ) {
-    final isOffline = offlineMode.value;
-
-    return Column(
+  Widget _buildPreferencesSection(BuildContext context) {
+    return GlassGroupedSection(
+      surfaceStyle: GlassSurfaceStyle.solid,
       children: [
-        SectionHeader(
-          title: context.l10n!.preferences,
-          icon: FluentIcons.options_24_filled,
-        ),
-        CustomBar(
-          context.l10n!.accentColor,
-          FluentIcons.color_24_regular,
-          borderRadius: commonCustomBarRadiusFirst,
-          trailing: isDesktopPlatform
-              ? Container(
-                  width: 26,
-                  height: 26,
-                  decoration: BoxDecoration(
-                    color: primaryColorSetting,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: Theme.of(context).colorScheme.outlineVariant,
-                    ),
-                  ),
-                )
-              : null,
+        GlassListTile(
+          leading: const Icon(CupertinoIcons.paintbrush_fill, color: Color(0xFFFF9500)),
+          title: Text(context.l10n?.accentColor ?? 'Accent Color', style: const TextStyle(color: Colors.white)),
+          trailing: Container(
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              color: primaryColorSetting,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white30, width: 2),
+            ),
+          ),
           onTap: () => _showAccentColorPicker(context),
         ),
-        CustomBar(
-          context.l10n!.themeMode,
-          FluentIcons.weather_sunny_28_regular,
-          onTap: () => _showThemeModePicker(context),
+        GlassListTile(
+          leading: const Icon(CupertinoIcons.sun_max_fill, color: Color(0xFFFFCC00)),
+          title: Text(context.l10n?.themeMode ?? 'Theme Mode', style: const TextStyle(color: Colors.white)),
+          subtitle: Padding(
+            padding: const EdgeInsets.only(top: 8, bottom: 4),
+            child: GlassSegmentedControl(
+              segments: const [
+                GlassSegment(label: 'System'),
+                GlassSegment(label: 'Light'),
+                GlassSegment(label: 'Dark'),
+              ],
+              selectedIndex: themeMode == ThemeMode.system ? 0 : (themeMode == ThemeMode.light ? 1 : 2),
+              onSegmentSelected: (index) {
+                final mode = index == 0 ? ThemeMode.system : (index == 1 ? ThemeMode.light : ThemeMode.dark);
+                addOrUpdateData<int>('settings', 'themeIndex', mode.index);
+                Musify.updateAppState(context, newThemeMode: mode);
+              },
+            ),
+          ),
         ),
-        CustomBar(
-          context.l10n!.language,
-          FluentIcons.translate_24_regular,
+        GlassListTile(
+          leading: const Icon(CupertinoIcons.globe, color: Color(0xFF007AFF)),
+          title: Text(context.l10n?.language ?? 'Language', style: const TextStyle(color: Colors.white)),
+          subtitle: Text(
+            getLanguageDisplayName(context, languageSetting.languageCode),
+            style: const TextStyle(color: Colors.white54, fontSize: 12),
+          ),
+          trailing: GlassListTile.chevron,
           onTap: () => _showLanguagePicker(context),
         ),
-        CustomBar(
-          context.l10n!.audioQuality,
-          FluentIcons.music_note_1_24_regular,
-          onTap: () => _showAudioQualityPicker(context),
+        ValueListenableBuilder<String>(
+          valueListenable: audioQualitySetting,
+          builder: (_, quality, __) {
+            final selectedIndex = quality == 'low' ? 0 : (quality == 'medium' ? 1 : 2);
+            return GlassListTile(
+              leading: const Icon(CupertinoIcons.waveform, color: Color(0xFF5856D6)),
+              title: Text(context.l10n?.audioQuality ?? 'Audio Quality', style: const TextStyle(color: Colors.white)),
+              subtitle: Padding(
+                padding: const EdgeInsets.only(top: 8, bottom: 4),
+                child: GlassSegmentedControl(
+                  segments: const [
+                    GlassSegment(label: 'Low'),
+                    GlassSegment(label: 'Medium'),
+                    GlassSegment(label: 'High'),
+                  ],
+                  selectedIndex: selectedIndex,
+                  onSegmentSelected: (index) {
+                    final val = index == 0 ? 'low' : (index == 1 ? 'medium' : 'high');
+                    addOrUpdateData<String>('settings', 'audioQuality', val);
+                    audioQualitySetting.value = val;
+                    showToast(context, context.l10n!.audioQualityMsg);
+                  },
+                ),
+              ),
+            );
+          },
         ),
         if (isAndroidPlatform)
-          CustomBar(
-            context.l10n!.equalizer,
-            FluentIcons.data_histogram_24_regular,
+          GlassListTile(
+            leading: const Icon(CupertinoIcons.slider_horizontal_below_rectangle, color: Color(0xFF30D158)),
+            title: Text(context.l10n?.equalizer ?? 'Equalizer', style: const TextStyle(color: Colors.white)),
+            trailing: GlassListTile.chevron,
             onTap: () => context.push('/settings/equalizer'),
           ),
-        if (themeMode == ThemeMode.dark)
-          CustomBar(
-            context.l10n!.pureBlackTheme,
-            FluentIcons.color_background_24_regular,
-            description: context.l10n!.pureBlackThemeDescription,
-            trailing: Switch(
-              value: usePureBlackColor.value,
-              onChanged: (value) => _togglePureBlack(context, value),
-            ),
-          ),
+        ValueListenableBuilder<bool>(
+          valueListenable: usePureBlackColor,
+          builder: (_, val, __) {
+            return GlassListTile(
+              leading: const Icon(CupertinoIcons.moon_fill, color: Color(0xFF8E8E93)),
+              title: Text(context.l10n?.pureBlackTheme ?? 'Pure Black (OLED)', style: const TextStyle(color: Colors.white)),
+              subtitle: Text(
+                context.l10n?.pureBlackThemeDescription ?? 'Deep OLED pitch black in dark mode',
+                style: const TextStyle(color: Colors.white54, fontSize: 12),
+              ),
+              trailing: GlassSwitch(
+                value: val,
+                onChanged: (v) => _togglePureBlack(context, v),
+              ),
+            );
+          },
+        ),
         if (isAndroidPlatform)
-          CustomBar(
-            context.l10n!.dynamicColor,
-            FluentIcons.toggle_left_24_regular,
-            description: context.l10n!.dynamicColorDescription,
-            trailing: Switch(
-              value: useSystemColor.value,
-              onChanged: (value) => _toggleSystemColor(context, value),
-            ),
+          ValueListenableBuilder<bool>(
+            valueListenable: useSystemColor,
+            builder: (_, val, __) {
+              return GlassListTile(
+                leading: const Icon(CupertinoIcons.wand_stars, color: Color(0xFFFF2D55)),
+                title: Text(context.l10n?.dynamicColor ?? 'Dynamic Colors', style: const TextStyle(color: Colors.white)),
+                subtitle: Text(
+                  context.l10n?.dynamicColorDescription ?? 'Derive palette from system wallpaper',
+                  style: const TextStyle(color: Colors.white54, fontSize: 12),
+                ),
+                trailing: GlassSwitch(
+                  value: val,
+                  onChanged: (v) => _toggleSystemColor(context, v),
+                ),
+              );
+            },
           ),
-
         ValueListenableBuilder<bool>(
           valueListenable: showAudioQualityBadge,
-          builder: (_, value, __) {
-            return CustomBar(
-              context.l10n!.audioQualityBadge,
-              FluentIcons.badge_24_regular,
-              description: context.l10n!.audioQualityBadgeDescription,
-              trailing: Switch(
-                value: value,
-                onChanged: (value) => _toggleAudioQualityBadge(context, value),
+          builder: (_, val, __) {
+            return GlassListTile(
+              leading: const Icon(CupertinoIcons.app_badge, color: Color(0xFF64D2FF)),
+              title: Text(context.l10n?.audioQualityBadge ?? 'Audio Quality Badge', style: const TextStyle(color: Colors.white)),
+              subtitle: Text(
+                context.l10n?.audioQualityBadgeDescription ?? 'Display Lossless / HQ tag on tracks',
+                style: const TextStyle(color: Colors.white54, fontSize: 12),
+              ),
+              trailing: GlassSwitch(
+                value: val,
+                onChanged: (v) => _toggleAudioQualityBadge(context, v),
               ),
             );
           },
         ),
+        ValueListenableBuilder<bool>(
+          valueListenable: offlineMode,
+          builder: (_, val, __) {
+            return GlassListTile(
+              leading: const Icon(CupertinoIcons.cloud_slash, color: Color(0xFFFF453A)),
+              title: Text(context.l10n?.offlineMode ?? 'Offline Mode', style: const TextStyle(color: Colors.white)),
+              subtitle: Text(
+                context.l10n?.offlineModeDescription ?? 'Browse downloaded tracks only',
+                style: const TextStyle(color: Colors.white54, fontSize: 12),
+              ),
+              trailing: GlassSwitch(
+                value: val,
+                onChanged: (v) => _toggleOfflineMode(context, v),
+              ),
+            );
+          },
+        ),
+        ValueListenableBuilder<bool>(
+          valueListenable: wrappedEnabled,
+          builder: (_, val, __) {
+            return GlassListTile(
+              leading: const Icon(CupertinoIcons.chart_bar_square, color: Color(0xFFBF5AF2)),
+              title: Text(context.l10n?.listeningStats ?? 'Listening Stats', style: const TextStyle(color: Colors.white)),
+              subtitle: Text(
+                context.l10n?.listeningStatsDescription ?? 'Track your listening recap over time',
+                style: const TextStyle(color: Colors.white54, fontSize: 12),
+              ),
+              trailing: GlassSwitch(
+                value: val,
+                onChanged: (v) => _toggleWrapped(context, v),
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildOnlineFeaturesSection(BuildContext context) {
+    return GlassGroupedSection(
+      surfaceStyle: GlassSurfaceStyle.solid,
+      children: [
         ValueListenableBuilder<bool>(
           valueListenable: syncedLyricsEnabled,
-          builder: (_, value, __) {
-            return CustomBar(
-              context.l10n!.syncedLyrics,
-              FluentIcons.text_quote_24_regular,
-              description: context.l10n!.syncedLyricsDescription,
-              trailing: Switch(
-                value: value,
-                onChanged: (value) => _toggleSyncedLyrics(context, value),
+          builder: (_, val, __) {
+            return GlassListTile(
+              leading: const Icon(CupertinoIcons.quote_bubble, color: Color(0xFF007AFF)),
+              title: Text(context.l10n?.syncedLyrics ?? 'Synced Lyrics', style: const TextStyle(color: Colors.white)),
+              subtitle: Text(
+                context.l10n?.syncedLyricsDescription ?? 'Fetch and display synchronized lyrics',
+                style: const TextStyle(color: Colors.white54, fontSize: 12),
+              ),
+              trailing: GlassSwitch(
+                value: val,
+                onChanged: (v) => _toggleSyncedLyrics(context, v),
               ),
             );
           },
         ),
         ValueListenableBuilder<bool>(
-          valueListenable: useProxy,
-          builder: (_, value, __) {
-            return CustomBar(
-              context.l10n!.useProxy,
-              FluentIcons.shield_24_regular,
-              description: context.l10n!.useProxyDescription,
-              trailing: Switch(
-                value: value,
-                onChanged: (value) {
-                  useProxy.value = value;
-                  addOrUpdateData<bool>('settings', 'useProxy', value);
+          valueListenable: playNextSongAutomatically,
+          builder: (_, val, __) {
+            return GlassListTile(
+              leading: const Icon(CupertinoIcons.forward_end, color: Color(0xFF34C759)),
+              title: Text(context.l10n?.automaticSongPicker ?? 'Auto Song Picker', style: const TextStyle(color: Colors.white)),
+              subtitle: Text(
+                context.l10n?.automaticSongPickerDescription ?? 'Automatically enqueue related music',
+                style: const TextStyle(color: Colors.white54, fontSize: 12),
+              ),
+              trailing: GlassSwitch(
+                value: val,
+                onChanged: (v) {
+                  _toggleAutoPlayNext(context, v);
                   showToast(context, context.l10n!.settingChangedMsg);
                 },
               ),
@@ -294,32 +440,56 @@ class SettingsPage extends StatelessWidget {
           },
         ),
         ValueListenableBuilder<bool>(
-          valueListenable: wrappedEnabled,
-          builder: (_, value, __) {
-            return CustomBar(
-              context.l10n!.listeningStats,
-              FluentIcons.clock_24_regular,
-              description: context.l10n!.listeningStatsDescription,
-              trailing: Switch(
-                value: value,
-                onChanged: (value) => _toggleWrapped(context, value),
+          valueListenable: sponsorBlockSupport,
+          builder: (_, val, __) {
+            return GlassListTile(
+              leading: const Icon(CupertinoIcons.scissors, color: Color(0xFFFF9500)),
+              title: const Text('SponsorBlock', style: TextStyle(color: Colors.white)),
+              subtitle: Text(
+                context.l10n?.sponsorBlockDescription ?? 'Skip sponsored video segments automatically',
+                style: const TextStyle(color: Colors.white54, fontSize: 12),
+              ),
+              trailing: GlassSwitch(
+                value: val,
+                onChanged: (v) => _toggleSponsorBlock(context, v),
               ),
             );
           },
         ),
         ValueListenableBuilder<bool>(
-          valueListenable: offlineMode,
-          builder: (_, value, __) {
-            return CustomBar(
-              context.l10n!.offlineMode,
-              FluentIcons.cloud_off_24_regular,
-              description: context.l10n!.offlineModeDescription,
-              borderRadius: isOffline && isFdroidBuild
-                  ? commonCustomBarRadiusLast
-                  : BorderRadius.zero,
-              trailing: Switch(
-                value: value,
-                onChanged: (value) => _toggleOfflineMode(context, value),
+          valueListenable: externalRecommendations,
+          builder: (_, val, __) {
+            return GlassListTile(
+              leading: const Icon(CupertinoIcons.radiowaves_right, color: Color(0xFFAF52DE)),
+              title: Text(context.l10n?.externalRecommendations ?? 'External Recommendations', style: const TextStyle(color: Colors.white)),
+              subtitle: Text(
+                context.l10n?.externalRecommendationsDescription ?? 'Discover trending songs across external APIs',
+                style: const TextStyle(color: Colors.white54, fontSize: 12),
+              ),
+              trailing: GlassSwitch(
+                value: val,
+                onChanged: (v) => _toggleExternalRecommendations(context, v),
+              ),
+            );
+          },
+        ),
+        ValueListenableBuilder<bool>(
+          valueListenable: useProxy,
+          builder: (_, val, __) {
+            return GlassListTile(
+              leading: const Icon(CupertinoIcons.shield, color: Color(0xFF5AC8FA)),
+              title: Text(context.l10n?.useProxy ?? 'Proxy Support', style: const TextStyle(color: Colors.white)),
+              subtitle: Text(
+                context.l10n?.useProxyDescription ?? 'Route streaming requests via proxy server',
+                style: const TextStyle(color: Colors.white54, fontSize: 12),
+              ),
+              trailing: GlassSwitch(
+                value: val,
+                onChanged: (v) {
+                  useProxy.value = v;
+                  addOrUpdateData<bool>('settings', 'useProxy', v);
+                  showToast(context, context.l10n!.settingChangedMsg);
+                },
               ),
             );
           },
@@ -327,18 +497,17 @@ class SettingsPage extends StatelessWidget {
         if (!isFdroidBuild && isMobilePlatform)
           ValueListenableBuilder<bool?>(
             valueListenable: shouldWeCheckUpdates,
-            builder: (_, value, __) {
-              return CustomBar(
-                context.l10n!.automaticUpdateChecks,
-                FluentIcons.arrow_sync_24_regular,
-                description: context.l10n!.automaticUpdateChecksDescription,
-                borderRadius: offlineMode.value
-                    ? commonCustomBarRadiusLast
-                    : BorderRadius.zero,
-                trailing: Switch(
-                  value: value ?? false,
-                  onChanged: (value) =>
-                      _toggleAutomaticUpdateChecks(context, value),
+            builder: (_, val, __) {
+              return GlassListTile(
+                leading: const Icon(CupertinoIcons.arrow_2_circlepath, color: Color(0xFF30D158)),
+                title: Text(context.l10n?.automaticUpdateChecks ?? 'Auto Updates', style: const TextStyle(color: Colors.white)),
+                subtitle: Text(
+                  context.l10n?.automaticUpdateChecksDescription ?? 'Notify when a new version is released',
+                  style: const TextStyle(color: Colors.white54, fontSize: 12),
+                ),
+                trailing: GlassSwitch(
+                  value: val ?? false,
+                  onChanged: (v) => _toggleAutomaticUpdateChecks(context, v),
                 ),
               );
             },
@@ -347,88 +516,27 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildOnlineFeaturesSection(BuildContext context) {
-    return Column(
-      children: [
-        ValueListenableBuilder<bool>(
-          valueListenable: sponsorBlockSupport,
-          builder: (_, value, __) {
-            return CustomBar(
-              'SponsorBlock',
-              FluentIcons.cut_24_regular,
-              description: context.l10n!.sponsorBlockDescription,
-              trailing: Switch(
-                value: value,
-                onChanged: (value) => _toggleSponsorBlock(context, value),
-              ),
-            );
-          },
-        ),
-        ValueListenableBuilder<bool>(
-          valueListenable: playNextSongAutomatically,
-          builder: (_, value, __) {
-            return CustomBar(
-              context.l10n!.automaticSongPicker,
-              FluentIcons.music_note_2_play_20_regular,
-              description: context.l10n!.automaticSongPickerDescription,
-              trailing: Switch(
-                value: value,
-                onChanged: (value) {
-                  _toggleAutoPlayNext(context, value);
-                  showToast(context, context.l10n!.settingChangedMsg);
-                },
-              ),
-            );
-          },
-        ),
-        ValueListenableBuilder<bool>(
-          valueListenable: externalRecommendations,
-          builder: (_, value, __) {
-            return CustomBar(
-              context.l10n!.externalRecommendations,
-              FluentIcons.channel_share_24_regular,
-              description: context.l10n!.externalRecommendationsDescription,
-              borderRadius: commonCustomBarRadiusLast,
-              trailing: Switch(
-                value: value,
-                onChanged: (value) =>
-                    _toggleExternalRecommendations(context, value),
-              ),
-            );
-          },
-        ),
-
-        _buildToolsSection(context),
-        _buildSponsorSection(context),
-      ],
-    );
-  }
-
   Widget _buildToolsSection(BuildContext context) {
-    return Column(
+    return GlassGroupedSection(
+      surfaceStyle: GlassSurfaceStyle.solid,
       children: [
-        SectionHeader(
-          title: context.l10n!.tools,
-          icon: FluentIcons.toolbox_24_filled,
-        ),
-        CustomBar(
-          context.l10n!.clearCache,
-          FluentIcons.broom_24_regular,
-          borderRadius: commonCustomBarRadiusFirst,
+        GlassListTile(
+          leading: const Icon(CupertinoIcons.trash, color: Color(0xFFFF9500)),
+          title: Text(context.l10n?.clearCache ?? 'Clear Cache', style: const TextStyle(color: Colors.white)),
+          subtitle: const Text('Free up temporary image and audio buffers', style: TextStyle(color: Colors.white54, fontSize: 12)),
+          trailing: GlassListTile.chevron,
           onTap: () async {
             final cleared = await clearCache();
-            showToast(
-              context,
-              cleared ? '${context.l10n!.cacheMsg}!' : context.l10n!.error,
-            );
+            showToast(context, cleared ? '${context.l10n!.cacheMsg}!' : context.l10n!.error);
           },
         ),
-        CustomBar(
-          context.l10n!.clearSearchHistory,
-          FluentIcons.history_24_regular,
+        GlassListTile(
+          leading: const Icon(CupertinoIcons.clock, color: Color(0xFF5AC8FA)),
+          title: Text(context.l10n?.clearSearchHistory ?? 'Clear Search History', style: const TextStyle(color: Colors.white)),
+          trailing: GlassListTile.chevron,
           onTap: () => _showConfirmationDialog(
             context: context,
-            confirmationMessage: context.l10n!.clearSearchHistoryQuestion,
+            confirmationMessage: context.l10n?.clearSearchHistoryQuestion ?? 'Clear all search queries?',
             onSubmit: () {
               searchHistoryNotifier.value = [];
               deleteData('user', 'searchHistory');
@@ -436,12 +544,13 @@ class SettingsPage extends StatelessWidget {
             },
           ),
         ),
-        CustomBar(
-          context.l10n!.clearRecentlyPlayed,
-          FluentIcons.receipt_play_24_regular,
+        GlassListTile(
+          leading: const Icon(CupertinoIcons.play_circle, color: Color(0xFF34C759)),
+          title: Text(context.l10n?.clearRecentlyPlayed ?? 'Clear Recently Played', style: const TextStyle(color: Colors.white)),
+          trailing: GlassListTile.chevron,
           onTap: () => _showConfirmationDialog(
             context: context,
-            confirmationMessage: context.l10n!.clearRecentlyPlayedQuestion,
+            confirmationMessage: context.l10n?.clearRecentlyPlayedQuestion ?? 'Clear history of played tracks?',
             onSubmit: () {
               userRecentlyPlayed.value = [];
               deleteData('user', 'recentlyPlayedSongs');
@@ -449,13 +558,14 @@ class SettingsPage extends StatelessWidget {
             },
           ),
         ),
-        CustomBar(
-          context.l10n!.clearListeningStats,
-          FluentIcons.clock_24_regular,
+        GlassListTile(
+          leading: const Icon(CupertinoIcons.chart_pie, color: Color(0xFFAF52DE)),
+          title: Text(context.l10n?.clearListeningStats ?? 'Clear Listening Stats', style: const TextStyle(color: Colors.white)),
+          trailing: GlassListTile.chevron,
           onTap: () => _showConfirmationDialog(
             context: context,
-            confirmationMessage: context.l10n!.clearListeningStatsQuestion,
-            submitMessage: context.l10n!.delete,
+            confirmationMessage: context.l10n?.clearListeningStatsQuestion ?? 'Reset all accumulated listening statistics?',
+            submitMessage: context.l10n?.delete ?? 'Delete',
             isDangerous: true,
             onSubmit: () async {
               audioHandler.resetListeningStatsSession(flushStats: false);
@@ -467,13 +577,14 @@ class SettingsPage extends StatelessWidget {
             },
           ),
         ),
-        CustomBar(
-          context.l10n!.deleteDownloads,
-          FluentIcons.delete_24_regular,
+        GlassListTile(
+          leading: const Icon(CupertinoIcons.delete_solid, color: Color(0xFFFF3B30)),
+          title: Text(context.l10n?.deleteDownloads ?? 'Delete All Downloads', style: const TextStyle(color: Colors.white)),
+          trailing: GlassListTile.chevron,
           onTap: () => _showConfirmationDialog(
             context: context,
-            confirmationMessage: context.l10n!.deleteDownloadsQuestion,
-            submitMessage: context.l10n!.delete,
+            confirmationMessage: context.l10n?.deleteDownloadsQuestion ?? 'Delete all locally downloaded tracks and playlists?',
+            submitMessage: context.l10n?.delete ?? 'Delete',
             isDangerous: true,
             onSubmit: () async {
               try {
@@ -481,7 +592,7 @@ class SettingsPage extends StatelessWidget {
                 if (context.mounted) {
                   showToast(context, context.l10n!.downloadsDeleted);
                 }
-              } catch (e) {
+              } catch (_) {
                 if (context.mounted) {
                   showToast(context, context.l10n!.error);
                 }
@@ -489,165 +600,72 @@ class SettingsPage extends StatelessWidget {
             },
           ),
         ),
-        CustomBar(
-          context.l10n!.importSpotifyPlaylist,
-          FluentIcons.arrow_upload_24_regular,
+        GlassListTile(
+          leading: const Icon(CupertinoIcons.square_arrow_down, color: Color(0xFF30D158)),
+          title: Text(context.l10n?.importSpotifyPlaylist ?? 'Import Spotify Playlist', style: const TextStyle(color: Colors.white)),
+          trailing: GlassListTile.chevron,
           onTap: () => context.push('/settings/import-spotify-playlist'),
         ),
-        CustomBar(
-          context.l10n!.backupUserData,
-          FluentIcons.cloud_sync_24_regular,
+        GlassListTile(
+          leading: const Icon(CupertinoIcons.arrow_up_doc, color: Color(0xFF007AFF)),
+          title: Text(context.l10n?.backupUserData ?? 'Backup User Data', style: const TextStyle(color: Colors.white)),
+          trailing: GlassListTile.chevron,
           onTap: () => _backupUserData(context),
         ),
-        CustomBar(
-          context.l10n!.restoreUserData,
-          FluentIcons.cloud_add_24_regular,
-          onTap: () async {
-            try {
-              final result = await restoreData(context);
-              if (result.success) {
-                reloadSettingsFromStorage();
-                reloadSongLibraryStateFromStorage();
-                reloadPlaylistLibraryStateFromStorage();
-                reloadSearchHistoryFromStorage();
-                listeningStatsService.reload();
-                await audioHandler.setShuffleMode(
-                  shuffleNotifier.value
-                      ? AudioServiceShuffleMode.all
-                      : AudioServiceShuffleMode.none,
-                );
-                await audioHandler.setRepeatMode(repeatNotifier.value);
-                themeMode = getThemeMode(themeModeSetting);
-                brightness = getBrightnessFromThemeMode(themeMode);
-                if (context.mounted) {
-                  await Musify.updateAppState(
-                    context,
-                    newThemeMode: themeMode,
-                    newLocale: languageSetting,
-                    newAccentColor: primaryColorSetting,
-                    useSystemColor: useSystemColor.value,
-                  );
-                  NavigationManager.refreshRouter();
-                }
-              }
-              if (context.mounted) {
-                showToast(
-                  context,
-                  result.message,
-                  icon: result.success
-                      ? null
-                      : FluentIcons.error_circle_24_regular,
-                );
-              }
-            } catch (e, str) {
-              logger.log('Error restoring data', error: e, stackTrace: str);
-              if (context.mounted) {
-                showToast(
-                  context,
-                  context.l10n!.error,
-                  icon: FluentIcons.error_circle_24_regular,
-                );
-              }
-            }
-          },
+        GlassListTile(
+          leading: const Icon(CupertinoIcons.arrow_down_doc, color: Color(0xFF5856D6)),
+          title: Text(context.l10n?.restoreUserData ?? 'Restore User Data', style: const TextStyle(color: Colors.white)),
+          trailing: GlassListTile.chevron,
+          onTap: () => _restoreUserData(context),
         ),
         if (!isFdroidBuild && isMobilePlatform)
-          CustomBar(
-            context.l10n!.downloadAppUpdate,
-            FluentIcons.arrow_download_24_regular,
-            borderRadius: commonCustomBarRadiusLast,
+          GlassListTile(
+            leading: const Icon(CupertinoIcons.arrow_down_circle_fill, color: Color(0xFF34C759)),
+            title: Text(context.l10n?.downloadAppUpdate ?? 'Check for Updates', style: const TextStyle(color: Colors.white)),
+            trailing: GlassListTile.chevron,
             onTap: checkAppUpdates,
           ),
       ],
     );
   }
 
-  Widget _buildSponsorSection(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Column(
+  Widget _buildAboutSection(BuildContext context) {
+    return GlassGroupedSection(
+      surfaceStyle: GlassSurfaceStyle.solid,
       children: [
-        SectionHeader(
-          title: context.l10n!.becomeSponsor,
-          icon: FluentIcons.heart_24_filled,
+        GlassListTile(
+          leading: const Icon(CupertinoIcons.music_note_list, color: Color(0xFFFA2D48)),
+          title: const Text('FluentMusic', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          subtitle: const Text('v1.2.0 • Liquid Glass Edition', style: TextStyle(color: Colors.white54, fontSize: 12)),
+          trailing: const Text('Open Source', style: TextStyle(color: Colors.white38, fontSize: 12)),
+          onTap: () => NavigationManager.router.go('/settings/about'),
         ),
-        Card(
-          margin: const EdgeInsets.only(bottom: 8),
-          elevation: 0,
-          color: colorScheme.primaryContainer,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: InkWell(
-            onTap: () => launchURL(Uri.parse('https://ko-fi.com/gokadzev')),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
-              child: Row(
-                children: [
-                  FourSidedCookieShape(
-                    size: 44,
-                    color: colorScheme.onPrimaryContainer.withValues(
-                      alpha: 0.14,
-                    ),
-                    child: Icon(
-                      FluentIcons.heart_24_filled,
-                      color: colorScheme.onPrimaryContainer,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Text(
-                      context.l10n!.sponsorProject,
-                      style: TextStyle(
-                        color: colorScheme.onPrimaryContainer,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+        GlassListTile(
+          leading: const Icon(CupertinoIcons.person_crop_circle_fill, color: Color(0xFF007AFF)),
+          title: const Text('Lead Developer', style: TextStyle(color: Colors.white)),
+          subtitle: const Text('jaypakash sahu', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600)),
+          trailing: GlassListTile.chevron,
+          onTap: () => NavigationManager.router.go('/settings/about'),
         ),
-      ],
-    );
-  }
-
-  Widget _buildOthersSection(BuildContext context) {
-    return Column(
-      children: [
-        SectionHeader(
-          title: context.l10n!.others,
-          icon: FluentIcons.more_circle_24_filled,
-        ),
-        CustomBar(
-          context.l10n!.licenses,
-          FluentIcons.document_24_regular,
-          borderRadius: commonCustomBarRadiusFirst,
+        GlassListTile(
+          leading: const Icon(CupertinoIcons.doc_plaintext, color: Color(0xFFFF9500)),
+          title: Text(context.l10n?.licenses ?? 'Open Source Licenses', style: const TextStyle(color: Colors.white)),
+          trailing: GlassListTile.chevron,
           onTap: () => NavigationManager.router.go('/settings/license'),
-        ),
-        CustomBar(
-          context.l10n!.translate,
-          FluentIcons.translate_24_regular,
-          description: context.l10n!.translateDescription,
-          onTap: () =>
-              launchURL(Uri.parse('https://crowdin.com/project/musify')),
         ),
         ValueListenableBuilder<int>(
           valueListenable: logger.logCount,
-          builder: (context, logCount, _) => CustomBar(
-            '${context.l10n!.copyLogs} ($logCount)',
-            FluentIcons.error_circle_24_regular,
-            onTap: () async =>
-                showToast(context, await logger.copyLogs(context)),
+          builder: (ctx, logCount, _) => GlassListTile(
+            leading: const Icon(CupertinoIcons.square_list, color: Color(0xFF64D2FF)),
+            title: Text('${context.l10n?.copyLogs ?? "Export Diagnostics"} ($logCount)', style: const TextStyle(color: Colors.white)),
+            trailing: GlassListTile.chevron,
+            onTap: () async => showToast(context, await logger.copyLogs(context)),
           ),
         ),
-        CustomBar(
-          context.l10n!.about,
-          FluentIcons.book_information_24_regular,
-          borderRadius: commonCustomBarRadiusLast,
+        GlassListTile(
+          leading: const Icon(CupertinoIcons.info_circle, color: Color(0xFF34C759)),
+          title: Text(context.l10n?.about ?? 'About FluentMusic', style: const TextStyle(color: Colors.white)),
+          trailing: GlassListTile.chevron,
           onTap: () => NavigationManager.router.go('/settings/about'),
         ),
       ],
@@ -655,65 +673,15 @@ class SettingsPage extends StatelessWidget {
   }
 
   void _showAccentColorPicker(BuildContext context) {
-    if (isDesktopPlatform) {
-      _showPickerDialog(
-        context,
-        title: context.l10n!.accentColor,
-        content: GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 10,
-            mainAxisSpacing: 10,
-            crossAxisSpacing: 10,
-          ),
-          itemCount: availableColors.length,
-          itemBuilder: (context, index) {
-            final color = availableColors[index];
-            final isSelected = color == primaryColorSetting;
-
-            return InkWell(
-              customBorder: const CircleBorder(),
-              onTap: () => _selectAccentColor(context, color),
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: color,
-                  shape: BoxShape.circle,
-                  border: isSelected
-                      ? Border.all(
-                          color: Theme.of(context).colorScheme.onSurface,
-                          width: 3,
-                        )
-                      : null,
-                ),
-                child: isSelected
-                    ? Icon(
-                        FluentIcons.checkmark_20_filled,
-                        color: color.computeLuminance() > 0.5
-                            ? Colors.black
-                            : Colors.white,
-                        size: 20,
-                      )
-                    : null,
-              ),
-            );
-          },
-        ),
-      );
-      return;
-    }
-
-    final colorScheme = Theme.of(context).colorScheme;
-
     showCustomBottomSheet(
       context,
       Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: GridView.builder(
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 5,
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
+            mainAxisSpacing: 14,
+            crossAxisSpacing: 14,
           ),
           shrinkWrap: true,
           physics: const BouncingScrollPhysics(),
@@ -730,15 +698,16 @@ class SettingsPage extends StatelessWidget {
                   color: color,
                   shape: BoxShape.circle,
                   border: isSelected
-                      ? Border.all(color: colorScheme.onSurface, width: 3)
+                      ? Border.all(color: Colors.white, width: 3.5)
+                      : Border.all(color: Colors.white24, width: 1.5),
+                  boxShadow: isSelected
+                      ? [BoxShadow(color: color.withOpacity(0.5), blurRadius: 10, spreadRadius: 2)]
                       : null,
                 ),
                 child: isSelected
                     ? Icon(
-                        FluentIcons.checkmark_20_filled,
-                        color: color.computeLuminance() > 0.5
-                            ? Colors.black
-                            : Colors.white,
+                        CupertinoIcons.checkmark,
+                        color: color.computeLuminance() > 0.5 ? Colors.black : Colors.white,
                         size: 24,
                       )
                     : null,
@@ -757,66 +726,8 @@ class SettingsPage extends StatelessWidget {
       newAccentColor: color,
       useSystemColor: false,
     );
-    showToast(context, context.l10n!.accentChangeMsg);
-    Navigator.of(context, rootNavigator: isDesktopPlatform).pop();
-  }
-
-  void _showThemeModePicker(BuildContext context) {
-    final availableModes = [ThemeMode.system, ThemeMode.light, ThemeMode.dark];
-    final modeIcons = [
-      if (isDesktopPlatform)
-        FluentIcons.desktop_24_regular
-      else
-        FluentIcons.phone_24_regular,
-      FluentIcons.weather_sunny_24_regular,
-      FluentIcons.weather_moon_24_regular,
-    ];
-    final modeNames = [
-      context.l10n!.themeModeSystem,
-      context.l10n!.themeModeLight,
-      context.l10n!.themeModeDark,
-    ];
-
-    Widget buildModeBar(int index) {
-      final mode = availableModes[index];
-
-      return BottomSheetBar(
-        modeNames[index],
-        () {
-          addOrUpdateData<int>('settings', 'themeIndex', mode.index);
-          Musify.updateAppState(context, newThemeMode: mode);
-          Navigator.of(context, rootNavigator: isDesktopPlatform).pop();
-        },
-        themeMode == mode,
-        icon: modeIcons[index],
-      );
-    }
-
-    if (isDesktopPlatform) {
-      _showPickerDialog(
-        context,
-        title: context.l10n!.themeMode,
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (var index = 0; index < availableModes.length; index++)
-              buildModeBar(index),
-          ],
-        ),
-      );
-      return;
-    }
-
-    showCustomBottomSheet(
-      context,
-      ListView.builder(
-        shrinkWrap: true,
-        physics: const BouncingScrollPhysics(),
-        padding: commonListViewBottomPadding,
-        itemCount: availableModes.length,
-        itemBuilder: (context, index) => buildModeBar(index),
-      ),
-    );
+    showToast(context, context.l10n?.accentChangeMsg ?? 'Accent color updated');
+    Navigator.of(context).pop();
   }
 
   void _showLanguagePicker(BuildContext context) {
@@ -834,26 +745,16 @@ class SettingsPage extends StatelessWidget {
           ? '${newLocale.languageCode}-${newLocale.scriptCode}'
           : newLocale.languageCode;
 
-      return BottomSheetBar(getLanguageDisplayName(context, language), () {
-        addOrUpdateData<String>('settings', 'languageCode', newLocaleFullCode);
-        Musify.updateAppState(context, newLocale: newLocale);
-        showToast(context, context.l10n!.languageMsg);
-        Navigator.of(context, rootNavigator: isDesktopPlatform).pop();
-      }, activeLanguageFullCode == newLocaleFullCode);
-    }
-
-    if (isDesktopPlatform) {
-      _showPickerDialog(
-        context,
-        title: context.l10n!.language,
-        height: 460,
-        content: ListView.builder(
-          padding: commonListViewBottomPadding,
-          itemCount: availableLanguages.length,
-          itemBuilder: (context, index) => buildLanguageBar(index),
-        ),
+      return BottomSheetBar(
+        getLanguageDisplayName(context, language),
+        () {
+          addOrUpdateData<String>('settings', 'languageCode', newLocaleFullCode);
+          Musify.updateAppState(context, newLocale: newLocale);
+          showToast(context, context.l10n?.languageMsg ?? 'Language changed');
+          Navigator.of(context).pop();
+        },
+        activeLanguageFullCode == newLocaleFullCode,
       );
-      return;
     }
 
     showCustomBottomSheet(
@@ -865,88 +766,6 @@ class SettingsPage extends StatelessWidget {
         itemCount: availableLanguages.length,
         itemBuilder: (context, index) => buildLanguageBar(index),
       ),
-    );
-  }
-
-  void _showAudioQualityPicker(BuildContext context) {
-    final availableQualities = ['low', 'medium', 'high'];
-    final qualityNames = [
-      context.l10n!.audioQualityLow,
-      context.l10n!.audioQualityMedium,
-      context.l10n!.audioQualityHigh,
-    ];
-    const qualityIcons = [
-      FluentIcons.speaker_1_24_regular,
-      FluentIcons.speaker_2_24_regular,
-      FluentIcons.speaker_2_24_filled,
-    ];
-
-    Widget buildQualityBar(int index) {
-      final quality = availableQualities[index];
-
-      return BottomSheetBar(
-        qualityNames[index],
-        () {
-          addOrUpdateData<String>('settings', 'audioQuality', quality);
-          audioQualitySetting.value = quality;
-          showToast(context, context.l10n!.audioQualityMsg);
-          Navigator.of(context, rootNavigator: isDesktopPlatform).pop();
-        },
-        audioQualitySetting.value == quality,
-        icon: qualityIcons[index],
-      );
-    }
-
-    if (isDesktopPlatform) {
-      _showPickerDialog(
-        context,
-        title: context.l10n!.audioQuality,
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (var index = 0; index < availableQualities.length; index++)
-              buildQualityBar(index),
-          ],
-        ),
-      );
-      return;
-    }
-
-    showCustomBottomSheet(
-      context,
-      ListView.builder(
-        shrinkWrap: true,
-        physics: const BouncingScrollPhysics(),
-        padding: commonListViewBottomPadding,
-        itemCount: availableQualities.length,
-        itemBuilder: (context, index) => buildQualityBar(index),
-      ),
-    );
-  }
-
-  void _showPickerDialog(
-    BuildContext context, {
-    required String title,
-    required Widget content,
-    double? height,
-  }) {
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: Text(title),
-          contentPadding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-          content: SizedBox(width: 420, height: height, child: content),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: Text(
-                MaterialLocalizations.of(dialogContext).cancelButtonLabel,
-              ),
-            ),
-          ],
-        );
-      },
     );
   }
 
@@ -1003,10 +822,7 @@ class SettingsPage extends StatelessWidget {
   void _toggleOfflineMode(BuildContext context, bool value) {
     addOrUpdateData<bool>('settings', 'offlineMode', value);
     offlineMode.value = value;
-
-    // Trigger router refresh and notify about the change
     NavigationManager.refreshRouter();
-
     showToast(context, context.l10n!.settingChangedMsg);
   }
 
@@ -1043,14 +859,14 @@ class SettingsPage extends StatelessWidget {
   }) {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (BuildContext ctx) {
         return ConfirmationDialog(
-          submitMessage: submitMessage ?? context.l10n!.clear,
+          submitMessage: submitMessage ?? context.l10n?.clear ?? 'Clear',
           confirmationMessage: confirmationMessage,
           isDangerous: isDangerous,
-          onCancel: () => Navigator.of(context).pop(),
+          onCancel: () => Navigator.of(ctx).pop(),
           onSubmit: () {
-            Navigator.of(context).pop();
+            Navigator.of(ctx).pop();
             onSubmit();
           },
         );
@@ -1065,7 +881,7 @@ class SettingsPage extends StatelessWidget {
         showToast(
           context,
           result.message,
-          icon: result.success ? null : FluentIcons.error_circle_24_regular,
+          icon: result.success ? null : CupertinoIcons.exclamationmark_circle,
         );
       }
     } catch (e, stackTrace) {
@@ -1073,8 +889,55 @@ class SettingsPage extends StatelessWidget {
       if (context.mounted) {
         showToast(
           context,
-          context.l10n!.error,
-          icon: FluentIcons.error_circle_24_regular,
+          context.l10n?.error ?? 'Error',
+          icon: CupertinoIcons.exclamationmark_circle,
+        );
+      }
+    }
+  }
+
+  Future<void> _restoreUserData(BuildContext context) async {
+    try {
+      final result = await restoreData(context);
+      if (result.success) {
+        reloadSettingsFromStorage();
+        reloadSongLibraryStateFromStorage();
+        reloadPlaylistLibraryStateFromStorage();
+        reloadSearchHistoryFromStorage();
+        listeningStatsService.reload();
+        await audioHandler.setShuffleMode(
+          shuffleNotifier.value
+              ? AudioServiceShuffleMode.all
+              : AudioServiceShuffleMode.none,
+        );
+        await audioHandler.setRepeatMode(repeatNotifier.value);
+        themeMode = getThemeMode(themeModeSetting);
+        brightness = getBrightnessFromThemeMode(themeMode);
+        if (context.mounted) {
+          await Musify.updateAppState(
+            context,
+            newThemeMode: themeMode,
+            newLocale: languageSetting,
+            newAccentColor: primaryColorSetting,
+            useSystemColor: useSystemColor.value,
+          );
+          NavigationManager.refreshRouter();
+        }
+      }
+      if (context.mounted) {
+        showToast(
+          context,
+          result.message,
+          icon: result.success ? null : CupertinoIcons.exclamationmark_circle,
+        );
+      }
+    } catch (e, str) {
+      logger.log('Error restoring data', error: e, stackTrace: str);
+      if (context.mounted) {
+        showToast(
+          context,
+          context.l10n?.error ?? 'Error',
+          icon: CupertinoIcons.exclamationmark_circle,
         );
       }
     }
