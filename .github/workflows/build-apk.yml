@@ -72,13 +72,14 @@ jobs:
             fi
           done
 
-          # Patch JVM target compatibility across all pub.dev plugins for AGP 8+ and Kotlin 1.9+
+          # Patch JVM target compatibility and compileSdk across all pub.dev plugins for AGP 8+ and Kotlin 1.9+
           echo "Patching legacy JVM target compatibility to Java 17..."
           find /home/runner/.pub-cache/hosted/pub.dev -name "build.gradle" 2>/dev/null | while read -r f; do
             sed -i 's/JavaVersion.VERSION_1_8/JavaVersion.VERSION_17/g' "$f"
             sed -i 's/JavaVersion.VERSION_1_7/JavaVersion.VERSION_17/g' "$f"
             sed -i "s/jvmTarget = '1.8'/jvmTarget = '17'/g" "$f"
             sed -i 's/jvmTarget = "1.8"/jvmTarget = "17"/g' "$f"
+            sed -i 's/compileSdkVersion [0-9]*/compileSdkVersion 35/g' "$f"
           done
 
       - name: Build Universal Release APK
