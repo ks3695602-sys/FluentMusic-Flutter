@@ -23,6 +23,7 @@ import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart' show LicensePage;
 import 'package:musify/constants/version.dart';
 import 'package:musify/screens/about_page.dart';
 import 'package:musify/screens/artist_page.dart';
