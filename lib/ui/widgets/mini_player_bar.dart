@@ -49,7 +49,7 @@ class MiniPlayerBar extends StatelessWidget {
               },
               child: GlassContainer(
                 useOwnLayer: true,
-                shape: const LiquidShape.roundedRectangle(borderRadius: 22),
+                shape: const LiquidRoundedRectangle(borderRadius: 22),
                 padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
                 child: Row(
                   children: [

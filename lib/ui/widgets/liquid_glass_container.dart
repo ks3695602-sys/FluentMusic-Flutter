@@ -32,8 +32,8 @@ class LiquidGlassContainer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final shape = isCircle
-        ? const LiquidShape.circle()
-        : LiquidShape.roundedRectangle(borderRadius: borderRadius);
+        ? const LiquidOval()
+        : LiquidRoundedRectangle(borderRadius: borderRadius);
 
     Widget container = GlassContainer(
       useOwnLayer: true,

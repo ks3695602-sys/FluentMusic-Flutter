@@ -41,10 +41,10 @@ jobs:
       - name: Verify Flutter Version
         run: flutter --version
 
-      - name: Accept Android SDK Licenses & Install Platform 35
+      - name: Accept Android SDK Licenses & Install Android Platforms
         run: |
           yes | sdkmanager --licenses || true
-          sdkmanager "platforms;android-35" || true
+          sdkmanager "platforms;android-36" "platforms;android-35" || true
 
       - name: Install Dependencies
         run: flutter pub get
@@ -79,7 +79,7 @@ jobs:
             sed -i 's/JavaVersion.VERSION_1_7/JavaVersion.VERSION_17/g' "$f"
             sed -i "s/jvmTarget = '1.8'/jvmTarget = '17'/g" "$f"
             sed -i 's/jvmTarget = "1.8"/jvmTarget = "17"/g' "$f"
-            sed -i 's/compileSdkVersion [0-9]*/compileSdkVersion 35/g' "$f"
+            sed -i 's/compileSdkVersion [0-9]*/compileSdkVersion 36/g' "$f"
           done
 
       - name: Build Universal Release APK
