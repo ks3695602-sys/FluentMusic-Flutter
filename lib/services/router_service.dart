@@ -1,4 +1,4 @@
-﻿/*
+/*
  *     Copyright (C) 2026 Valeri Gokadze
  *
  *     Musify is free software: you can redistribute it and/or modify
@@ -268,8 +268,8 @@ class NavigationManager {
               GoRoute(
                 path: 'license',
                 pageBuilder: (context, state) => _pushPage(
-                  child: const LicensePage(
-                    applicationName: 'Musify',
+                  child: LicensePage(
+                    applicationName: 'FluentMusic',
                     applicationVersion: appVersion,
                   ),
                   state: state,
