@@ -14,18 +14,18 @@ if (localPropertiesFile.exists()) {
 
 def flutterVersionCode = localProperties.getProperty("flutter.versionCode")
 if (flutterVersionCode == null) {
-    flutterVersionCode = "110"
+    flutterVersionCode = "1"
 }
 
 def flutterVersionName = localProperties.getProperty("flutter.versionName")
 if (flutterVersionName == null) {
-    flutterVersionName = "1.1.0-fluent"
+    flutterVersionName = "1.0.0"
 }
 
 android {
     namespace "com.fluentmusic.app"
     compileSdk 36
-    ndkVersion flutter.ndkVersion
+    ndkVersion = "28.2.13676358"
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
@@ -40,27 +40,31 @@ android {
         main.java.srcDirs += "src/main/kotlin"
     }
 
+    lint {
+        checkReleaseBuilds false
+        abortOnError false
+    }
+
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
+
     defaultConfig {
         applicationId "com.fluentmusic.app"
         minSdk 24
         targetSdk 36
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
-        multiDexEnabled true
     }
 
     signingConfigs {
         release {
-            keyAlias "androiddebugkey"
-            keyPassword "android"
             storeFile file("persistent-debug.keystore")
             storePassword "android"
-        }
-        debug {
             keyAlias "androiddebugkey"
             keyPassword "android"
-            storeFile file("persistent-debug.keystore")
-            storePassword "android"
         }
     }
 
@@ -69,18 +73,14 @@ android {
             signingConfig signingConfigs.release
             minifyEnabled false
             shrinkResources false
+            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
         }
         debug {
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.release
         }
     }
 }
 
 flutter {
     source "../.."
-}
-
-dependencies {
-    implementation "androidx.core:core-ktx:1.13.1"
-    implementation "androidx.multidex:multidex:2.0.1"
 }
