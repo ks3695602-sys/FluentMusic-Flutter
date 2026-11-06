@@ -19,6 +19,12 @@ subprojects { subproject ->
             subproject.android.compileSdkVersion = 36
         }
     }
+    subproject.tasks.matching { it.name.startsWith("compile") && it.name.endsWith("Kotlin") }.configureEach { task ->
+        task.kotlinOptions {
+            jvmTarget = "17"
+            freeCompilerArgs += ["-Xskip-metadata-version-check"]
+        }
+    }
 }
 
 tasks.register("clean", Delete) {
