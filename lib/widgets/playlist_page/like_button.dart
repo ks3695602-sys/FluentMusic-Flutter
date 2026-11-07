@@ -1,4 +1,4 @@
-﻿/*
+/*
  *     Copyright (C) 2026 Valeri Gokadze
  *
  *     Musify is free software: you can redistribute it and/or modify
@@ -94,23 +94,32 @@ class _PlaylistLikeButtonState extends State<PlaylistLikeButton> {
     return ValueListenableBuilder<bool>(
       valueListenable: _isLiked,
       builder: (context, isLiked, __) {
-        final icon = Icon(
-          isLiked ? FluentIcons.heart_24_filled : FluentIcons.heart_24_regular,
+        return Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: isLiked
+                ? const Color(0xFFFF2D55).withValues(alpha: 0.22)
+                : CupertinoColors.white.withValues(alpha: 0.12),
+            border: Border.all(
+              color: isLiked
+                  ? const Color(0xFFFF2D55).withValues(alpha: 0.40)
+                  : CupertinoColors.white.withValues(alpha: 0.18),
+              width: 0.8,
+            ),
+          ),
+          child: CupertinoButton(
+            padding: EdgeInsets.zero,
+            borderRadius: BorderRadius.circular(22),
+            onPressed: _toggleLikeStatus,
+            child: Icon(
+              isLiked ? CupertinoIcons.heart_fill : CupertinoIcons.heart,
+              color: isLiked ? const Color(0xFFFF2D55) : CupertinoColors.white,
+              size: 20,
+            ),
+          ),
         );
-
-        return isLiked
-            ? IconButton.filled(
-                icon: icon,
-                iconSize: 24,
-                onPressed: _toggleLikeStatus,
-                tooltip: context.l10n!.removeFromLikedPlaylists,
-              )
-            : IconButton.filledTonal(
-                icon: icon,
-                iconSize: 24,
-                onPressed: _toggleLikeStatus,
-                tooltip: context.l10n!.addToLikedPlaylists,
-              );
       },
     );
   }

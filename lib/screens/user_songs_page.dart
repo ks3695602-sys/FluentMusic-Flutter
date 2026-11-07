@@ -21,6 +21,7 @@
 
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' hide ColorScheme;
 import 'package:material_ui/material_ui.dart';
 import 'package:musify/constants/app_constants.dart';
 import 'package:musify/extensions/l10n.dart';
@@ -124,6 +125,17 @@ class _UserSongsPageState extends State<UserSongsPage> {
     return CustomScrollView(
       slivers: [
         PlaylistSliverAppBar(
+          leading: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: GlassIconButton(
+              icon: const Icon(
+                CupertinoIcons.chevron_back,
+                color: CupertinoColors.white,
+                size: 20,
+              ),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ),
           title: title,
           artwork: PlaylistHeroArtwork({'title': title}, cubeIcon: icon),
         ),

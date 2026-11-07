@@ -41,12 +41,51 @@ class TrackInfo {
   );
 }
 
-/// One timed line of a synchronized (LRC) lyrics file.
+/// One timed word/syllable of an enhanced synchronized (LRC) lyrics file.
+class LyricWord {
+  const LyricWord({
+    required this.text,
+    required this.start,
+    required this.end,
+  });
+
+  final String text;
+  final Duration start;
+  final Duration end;
+
+  @override
+  String toString() => '<$start->$end> $text';
+}
+
+/// One timed line of a synchronized (LRC) lyrics file with word-sync support.
 class LyricLine {
-  const LyricLine(this.start, this.text);
+  const LyricLine(
+    this.start,
+    this.text, {
+    this.end,
+    this.words = const [],
+  });
 
   final Duration start;
+  final Duration? end;
   final String text;
+  final List<LyricWord> words;
+
+  bool get hasWordSync => words.isNotEmpty;
+
+  /// Returns the index of the word sung at [position], or -1 if before line start.
+  int wordIndexAt(Duration position) {
+    if (words.isEmpty) return -1;
+    for (var i = 0; i < words.length; i++) {
+      if (position >= words[i].start && position < words[i].end) {
+        return i;
+      }
+    }
+    if (position >= words.last.end) {
+      return words.length - 1;
+    }
+    return -1;
+  }
 
   @override
   String toString() => '[$start] $text';

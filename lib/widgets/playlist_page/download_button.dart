@@ -1,4 +1,4 @@
-﻿/*
+/*
  *     Copyright (C) 2026 Valeri Gokadze
  *
  *     Musify is free software: you can redistribute it and/or modify
@@ -99,15 +99,28 @@ class _PlaylistDownloadButtonState extends State<PlaylistDownloadButton> {
         valueListenable: offlinePlaylistService.offlinePlaylists,
         builder: (context, __, ___) {
           if (_isOffline) {
-            return IconButton.filled(
-              icon: Icon(
-                FluentIcons.arrow_download_off_24_filled,
-                color: Theme.of(context).colorScheme.onPrimary,
+            return Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF30D158).withValues(alpha: 0.22),
+                border: Border.all(
+                  color: const Color(0xFF30D158).withValues(alpha: 0.40),
+                  width: 0.8,
+                ),
               ),
-              iconSize: 24,
-              onPressed: () =>
-                  showRemoveOfflinePlaylistDialog(context, playlistId),
-              tooltip: context.l10n!.removeOffline,
+              child: CupertinoButton(
+                padding: EdgeInsets.zero,
+                borderRadius: BorderRadius.circular(22),
+                onPressed: () =>
+                    showRemoveOfflinePlaylistDialog(context, playlistId),
+                child: const Icon(
+                  CupertinoIcons.arrow_down_circle_fill,
+                  color: Color(0xFF30D158),
+                  size: 20,
+                ),
+              ),
             );
           }
 
@@ -124,23 +137,39 @@ class _PlaylistDownloadButtonState extends State<PlaylistDownloadButton> {
 
               if (_isResolving) {
                 return const SizedBox(
-                  width: 48,
-                  height: 48,
+                  width: 44,
+                  height: 44,
                   child: Center(
                     child: SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(strokeWidth: 3),
+                      width: 22,
+                      height: 22,
+                      child: CupertinoActivityIndicator(),
                     ),
                   ),
                 );
               }
 
-              return IconButton.filledTonal(
-                icon: const Icon(FluentIcons.arrow_download_24_filled),
-                iconSize: 24,
-                onPressed: () => _download(context),
-                tooltip: context.l10n!.downloadPlaylist,
+              return Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: CupertinoColors.white.withValues(alpha: 0.12),
+                  border: Border.all(
+                    color: CupertinoColors.white.withValues(alpha: 0.18),
+                    width: 0.8,
+                  ),
+                ),
+                child: CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  borderRadius: BorderRadius.circular(22),
+                  onPressed: () => _download(context),
+                  child: const Icon(
+                    CupertinoIcons.arrow_down_to_line,
+                    color: CupertinoColors.white,
+                    size: 20,
+                  ),
+                ),
               );
             },
           );

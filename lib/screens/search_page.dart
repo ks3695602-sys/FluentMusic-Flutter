@@ -26,6 +26,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' hide ColorScheme;
 import 'package:musify/constants/app_constants.dart';
 import 'package:musify/database/radio_stations.db.dart';
 import 'package:musify/extensions/l10n.dart';
@@ -264,8 +265,18 @@ class _SearchPageState extends State<SearchPage> {
   @override
   Widget build(BuildContext context) {
     final primaryColor = Theme.of(context).colorScheme.primary;
-    return Scaffold(
-      appBar: AppBar(title: Text(context.l10n!.search)),
+    return GlassScaffold(
+      contentAwareBrightness: true,
+      appBar: GlassAppBar(
+        title: Text(
+          context.l10n?.search ?? 'Search',
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 22,
+            color: CupertinoColors.white,
+          ),
+        ),
+      ),
       body: SingleChildScrollView(
         padding: commonSingleChildScrollViewPadding,
         child: Column(
@@ -349,54 +360,20 @@ class _SearchPageState extends State<SearchPage> {
                             ? searchHistory
                             : _suggestionsList;
 
-                        return Column(
-                          key: ValueKey(
-                            'history-${_suggestionsList.length}-${_searchBar.text}-${searchHistory.length}',
-                          ),
-                          children: [
-                            for (int index = 0; index < items.length; index++)
-                              Builder(
-                                builder: (context) {
-                                  final query = items[index];
-                                  final borderRadius = getItemBorderRadius(
-                                    index,
-                                    items.length,
-                                  );
-
-                                  return CustomBar(
-                                    query,
-                                    FluentIcons.search_24_regular,
-                                    borderRadius: borderRadius,
-                                    onTap: () async {
-                                      await _submitSearch(query.toString());
-                                    },
-                                    onLongPress: () async {
-                                      final confirm =
-                                          await _showConfirmationDialog(
-                                            context,
-                                          ) ??
-                                          false;
-                                      if (confirm &&
-                                          searchHistory.contains(query)) {
-                                        final updatedHistory = List.from(
-                                          searchHistory,
-                                        )..remove(query);
-                                        searchHistoryNotifier.value =
-                                            updatedHistory;
-                                        unawaited(
-                                          addOrUpdateData<List>(
-                                            'user',
-                                            'searchHistory',
-                                            updatedHistory,
-                                          ),
-                                        );
-                                      }
-                                    },
-                                  );
-                                },
-                              ),
-                          ],
-                        );
+                        return _suggestionsList.isEmpty
+                            ? _buildAppleBrowseSection(context, searchHistory)
+                            : Column(
+                                key: ValueKey('suggestions-${_suggestionsList.length}'),
+                                children: [
+                                  for (int index = 0; index < _suggestionsList.length; index++)
+                                    CustomBar(
+                                      _suggestionsList[index],
+                                      FluentIcons.search_24_regular,
+                                      borderRadius: getItemBorderRadius(index, _suggestionsList.length),
+                                      onTap: () => _submitSearch(_suggestionsList[index]),
+                                    ),
+                                ],
+                              );
                       },
                     )
                   : _buildSearchResults(context, primaryColor),

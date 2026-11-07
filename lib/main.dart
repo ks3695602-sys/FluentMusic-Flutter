@@ -29,7 +29,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:just_audio_media_kit/just_audio_media_kit.dart';
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' show LiquidGlassWidgets, GlassWarmUpMode;
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:musify/extensions/l10n.dart';
 import 'package:musify/localization/app_localizations.dart';
@@ -296,9 +296,15 @@ void main() async {
   await initialisation();
 
   runApp(
-    LiquidGlassWidgets.wrap(
-      brightnessResolver: Theme.maybeBrightnessOf,
-      child: const Musify(),
+    ValueListenableBuilder<GlassThemeData>(
+      valueListenable: liquidGlassThemeNotifier,
+      builder: (context, glassTheme, _) {
+        return LiquidGlassWidgets.wrap(
+          brightnessResolver: Theme.maybeBrightnessOf,
+          theme: glassTheme,
+          child: const Musify(),
+        );
+      },
     ),
   );
 }

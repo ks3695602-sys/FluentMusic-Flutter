@@ -1,4 +1,4 @@
-﻿/*
+/*
  *     Copyright (C) 2026 Valeri Gokadze
  *
  *     Musify is free software: you can redistribute it and/or modify
@@ -434,11 +434,20 @@ class _SongBarState extends State<SongBar> {
         ? _listeningCountLabel()
         : widget.playCount;
 
-    return Material(
-      color: widget.backgroundColor ?? colorScheme.surfaceContainerLow,
-      borderRadius: widget.borderRadius,
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
+    return Container(
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(
+            color: CupertinoColors.white.withValues(alpha: 0.08),
+            width: 0.5,
+          ),
+        ),
+      ),
+      child: Material(
+        color: widget.backgroundColor ?? Colors.transparent,
+        borderRadius: widget.borderRadius,
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
         onTap: _handleSongTap,
         child: Padding(
           padding:
@@ -507,8 +516,9 @@ class _SongBarState extends State<SongBar> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   String? _listeningCountLabel() {
     final count = widget.song['listeningCount'];

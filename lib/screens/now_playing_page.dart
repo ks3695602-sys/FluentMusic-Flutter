@@ -19,7 +19,9 @@
  *     please visit: https://github.com/gokadzev/Musify
  */
 
+import 'dart:ui';
 import 'package:audio_service/audio_service.dart';
+import 'package:musify/utilities/artwork_provider.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:material_ui/material_ui.dart';
@@ -63,35 +65,77 @@ class _NowPlayingPageState extends State<NowPlayingPage> {
         }
         final metadata = snapshot.data!;
 
-        return GlassScaffold(
-          contentAwareBrightness: true,
-          appBar: GlassAppBar(
-            leading: GlassIconButton(
-              icon: const Icon(CupertinoIcons.chevron_down),
-              onPressed: () => Navigator.pop(context),
+        final artworkUrl = metadata.artUri?.toString();
+
+        return Stack(
+          children: [
+            Positioned.fill(
+              child: Container(
+                color: CupertinoColors.black,
+                child: artworkUrl != null && artworkUrl.isNotEmpty
+                    ? ImageFiltered(
+                        imageFilter: ImageFilter.blur(sigmaX: 70, sigmaY: 70),
+                        child: Transform.scale(
+                          scale: 1.4,
+                          child: Opacity(
+                            opacity: 0.50,
+                            child: Image(
+                              image: ArtworkProvider.get(artworkUrl),
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                            ),
+                          ),
+                        ),
+                      )
+                    : const SizedBox.shrink(),
+              ),
             ),
-            title: Text(
-              metadata.title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          body: isLargeScreen
-              ? _DesktopLayout(
-                  metadata: metadata,
-                  size: size,
-                  adjustedIconSize: baseIconSize,
-                  adjustedMiniIconSize: miniIconSize,
-                  lyricsController: _lyricsController,
-                )
-              : _MobileLayout(
-                  metadata: metadata,
-                  size: size,
-                  adjustedIconSize: baseIconSize,
-                  adjustedMiniIconSize: miniIconSize,
-                  isLargeScreen: isLargeScreen,
-                  lyricsController: _lyricsController,
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      CupertinoColors.black.withValues(alpha: 0.35),
+                      CupertinoColors.black.withValues(alpha: 0.70),
+                    ],
+                  ),
                 ),
+              ),
+            ),
+            GlassScaffold(
+              contentAwareBrightness: true,
+              backgroundColor: Colors.transparent,
+              appBar: GlassAppBar(
+                leading: GlassIconButton(
+                  icon: const Icon(CupertinoIcons.chevron_down),
+                  onPressed: () => Navigator.pop(context),
+                ),
+                title: Text(
+                  metadata.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              body: isLargeScreen
+                  ? _DesktopLayout(
+                      metadata: metadata,
+                      size: size,
+                      adjustedIconSize: baseIconSize,
+                      adjustedMiniIconSize: miniIconSize,
+                      lyricsController: _lyricsController,
+                    )
+                  : _MobileLayout(
+                      metadata: metadata,
+                      size: size,
+                      adjustedIconSize: baseIconSize,
+                      adjustedMiniIconSize: miniIconSize,
+                      isLargeScreen: isLargeScreen,
+                      lyricsController: _lyricsController,
+                    ),
+            ),
+          ],
         );
       },
     );

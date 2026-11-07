@@ -27,12 +27,32 @@ final RegExp _offsetTag = RegExp(
   caseSensitive: false,
 );
 final RegExp _wordTag = RegExp(r'<\d{1,3}:\d{1,2}(?:[.:]\d{1,3})?>');
+final RegExp _wordCaptureTag = RegExp(
+  r'<(\d{1,3}):(\d{1,2})(?:[.:](\d{1,3}))?>([^<]*)',
+);
 
-/// Parses LRC text into time-sorted lines.
+Duration _parseTimestamp(
+  String min,
+  String sec,
+  String? fraction,
+  int offsetMs,
+) {
+  final minutes = int.parse(min);
+  final seconds = int.parse(sec);
+  var millis = 0;
+  if (fraction != null) {
+    millis = int.parse(fraction.padRight(3, '0').substring(0, 3));
+  }
+  final total =
+      Duration(minutes: minutes, seconds: seconds, milliseconds: millis) -
+      Duration(milliseconds: offsetMs);
+  return total.isNegative ? Duration.zero : total;
+}
+
+/// Parses LRC text into time-sorted lines with word-level timestamps when available.
 ///
-/// Supports `[mm:ss]`, `[mm:ss.xx]`, `[mm:ss.xxx]`, several timestamps on one
-/// line, the `[offset:ms]` header and enhanced `<mm:ss.xx>` word tags (which
-/// are stripped). Metadata tags such as `[ar:...]` are ignored.
+/// Supports `[mm:ss]`, `[mm:ss.xx]`, `[mm:ss.xxx]`, multiple timestamps on one
+/// line, the `[offset:ms]` header, and enhanced `<mm:ss.xx>word` tags.
 List<LyricLine> parseLrc(String input) {
   final lines = <LyricLine>[];
   var offsetMs = 0;
@@ -47,26 +67,62 @@ List<LyricLine> parseLrc(String input) {
     final matches = _timeTag.allMatches(raw).toList();
     if (matches.isEmpty) continue;
 
-    final text = raw
-        .substring(matches.last.end)
+    final rawContent = raw.substring(matches.last.end);
+    final text = rawContent
         .replaceAll(_wordTag, '')
         .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
 
-    for (final m in matches) {
-      final minutes = int.parse(m.group(1)!);
-      final seconds = int.parse(m.group(2)!);
-      final fraction = m.group(3);
-      var millis = 0;
-      if (fraction != null) {
-        // "5" -> 500ms, "50" -> 500ms, "500" -> 500ms
-        millis = int.parse(fraction.padRight(3, '0').substring(0, 3));
+    // Parse enhanced word-by-word timestamps if present
+    final wordMatches = _wordCaptureTag.allMatches(rawContent).toList();
+    final parsedWords = <LyricWord>[];
+    if (wordMatches.isNotEmpty) {
+      for (var i = 0; i < wordMatches.length; i++) {
+        final wm = wordMatches[i];
+        final wStart = _parseTimestamp(
+          wm.group(1)!,
+          wm.group(2)!,
+          wm.group(3),
+          offsetMs,
+        );
+        final wText = wm.group(4) ?? '';
+
+        Duration wEnd;
+        if (i + 1 < wordMatches.length) {
+          final nextWm = wordMatches[i + 1];
+          wEnd = _parseTimestamp(
+            nextWm.group(1)!,
+            nextWm.group(2)!,
+            nextWm.group(3),
+            offsetMs,
+          );
+        } else {
+          // Default last word duration of 600ms
+          wEnd = wStart + const Duration(milliseconds: 600);
+        }
+
+        if (wText.isNotEmpty) {
+          parsedWords.add(LyricWord(text: wText, start: wStart, end: wEnd));
+        }
       }
-      final total =
-          Duration(minutes: minutes, seconds: seconds, milliseconds: millis) -
-          // LRC offset: positive values make lyrics appear sooner.
-          Duration(milliseconds: offsetMs);
-      lines.add(LyricLine(total.isNegative ? Duration.zero : total, text));
+    }
+
+    for (final m in matches) {
+      final total = _parseTimestamp(
+        m.group(1)!,
+        m.group(2)!,
+        m.group(3),
+        offsetMs,
+      );
+      final lineEnd = parsedWords.isNotEmpty ? parsedWords.last.end : null;
+      lines.add(
+        LyricLine(
+          total,
+          text,
+          end: lineEnd,
+          words: parsedWords,
+        ),
+      );
     }
   }
 

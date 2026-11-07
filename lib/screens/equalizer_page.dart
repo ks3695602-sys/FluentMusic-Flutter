@@ -22,6 +22,7 @@
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' hide ColorScheme;
 import 'package:material_ui/material_ui.dart';
 import 'package:musify/constants/app_constants.dart';
 import 'package:musify/extensions/l10n.dart';
@@ -195,22 +196,32 @@ class _EqualizerPageState extends State<EqualizerPage> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Scaffold(
-      appBar: AppBar(
+    return GlassScaffold(
+      contentAwareBrightness: true,
+      appBar: GlassAppBar(
+        leading: Padding(
+          padding: const EdgeInsets.all(6.0),
+          child: GlassIconButton(
+            icon: const Icon(CupertinoIcons.chevron_back, color: CupertinoColors.white, size: 20),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ),
         title: Text(context.l10n!.equalizer),
         actions: [
-          IconButton(
-            icon: const Icon(FluentIcons.arrow_clockwise_24_filled),
-            tooltip: context.l10n!.equalizerResetBands,
-            onPressed: () async {
-              await audioHandler.resetEqualizerBands();
-              final params = _params;
-              if (!mounted || params == null) return;
-              setState(() {
-                _gains = List<double>.filled(params.bands.length, 0);
-                _activePreset = null;
-              });
-            },
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: GlassIconButton(
+              icon: const Icon(CupertinoIcons.arrow_counterclockwise, color: CupertinoColors.white, size: 19),
+              onPressed: () async {
+                await audioHandler.resetEqualizerBands();
+                final params = _params;
+                if (!mounted || params == null) return;
+                setState(() {
+                  _gains = List<double>.filled(params.bands.length, 0);
+                  _activePreset = null;
+                });
+              },
+            ),
           ),
         ],
       ),

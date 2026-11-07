@@ -21,6 +21,7 @@
 
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' hide ColorScheme;
 import 'package:material_ui/material_ui.dart';
 import 'package:musify/constants/app_constants.dart';
 import 'package:musify/extensions/l10n.dart';
@@ -73,6 +74,17 @@ class _PlaylistFolderPageState extends State<PlaylistFolderPage> {
           body: CustomScrollView(
             slivers: [
               SliverAppBar(
+                leading: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: GlassIconButton(
+                    icon: const Icon(
+                      CupertinoIcons.chevron_back,
+                      color: CupertinoColors.white,
+                      size: 20,
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ),
                 pinned: true,
                 expandedHeight: 320,
                 flexibleSpace: FlexibleSpaceBar(
@@ -185,24 +197,21 @@ class _PlaylistFolderPageState extends State<PlaylistFolderPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          ClipPath(
-            clipper: const ShapeBorderClipper(
-              shape: StarBorder(
-                points: 8,
-                pointRounding: 0.8,
-                valleyRounding: 0.2,
-                innerRadiusRatio: 0.6,
+          Container(
+            width: 120,
+            height: 120,
+            decoration: BoxDecoration(
+              color: CupertinoColors.white.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(
+                color: CupertinoColors.white.withValues(alpha: 0.16),
+                width: 1,
               ),
             ),
-            child: Container(
-              width: 130,
-              height: 130,
-              color: colorScheme.surfaceContainerHighest,
-              child: Icon(
-                FluentIcons.folder_24_filled,
-                size: 64,
-                color: colorScheme.onSurfaceVariant,
-              ),
+            child: const Icon(
+              CupertinoIcons.folder_fill,
+              size: 56,
+              color: CupertinoColors.white,
             ),
           ),
           const SizedBox(height: 20),

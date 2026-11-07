@@ -1,4 +1,4 @@
-﻿/*
+/*
  *     Copyright (C) 2026 Valeri Gokadze
  *
  *     Musify is free software: you can redistribute it and/or modify
@@ -325,32 +325,36 @@ class PlayerControlButtons extends StatelessWidget {
     return ValueListenableBuilder<bool>(
       valueListenable: shuffleNotifier,
       builder: (_, value, __) {
-        return IconButton(
-          icon: Icon(
-            value
-                ? FluentIcons.arrow_shuffle_24_filled
-                : FluentIcons.arrow_shuffle_off_24_regular,
-            color: value ? colorScheme.onPrimary : colorScheme.onSurfaceVariant,
-          ),
-          tooltip: context.l10n!.shuffle,
-          iconSize: size,
-          constraints: buttonConstraints,
-          padding: buttonPadding,
-          style: IconButton.styleFrom(
-            backgroundColor: value
-                ? colorScheme.primary
-                : colorScheme.surfaceContainerHighest,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+        return Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: value
+                ? CupertinoColors.white.withValues(alpha: 0.25)
+                : CupertinoColors.white.withValues(alpha: 0.08),
+            border: Border.all(
+              color: value
+                  ? const Color(0xFFFF2D55).withValues(alpha: 0.6)
+                  : CupertinoColors.white.withValues(alpha: 0.15),
+              width: 0.8,
             ),
           ),
-          onPressed: () {
-            audioHandler.setShuffleMode(
-              value
-                  ? AudioServiceShuffleMode.none
-                  : AudioServiceShuffleMode.all,
-            );
-          },
+          child: CupertinoButton(
+            padding: EdgeInsets.zero,
+            onPressed: () {
+              audioHandler.setShuffleMode(
+                value
+                    ? AudioServiceShuffleMode.none
+                    : AudioServiceShuffleMode.all,
+              );
+            },
+            child: Icon(
+              CupertinoIcons.shuffle,
+              size: 18,
+              color: value ? const Color(0xFFFF2D55) : CupertinoColors.white.withValues(alpha: 0.7),
+            ),
+          ),
         );
       },
     );
@@ -372,43 +376,47 @@ class PlayerControlButtons extends StatelessWidget {
           builder: (_, repeatMode, __) {
             final isActive = repeatMode != AudioServiceRepeatMode.none;
 
-            return IconButton(
-              icon: Icon(
-                repeatMode == AudioServiceRepeatMode.one
-                    ? FluentIcons.arrow_repeat_1_24_filled
-                    : isActive
-                    ? FluentIcons.arrow_repeat_all_24_filled
-                    : FluentIcons.arrow_repeat_all_off_24_regular,
+            return Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
                 color: isActive
-                    ? colorScheme.onPrimary
-                    : colorScheme.onSurfaceVariant,
-              ),
-              tooltip: context.l10n!.repeat,
-              iconSize: size,
-              constraints: buttonConstraints,
-              padding: buttonPadding,
-              style: IconButton.styleFrom(
-                backgroundColor: isActive
-                    ? colorScheme.primary
-                    : colorScheme.surfaceContainerHighest,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                    ? CupertinoColors.white.withValues(alpha: 0.25)
+                    : CupertinoColors.white.withValues(alpha: 0.08),
+                border: Border.all(
+                  color: isActive
+                      ? const Color(0xFFFF2D55).withValues(alpha: 0.6)
+                      : CupertinoColors.white.withValues(alpha: 0.15),
+                  width: 0.8,
                 ),
               ),
-              onPressed: () {
-                final AudioServiceRepeatMode newMode;
-                if (repeatMode == AudioServiceRepeatMode.none) {
-                  newMode = queue.length <= 1
-                      ? AudioServiceRepeatMode.one
-                      : AudioServiceRepeatMode.all;
-                } else if (repeatMode == AudioServiceRepeatMode.all) {
-                  newMode = AudioServiceRepeatMode.one;
-                } else {
-                  newMode = AudioServiceRepeatMode.none;
-                }
-                repeatNotifier.value = newMode;
-                audioHandler.setRepeatMode(newMode);
-              },
+              child: CupertinoButton(
+                padding: EdgeInsets.zero,
+                onPressed: () {
+                  final AudioServiceRepeatMode newMode;
+                  if (repeatMode == AudioServiceRepeatMode.none) {
+                    newMode = queue.length <= 1
+                        ? AudioServiceRepeatMode.one
+                        : AudioServiceRepeatMode.all;
+                  } else if (repeatMode == AudioServiceRepeatMode.all) {
+                    newMode = AudioServiceRepeatMode.one;
+                  } else {
+                    newMode = AudioServiceRepeatMode.none;
+                  }
+                  repeatNotifier.value = newMode;
+                  audioHandler.setRepeatMode(newMode);
+                },
+                child: Icon(
+                  repeatMode == AudioServiceRepeatMode.one
+                      ? CupertinoIcons.repeat_1
+                      : CupertinoIcons.repeat,
+                  size: 18,
+                  color: isActive
+                      ? const Color(0xFFFF2D55)
+                      : CupertinoColors.white.withValues(alpha: 0.7),
+                ),
+              ),
             );
           },
         );
@@ -450,7 +458,7 @@ class _PlaybackControlsRow extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   _PlaybackControlButton(
-                    icon: FluentIcons.previous_24_regular,
+                    icon: CupertinoIcons.backward_fill,
                     isEnabled:
                         audioHandler.hasPrevious ||
                         repeatMode != AudioServiceRepeatMode.none,
@@ -464,14 +472,14 @@ class _PlaybackControlsRow extends StatelessWidget {
                   ),
                   SizedBox(width: buttonSpacing),
                   PlaybackIconButton(
-                    iconColor: colorScheme.onPrimary,
-                    backgroundColor: colorScheme.primary,
+                    iconColor: CupertinoColors.black,
+                    backgroundColor: CupertinoColors.white,
                     iconSize: controlIconSize,
                     padding: playPadding,
                   ),
                   SizedBox(width: buttonSpacing),
                   _PlaybackControlButton(
-                    icon: FluentIcons.next_24_regular,
+                    icon: CupertinoIcons.forward_fill,
                     isEnabled:
                         audioHandler.hasNext ||
                         repeatMode == AudioServiceRepeatMode.one,
@@ -524,17 +532,18 @@ class _PlaybackControlButton extends StatelessWidget {
       icon: Icon(
         icon,
         color: isEnabled
-            ? colorScheme.onSurface
-            : colorScheme.onSurface.withValues(alpha: 0.3),
+            ? CupertinoColors.white
+            : CupertinoColors.white.withValues(alpha: 0.3),
       ),
       tooltip: tooltip,
       constraints: buttonConstraints,
-      iconSize: controlIconSize * 0.65,
+      iconSize: controlIconSize * 0.72,
       onPressed: isEnabled ? onPressed : null,
+      splashColor: Colors.transparent,
+      highlightColor: Colors.transparent,
       style: IconButton.styleFrom(
-        backgroundColor: colorScheme.surfaceContainerHighest,
-        disabledBackgroundColor: colorScheme.surfaceContainerHighest,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: Colors.transparent,
+        disabledBackgroundColor: Colors.transparent,
         padding: buttonPadding,
         minimumSize: Size(minButtonSize, minButtonSize),
       ),

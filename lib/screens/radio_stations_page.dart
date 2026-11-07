@@ -19,6 +19,7 @@
  *     please visit: https://github.com/gokadzev/Musify
  */
 import 'package:flutter/cupertino.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' hide ColorScheme;
 import 'package:material_ui/material_ui.dart';
 import 'package:musify/constants/app_constants.dart';
 import 'package:musify/database/radio_stations.db.dart';
@@ -35,8 +36,18 @@ class RadioStationsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(context.l10n!.radioStations)),
+    return GlassScaffold(
+      contentAwareBrightness: true,
+      appBar: GlassAppBar(
+        leading: Padding(
+          padding: const EdgeInsets.all(6.0),
+          child: GlassIconButton(
+            icon: const Icon(CupertinoIcons.chevron_back, color: CupertinoColors.white, size: 20),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ),
+        title: Text(context.l10n!.radioStations),
+      ),
       body: ValueListenableBuilder(
         valueListenable: userLikedRadioStations,
         builder: (context, likedStations, _) {

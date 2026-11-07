@@ -26,6 +26,7 @@ import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/rendering.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' hide ColorScheme;
 import 'package:material_ui/material_ui.dart';
 import 'package:musify/constants/app_constants.dart';
 import 'package:musify/extensions/l10n.dart';
@@ -95,8 +96,18 @@ class _TimeMachinePageState extends State<TimeMachinePage> {
   Widget _buildEmptyState(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Scaffold(
-      appBar: AppBar(title: Text(context.l10n!.timeMachine)),
+    return GlassScaffold(
+      contentAwareBrightness: true,
+      appBar: GlassAppBar(
+        leading: Padding(
+          padding: const EdgeInsets.all(6.0),
+          child: GlassIconButton(
+            icon: const Icon(CupertinoIcons.chevron_back, color: CupertinoColors.white, size: 20),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ),
+        title: Text(context.l10n!.timeMachine),
+      ),
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -127,8 +138,18 @@ class _TimeMachinePageState extends State<TimeMachinePage> {
       showAnnualRecap: showAnnualRecap,
     );
 
-    return Scaffold(
-      appBar: AppBar(title: Text(context.l10n!.timeMachine)),
+    return GlassScaffold(
+      contentAwareBrightness: true,
+      appBar: GlassAppBar(
+        leading: Padding(
+          padding: const EdgeInsets.all(6.0),
+          child: GlassIconButton(
+            icon: const Icon(CupertinoIcons.chevron_back, color: CupertinoColors.white, size: 20),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ),
+        title: Text(context.l10n!.timeMachine),
+      ),
       body: ListView.builder(
         padding: const EdgeInsets.fromLTRB(10, 0, 10, 24),
         scrollCacheExtent: const ScrollCacheExtent.pixels(500),

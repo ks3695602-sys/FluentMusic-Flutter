@@ -303,6 +303,42 @@ class _LibraryPageState extends State<LibraryPage> {
             ),
           ),
         );
+        slivers.add(
+          SliverToBoxAdapter(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 24),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: CupertinoColors.white.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: CupertinoColors.white.withValues(alpha: 0.16),
+                      width: 0.8,
+                    ),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(CupertinoIcons.sparkles, color: Color(0xFFFF2D55), size: 16),
+                      SizedBox(width: 8),
+                      Text(
+                        'Smart Lossless Cache Active',
+                        style: TextStyle(
+                          color: CupertinoColors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
       }
 
       if (hasFolders || hasCustomPlaylists) {

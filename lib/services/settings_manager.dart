@@ -22,6 +22,7 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:musify/screens/playlist_page.dart';
 import 'package:musify/screens/user_songs_page.dart';
 import 'package:musify/utilities/language_utils.dart';
@@ -119,8 +120,81 @@ final liquidGlassQualitySetting = ValueNotifier<String>(
 );
 
 final liquidGlassBlurSetting = ValueNotifier<double>(
-  Hive.box('settings').get('liquidGlassBlur', defaultValue: 18.0),
+  (Hive.box('settings').get('liquidGlassBlur', defaultValue: 18.0) as num).toDouble(),
 );
+
+final liquidGlassThicknessSetting = ValueNotifier<double>(
+  (Hive.box('settings').get('liquidGlassThickness', defaultValue: 25.0) as num).toDouble(),
+);
+
+final liquidGlassDockOpacitySetting = ValueNotifier<double>(
+  (Hive.box('settings').get('liquidGlassDockOpacity', defaultValue: 0.20) as num).toDouble(),
+);
+
+final wordByWordLyricsEnabled = ValueNotifier<bool>(
+  Hive.box('settings').get('wordByWordLyricsEnabled', defaultValue: true),
+);
+
+final crossfadeDurationSetting = ValueNotifier<double>(
+  (Hive.box('settings').get('crossfadeDuration', defaultValue: 0.0) as num).toDouble(),
+);
+
+final gaplessPlaybackEnabled = ValueNotifier<bool>(
+  Hive.box('settings').get('gaplessPlaybackEnabled', defaultValue: true),
+);
+
+final autoResumePlaybackEnabled = ValueNotifier<bool>(
+  Hive.box('settings').get('autoResumePlaybackEnabled', defaultValue: false),
+);
+
+final pauseOnHeadphoneDisconnect = ValueNotifier<bool>(
+  Hive.box('settings').get('pauseOnHeadphoneDisconnect', defaultValue: true),
+);
+
+final saveSearchHistoryEnabled = ValueNotifier<bool>(
+  Hive.box('settings').get('saveSearchHistoryEnabled', defaultValue: true),
+);
+
+final androidAutoEnabled = ValueNotifier<bool>(
+  Hive.box('settings').get('androidAutoEnabled', defaultValue: true),
+);
+
+final streamingSourceSetting = ValueNotifier<String>(
+  Hive.box('settings').get('streamingSource', defaultValue: 'YouTube Music'),
+);
+
+final cacheLimitMbSetting = ValueNotifier<double>(
+  (Hive.box('settings').get('cacheLimitMb', defaultValue: 2048.0) as num).toDouble(),
+);
+
+final smartCacheEnabled = ValueNotifier<bool>(
+  Hive.box('settings').get('smartCacheEnabled', defaultValue: true),
+);
+
+GlassQuality parseGlassQuality(String q) {
+  switch (q) {
+    case 'premium':
+      return GlassQuality.premium;
+    case 'minimal':
+      return GlassQuality.minimal;
+    default:
+      return GlassQuality.standard;
+  }
+}
+
+GlassThemeData getEffectiveGlassTheme() {
+  return GlassThemeData.simple(
+    blur: liquidGlassBlurSetting.value,
+    thickness: liquidGlassThicknessSetting.value,
+    quality: parseGlassQuality(liquidGlassQualitySetting.value),
+  );
+}
+
+final liquidGlassThemeNotifier = ValueNotifier<GlassThemeData>(getEffectiveGlassTheme());
+
+void updateLiquidGlassTheme() {
+  liquidGlassThemeNotifier.value = getEffectiveGlassTheme();
+}
 
 final shuffleNotifier = ValueNotifier<bool>(
   Hive.box('settings').get('shuffleEnabled', defaultValue: false),

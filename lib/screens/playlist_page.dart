@@ -24,6 +24,7 @@ import 'dart:async';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' hide ColorScheme;
 import 'package:material_ui/material_ui.dart';
 import 'package:musify/constants/app_constants.dart';
 import 'package:musify/extensions/l10n.dart';
@@ -220,6 +221,30 @@ class _PlaylistPageState extends State<PlaylistPage> {
                 slivers: [
                   PlaylistSliverAppBar(
                     leading: _buildBackButton(context),
+                    actions: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                        child: GlassIconButton(
+                          icon: const Icon(
+                            CupertinoIcons.share,
+                            color: CupertinoColors.white,
+                            size: 19,
+                          ),
+                          onPressed: () => _handleShare(),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(right: 12.0),
+                        child: GlassIconButton(
+                          icon: const Icon(
+                            CupertinoIcons.ellipsis,
+                            color: CupertinoColors.white,
+                            size: 20,
+                          ),
+                          onPressed: () => _showPlaylistOptions(),
+                        ),
+                      ),
+                    ],
                     title: _playlistTitle,
                     artwork: PlaylistHeroArtwork(
                       _playlist,
@@ -320,10 +345,16 @@ class _PlaylistPageState extends State<PlaylistPage> {
   }
 
   Widget _buildBackButton(BuildContext context) {
-    return IconButton(
-      icon: const Icon(FluentIcons.arrow_left_24_regular),
-      onPressed: () => Navigator.pop(context, widget.playlistData == _playlist),
-      tooltip: context.l10n!.back,
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: GlassIconButton(
+        icon: const Icon(
+          CupertinoIcons.chevron_back,
+          color: CupertinoColors.white,
+          size: 20,
+        ),
+        onPressed: () => Navigator.pop(context, widget.playlistData == _playlist),
+      ),
     );
   }
 
@@ -364,51 +395,15 @@ class _PlaylistPageState extends State<PlaylistPage> {
                 shuffle: true,
               );
             },
-          ),
-        if (hasSecondaryActions) ...[
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            spacing: 5,
-            children: [
-              if (widget.playlistId != null &&
-                  !isUserCreated &&
-                  !offlineMode.value)
-                PlaylistLikeButton(
-                  playlistId: _resolvedPlaylistId ?? '',
-                  playlistData: () => _playlist,
-                ),
-              if (!offlineMode.value) ...[
-                PlaylistAddToPlaylistButton(
-                  resolvePlaylist: () async => _playlist,
-                ),
-                if (!isUserCreated) _buildSyncButton(),
-              ],
-              if (songsLength > 0) _buildDownloadButton(),
-              if (isUserCreated) ...[_buildShareButton(), _buildEditButton()],
-            ],
-          ),
-        ],
-        if (songsLength > 1) ...[
-          const SizedBox(height: 12),
-          SortChips<PlaylistSortType>(
-            currentSortType: _sortType,
-            sortTypes: PlaylistSortType.values,
-            sortTypeToString: _getSortTypeDisplayText,
-            onSelected: (type) {
-              setState(() {
-                _sortType = type;
-                addOrUpdateData<String>(
-                  'settings',
-                  'playlistSortType',
-                  type.name,
+            onAdd: () {
+              if (!offlineMode.value) {
+                showAddToPlaylistDialog(
+                  context,
+                  playlist: _playlist,
                 );
-                playlistSortSetting = type.name;
-                _applySort();
-              });
+              }
             },
           ),
-        ],
         if (songsLength > 0) ...[
           const SizedBox(height: 16),
           SearchBarSection(
@@ -420,6 +415,89 @@ class _PlaylistPageState extends State<PlaylistPage> {
         ],
         const SizedBox(height: 16),
       ],
+    );
+  }
+
+  void _handleShare() async {
+    try {
+      final encodedPlaylist = PlaylistSharingService.encodePlaylist(_playlist);
+      final url = 'musify://playlist/custom/';
+      await Clipboard.setData(ClipboardData(text: url));
+      if (mounted) {
+        showToast(context, context.l10n!.linkCopied);
+      }
+    } catch (e, stackTrace) {
+      logger.log('Error sharing playlist', error: e, stackTrace: stackTrace);
+    }
+  }
+
+  void _showPlaylistOptions() {
+    final songsLength = (_playlist['list'] as List? ?? const []).length;
+    final isUserCreated = _playlist['source'] == 'user-created';
+
+    showCupertinoModalPopup<void>(
+      context: context,
+      builder: (BuildContext ctx) => CupertinoActionSheet(
+        title: Text(_playlistTitle),
+        actions: <CupertinoActionSheetAction>[
+          if (widget.playlistId != null && !isUserCreated && !offlineMode.value)
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.pop(ctx);
+                final id = _resolvedPlaylistId;
+                if (id != null) {
+                  final isLiked = isPlaylistAlreadyLiked(id);
+                  updatePlaylistLikeStatus(id, !isLiked, playlistData: _playlist);
+                }
+              },
+              child: Text(
+                isPlaylistAlreadyLiked(_resolvedPlaylistId ?? '')
+                    ? 'Unlike Playlist'
+                    : 'Like Playlist',
+              ),
+            ),
+          if (songsLength > 0)
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.pop(ctx);
+                offlinePlaylistService.downloadPlaylistSongs(
+                  context,
+                  _playlist,
+                );
+              },
+              child: const Text('Download All Songs'),
+            ),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _handleShare();
+            },
+            child: const Text('Share Playlist'),
+          ),
+          if (isUserCreated)
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.pop(ctx);
+                showEditPlaylistDialog(
+                  context,
+                  _playlist,
+                  onEdit: (newTitle, newDesc) {
+                    setState(() {
+                      _playlist['title'] = newTitle;
+                      _playlist['description'] = newDesc;
+                    });
+                  },
+                );
+              },
+              child: const Text('Edit Playlist Details'),
+            ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          isDefaultAction: true,
+          onPressed: () => Navigator.pop(ctx),
+          child: Text(context.l10n!.cancel),
+        ),
+      ),
     );
   }
 

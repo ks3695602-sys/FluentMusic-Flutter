@@ -74,23 +74,37 @@ class _PositionSliderState extends State<PositionSlider> {
         return Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Slider(
-              value: currentValue.clamp(0.0, maxDuration),
-              onChanged: (value) {
-                setState(() {
-                  _isDragging = true;
-                  _dragValue = value;
-                });
-              },
-              onChangeEnd: (value) {
-                audioHandler.seek(Duration(seconds: value.toInt()));
-                setState(() {
-                  _isDragging = false;
-                });
-              },
-              max: maxDuration,
-              semanticFormatterCallback: (value) =>
-                  formatDuration(value.toInt()),
+            SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                trackHeight: 3.5,
+                thumbShape: const RoundSliderThumbShape(
+                  enabledThumbRadius: 6.0,
+                  elevation: 2.0,
+                ),
+                overlayShape: const RoundSliderOverlayShape(overlayRadius: 14.0),
+                activeTrackColor: CupertinoColors.white,
+                inactiveTrackColor: CupertinoColors.white.withValues(alpha: 0.18),
+                thumbColor: CupertinoColors.white,
+                overlayColor: CupertinoColors.white.withValues(alpha: 0.12),
+              ),
+              child: Slider(
+                value: currentValue.clamp(0.0, maxDuration),
+                onChanged: (value) {
+                  setState(() {
+                    _isDragging = true;
+                    _dragValue = value;
+                  });
+                },
+                onChangeEnd: (value) {
+                  audioHandler.seek(Duration(seconds: value.toInt()));
+                  setState(() {
+                    _isDragging = false;
+                  });
+                },
+                max: maxDuration,
+                semanticFormatterCallback: (value) =>
+                    formatDuration(value.toInt()),
+              ),
             ),
             _buildPositionRow(context, _positionData),
           ],
@@ -99,7 +113,12 @@ class _PositionSliderState extends State<PositionSlider> {
     );
   }
 
-  static const _textStyle = TextStyle(fontSize: 15);
+  static const _textStyle = TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w500,
+    color: CupertinoColors.systemGrey2,
+    letterSpacing: -0.2,
+  );
 
   Widget _buildPositionRow(BuildContext context, PositionData positionData) {
     final positionText = formatDuration(

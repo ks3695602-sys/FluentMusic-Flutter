@@ -21,7 +21,7 @@
 
 import 'package:flutter/cupertino.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:musify/widgets/shapes/four_sided_cookie_shape.dart';
+// Apple HIG squircle icon platter
 
 class CustomBar extends StatelessWidget {
   CustomBar(
@@ -65,10 +65,18 @@ class CustomBar extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
           child: Row(
             children: [
-              FourSidedCookieShape(
-                size: 52,
-                color: colorScheme.secondaryContainer,
-                child: Icon(tileIcon, size: 26, color: effectiveIconColor),
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: CupertinoColors.white.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: CupertinoColors.white.withValues(alpha: 0.15),
+                    width: 0.8,
+                  ),
+                ),
+                child: Icon(tileIcon, size: 22, color: effectiveIconColor),
               ),
               const SizedBox(width: 14),
               Expanded(

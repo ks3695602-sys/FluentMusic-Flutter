@@ -24,11 +24,13 @@ class PlaylistSliverAppBar extends StatelessWidget {
     required this.title,
     required this.artwork,
     this.leading,
+    this.actions,
   });
 
   final String title;
   final Widget artwork;
   final Widget? leading;
+  final List<Widget>? actions;
 
   @override
   Widget build(BuildContext context) {
@@ -36,6 +38,7 @@ class PlaylistSliverAppBar extends StatelessWidget {
 
     return SliverAppBar(
       leading: leading,
+      actions: actions,
       pinned: true,
       backgroundColor: Colors.transparent,
       elevation: 0,
