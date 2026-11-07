@@ -1,4 +1,4 @@
-﻿/*
+/*
  *     Copyright (C) 2026 Valeri Gokadze
  *
  *     Musify is free software: you can redistribute it and/or modify
@@ -21,39 +21,49 @@
 
 import 'package:flutter/cupertino.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:musify/widgets/marquee.dart';
 
 class SectionTitle extends StatelessWidget {
-  const SectionTitle(this.title, this.primaryColor, {super.key, this.icon});
+  const SectionTitle(
+    this.title,
+    this.primaryColor, {
+    super.key,
+    this.icon,
+    this.showChevron = true,
+  });
+
   final Color primaryColor;
   final String title;
   final IconData? icon;
+  final bool showChevron;
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),
+      padding: const EdgeInsets.only(top: 18, bottom: 12),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          if (icon != null) ...[
-            Icon(icon, size: 20, color: colorScheme.primary),
-            const SizedBox(width: 10),
-          ],
-          Expanded(
-            child: MarqueeWidget(
-              child: Text(
-                title,
-                style: TextStyle(
-                  color: colorScheme.onSurface,
-                  fontSize:
-                      Theme.of(context).textTheme.titleMedium?.fontSize ?? 16,
-                  fontWeight: FontWeight.w600,
-                ),
+          Flexible(
+            child: Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: CupertinoColors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.5,
               ),
             ),
           ),
+          if (showChevron) ...[
+            const SizedBox(width: 4),
+            Icon(
+              CupertinoIcons.chevron_forward,
+              size: 16,
+              color: CupertinoColors.white.withValues(alpha: 0.5),
+            ),
+          ],
         ],
       ),
     );

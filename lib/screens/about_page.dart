@@ -143,7 +143,7 @@ class AboutPage extends StatelessWidget {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'Audio engine based on Musify by Valeri Gokadze',
+                            'High fidelity Liquid Glass audio experience',
                             style: TextStyle(
                               color: colorScheme.onSurfaceVariant,
                               fontSize: 12,
@@ -162,14 +162,6 @@ class AboutPage extends StatelessWidget {
                           tooltip: 'Github',
                           onPressed: () {
                             launchURL(Uri.parse('https://github.com/ks3695602-sys/FluentMusic-Flutter'));
-                          },
-                        ),
-                        const SizedBox(width: 8),
-                        _SocialButton(
-                          icon: FluentIcons.globe_24_filled,
-                          tooltip: 'Upstream',
-                          onPressed: () {
-                            launchURL(Uri.parse('https://github.com/gokadzev/Musify'));
                           },
                         ),
                       ],

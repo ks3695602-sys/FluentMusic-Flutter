@@ -441,7 +441,7 @@ Future<void> initialisation() async {
 }
 
 void handleIncomingLink(Uri? uri) async {
-  if (uri == null || uri.scheme != 'musify' || uri.host != 'playlist') return;
+  if (uri == null || (uri.scheme != 'fluentmusic' && uri.scheme != 'musify') || uri.host != 'playlist') return;
 
   if (uri.pathSegments.length < 2 || uri.pathSegments[0] != 'custom') return;
 

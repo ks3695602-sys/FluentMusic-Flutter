@@ -1,4 +1,4 @@
-﻿/*
+/*
  *     Copyright (C) 2026 Valeri Gokadze
  *
  *     Musify is free software: you can redistribute it and/or modify
@@ -43,7 +43,7 @@ const String releasesUrl =
     'https://api.github.com/repos/ks3695602-sys/FluentMusic-Flutter/releases/latest';
 const String downloadUrlKey = 'url';
 const String downloadUrlArm64Key = 'arm64url';
-const String downloadFilename = 'Musify.apk';
+const String downloadFilename = 'FluentMusic.apk';
 
 Future<void> checkAppUpdates() async {
   // Update distribution targets Android APK builds only.

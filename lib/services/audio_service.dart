@@ -1616,7 +1616,7 @@ class MusifyAudioHandler extends BaseAudioHandler implements AndroidAutoHost {
 
     await playPlaylistSong(
       playlist: {
-        'title': 'Musify',
+        'title': 'Fluent Music',
         'source': 'system-recent',
         'list': [normalisedSong],
       },

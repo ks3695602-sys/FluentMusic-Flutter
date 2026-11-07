@@ -1,4 +1,4 @@
-﻿/*
+/*
  *     Copyright (C) 2026 Valeri Gokadze
  *
  *     Musify is free software: you can redistribute it and/or modify
@@ -32,8 +32,9 @@ class PlaylistCube extends StatelessWidget {
     this.playlistData,
     this.cubeIcon = FluentIcons.text_bullet_list_24_filled,
     this.size = 220,
-    this.borderRadius = 16,
+    this.borderRadius = 18,
     this.showTypeLabel = true,
+    this.showPlayBadge = true,
   });
 
   final Map? playlistData;
@@ -42,14 +43,14 @@ class PlaylistCube extends StatelessWidget {
   final double size;
   final double borderRadius;
   final bool showTypeLabel;
+  final bool showPlayBadge;
 
-  static const double typeLabelOffset = 10;
+  static const double typeLabelOffset = 8;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
+    return ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),
-      clipBehavior: Clip.antiAlias,
       child: Stack(
         children: [
           PlaylistArtwork(
@@ -63,27 +64,52 @@ class PlaylistCube extends StatelessWidget {
               right: typeLabelOffset,
               child: _buildLabel(context),
             ),
+          if (showPlayBadge)
+            Positioned(
+              bottom: 8,
+              right: 8,
+              child: Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: CupertinoColors.black.withValues(alpha: 0.55),
+                  border: Border.all(
+                    color: CupertinoColors.white.withValues(alpha: 0.25),
+                    width: 0.8,
+                  ),
+                ),
+                child: const Icon(
+                  CupertinoIcons.play_fill,
+                  color: CupertinoColors.white,
+                  size: 14,
+                ),
+              ),
+            ),
         ],
       ),
     );
   }
 
   Widget _buildLabel(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     final isAlbum = playlist['isAlbum'] == true;
     return Container(
       decoration: BoxDecoration(
-        color: colorScheme.primaryContainer.withValues(alpha: 0.92),
-        borderRadius: BorderRadius.circular(20),
+        color: CupertinoColors.black.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: CupertinoColors.white.withValues(alpha: 0.2),
+          width: 0.8,
+        ),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
       child: Text(
         isAlbum ? context.l10n!.album : context.l10n!.playlist,
-        style: TextStyle(
-          color: colorScheme.onPrimaryContainer,
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.4,
+        style: const TextStyle(
+          color: CupertinoColors.white,
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.3,
         ),
       ),
     );

@@ -1,4 +1,4 @@
-﻿/*
+/*
  *     Copyright (C) 2026 Valeri Gokadze
  *
  *     Musify is free software: you can redistribute it and/or modify
@@ -35,7 +35,7 @@ import 'package:musify/utilities/async_loader.dart';
 import 'package:musify/utilities/listening_stats_utils.dart';
 import 'package:musify/widgets/announcement_box.dart';
 import 'package:musify/widgets/listening_recap_card.dart';
-import 'package:musify/widgets/mini_player_bottom_space.dart';
+import 'package:musify/widgets/playlist_artwork.dart';
 import 'package:musify/widgets/playlist_cube.dart';
 import 'package:musify/widgets/recommended_songs_section.dart';
 import 'package:musify/widgets/section_header.dart';
@@ -76,57 +76,212 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final playlistHeight = MediaQuery.sizeOf(context).height * 0.25 / 1.1;
     return Scaffold(
-      appBar: AppBar(title: const Text('Musify.')),
-      body: SingleChildScrollView(
-        padding: commonSingleChildScrollViewPadding,
-        child: Column(
-          children: [
-            ValueListenableBuilder<String?>(
-              valueListenable: announcementURL,
-              builder: (_, _url, __) {
-                if (_url == null) return const SizedBox.shrink();
-                final isSponsorshipAnnouncement = isSponsorshipAnnouncementUrl(
-                  _url,
-                );
-                final _message = isSponsorshipAnnouncement
-                    ? context.l10n!.sponsorProject
-                    : context.l10n!.newAnnouncement;
-                final _icon = isSponsorshipAnnouncement
-                    ? FluentIcons.heart_24_filled
-                    : FluentIcons.megaphone_24_filled;
+      backgroundColor: Colors.transparent,
+      body: SafeArea(
+        bottom: false,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 12),
+              // Apple Music Header: "Listen Now" + Profile / Settings Icon
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Listen Now',
+                    style: TextStyle(
+                      color: CupertinoColors.white,
+                      fontSize: 32,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.6,
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => context.push('/settings'),
+                    child: Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: CupertinoColors.white.withValues(alpha: 0.12),
+                        border: Border.all(
+                          color: CupertinoColors.white.withValues(alpha: 0.2),
+                          width: 1,
+                        ),
+                      ),
+                      child: const Icon(
+                        CupertinoIcons.person_crop_circle_fill,
+                        color: CupertinoColors.white,
+                        size: 24,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              ValueListenableBuilder<String?>(
+                valueListenable: announcementURL,
+                builder: (_, _url, __) {
+                  if (_url == null) return const SizedBox.shrink();
+                  final isSponsorshipAnnouncement = isSponsorshipAnnouncementUrl(
+                    _url,
+                  );
+                  final _message = isSponsorshipAnnouncement
+                      ? context.l10n!.sponsorProject
+                      : context.l10n!.newAnnouncement;
+                  final _icon = isSponsorshipAnnouncement
+                      ? FluentIcons.heart_24_filled
+                      : FluentIcons.megaphone_24_filled;
 
-                return AnnouncementBox(
-                  message: _message,
-                  url: _url,
-                  icon: _icon,
-                  onDismiss: () async {
-                    announcementURL.value = null;
-                  },
-                );
-              },
-            ),
-            _buildSuggestedPlaylists(playlistHeight),
-            _buildSuggestedPlaylists(playlistHeight, showOnlyLiked: true),
-            _buildCurrentMonthRecapSection(),
-            _buildRecommendedSongsSection(),
-            const MiniPlayerBottomSpace(),
-          ],
+                  return AnnouncementBox(
+                    message: _message,
+                    url: _url,
+                    icon: _icon,
+                    onDismiss: () async {
+                      announcementURL.value = null;
+                    },
+                  );
+                },
+              ),
+              // 1. Recently Played (if any)
+              _buildRecentlyPlayedSection(),
+              // 2. Suggested Playlists
+              _buildSuggestedPlaylists(),
+              // 3. User Liked Playlists (if any)
+              _buildSuggestedPlaylists(showOnlyLiked: true),
+              // 4. Recommended Songs / Quick Picks
+              _buildRecommendedSongsSection(),
+              // 5. Time Machine Recap (if enabled)
+              _buildCurrentMonthRecapSection(),
+              const SizedBox(height: 120),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildSuggestedPlaylists(
-    double playlistHeight, {
-    bool showOnlyLiked = false,
-  }) {
+  Widget _buildRecentlyPlayedSection() {
+    return ValueListenableBuilder<List>(
+      valueListenable: userRecentlyPlayed,
+      builder: (context, recents, _) {
+        if (recents.isEmpty) return const SizedBox.shrink();
+        final displaySongs = recents.take(12).toList();
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SectionHeader(
+              title: context.l10n?.recentlyPlayed ?? 'Recently Played',
+            ),
+            SizedBox(
+              height: 200,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                itemCount: displaySongs.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 14),
+                itemBuilder: (context, index) {
+                  final song = displaySongs[index];
+                  final title = song['title']?.toString() ?? '';
+                  final artist = song['artist']?.toString() ?? '';
+                  final image = song['highResImage'] ??
+                      song['image'] ??
+                      song['lowResImage'];
+
+                  return SizedBox(
+                    width: 140,
+                    child: GestureDetector(
+                      onTap: () async {
+                        await audioHandler.playPlaylistSong(
+                          playlist: {
+                            'title': context.l10n?.recentlyPlayed ??
+                                'Recently Played',
+                            'list': recents,
+                          },
+                          songIndex: index,
+                        );
+                      },
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(18),
+                            child: Stack(
+                              children: [
+                                PlaylistArtwork(
+                                  playlistArtwork: image,
+                                  size: 140,
+                                  cubeIcon: CupertinoIcons.music_note,
+                                ),
+                                Positioned(
+                                  bottom: 8,
+                                  right: 8,
+                                  child: Container(
+                                    width: 32,
+                                    height: 32,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: CupertinoColors.black
+                                          .withValues(alpha: 0.55),
+                                      border: Border.all(
+                                        color: CupertinoColors.white
+                                            .withValues(alpha: 0.25),
+                                        width: 0.8,
+                                      ),
+                                    ),
+                                    child: const Icon(
+                                      CupertinoIcons.play_fill,
+                                      color: CupertinoColors.white,
+                                      size: 14,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: CupertinoColors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            artist,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color:
+                                  CupertinoColors.white.withValues(alpha: 0.6),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildSuggestedPlaylists({bool showOnlyLiked = false}) {
     if (showOnlyLiked) {
       return ValueListenableBuilder<List<Map>>(
         valueListenable: userLikedPlaylists,
         builder: (_, likedPlaylists, __) => _buildSuggestedPlaylistsSection(
-          playlistHeight,
           likedPlaylists
               .where((playlist) => !isArtistPlaylist(playlist))
               .take(recommendedCubesNumber)
@@ -139,12 +294,11 @@ class _HomePageState extends State<HomePage> {
     return AsyncLoader<List<dynamic>>(
       future: _suggestedPlaylistsFuture,
       builder: (context, playlists) =>
-          _buildSuggestedPlaylistsSection(playlistHeight, playlists),
+          _buildSuggestedPlaylistsSection(playlists),
     );
   }
 
   Widget _buildSuggestedPlaylistsSection(
-    double playlistHeight,
     List<dynamic> playlists, {
     bool showOnlyLiked = false,
   }) {
@@ -154,60 +308,73 @@ class _HomePageState extends State<HomePage> {
         ? context.l10n!.backToFavorites
         : context.l10n!.suggestedPlaylists;
     final itemsNumber = playlists.length.clamp(0, recommendedCubesNumber);
-    final isLargeScreen = MediaQuery.of(context).size.width > 480;
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SectionHeader(
           title: sectionTitle,
-          icon: showOnlyLiked
-              ? FluentIcons.heart_24_filled
-              : FluentIcons.list_24_filled,
         ),
-        ConstrainedBox(
-          constraints: BoxConstraints(maxHeight: playlistHeight),
-          child: isLargeScreen
-              ? _buildHorizontalList(playlists, itemsNumber, playlistHeight)
-              : _buildCarouselView(playlists, itemsNumber, playlistHeight),
+        SizedBox(
+          height: 200,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            itemCount: itemsNumber,
+            separatorBuilder: (_, __) => const SizedBox(width: 14),
+            itemBuilder: (context, index) {
+              final playlist = playlists[index];
+              final title = playlist['title']?.toString() ?? '';
+              final subtitle = playlist['author']?.toString() ??
+                  (playlist['isAlbum'] == true
+                      ? (context.l10n?.album ?? 'Album')
+                      : (context.l10n?.playlist ?? 'Playlist'));
+
+              return SizedBox(
+                width: 140,
+                child: GestureDetector(
+                  onTap: () =>
+                      context.push('/home/playlist/${playlist['ytid']}'),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      PlaylistCube(
+                        playlist,
+                        size: 140,
+                        borderRadius: 18,
+                        showTypeLabel: false,
+                        showPlayBadge: true,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: CupertinoColors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color:
+                              CupertinoColors.white.withValues(alpha: 0.6),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
         ),
       ],
-    );
-  }
-
-  Widget _buildHorizontalList(
-    List<dynamic> playlists,
-    int itemCount,
-    double height,
-  ) {
-    return ListView.builder(
-      scrollDirection: Axis.horizontal,
-      itemCount: itemCount,
-      itemBuilder: (context, index) {
-        final playlist = playlists[index];
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: GestureDetector(
-            onTap: () => context.push('/home/playlist/${playlist['ytid']}'),
-            child: PlaylistCube(playlist, size: height),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildCarouselView(
-    List<dynamic> playlists,
-    int itemCount,
-    double height,
-  ) {
-    return CarouselView.weighted(
-      flexWeights: const <int>[3, 2, 1],
-      itemSnapping: true,
-      onTap: (index) =>
-          context.push('/home/playlist/${playlists[index]['ytid']}'),
-      children: List.generate(itemCount, (index) {
-        return PlaylistCube(playlists[index], size: height * 2);
-      }),
     );
   }
 
@@ -242,10 +409,10 @@ class _HomePageState extends State<HomePage> {
         );
 
         return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SectionHeader(
               title: context.l10n!.timeMachine,
-              icon: FluentIcons.data_trending_24_filled,
             ),
             ListeningRecapCard(
               periodLabel: periodLabel,

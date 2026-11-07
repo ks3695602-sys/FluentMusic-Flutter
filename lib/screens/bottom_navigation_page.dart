@@ -88,12 +88,12 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
                 background: Container(
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
                       colors: [
-                        Color(0xFF0E0B12),
-                        Color(0xFF1C0D1B),
-                        Color(0xFF120D1A),
+                        Color(0xFF160E1A),
+                        Color(0xFF0A070D),
+                        Color(0xFF000000),
                       ],
                     ),
                   ),
@@ -124,28 +124,15 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
                   ),
                 ),
                 bottomBar: !isLargeScreen
-                    ? Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          StreamBuilder<bool>(
-                            initialData: audioHandler.mediaItem.value != null,
-                            stream: _miniPlayerVisibilityStream,
-                            builder: (context, snapshot) {
-                              final isMiniPlayerVisible =
-                                  snapshot.data ?? false;
-                              if (!isMiniPlayerVisible) {
-                                return const SizedBox.shrink();
-                              }
-                              return const Padding(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 4,
-                                ),
-                                child: MiniPlayer(),
-                              );
-                            },
-                          ),
-                          GlassTabBar.minimizable(
+                    ? StreamBuilder<bool>(
+                        initialData: audioHandler.mediaItem.value != null,
+                        stream: _miniPlayerVisibilityStream,
+                        builder: (context, snapshot) {
+                          final isMiniPlayerVisible = snapshot.data ?? false;
+                          final isSearching = widget.child.currentIndex == 1;
+
+                          return GlassTabBar.searchable(
+                            isSearchActive: isSearching,
                             selectedIndex:
                                 _getCurrentIndex(items, isOfflineMode),
                             onTabSelected: (index) =>
@@ -154,13 +141,45 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
                                 .map(
                                   (item) => GlassTab(
                                     icon: Icon(item.icon),
+                                    activeIcon: Icon(item.selectedIcon),
                                     label: item.label,
                                   ),
                                 )
                                 .toList(),
-                          ),
-                          const SizedBox(height: 6),
-                        ],
+                            barHeight: 64.0,
+                            searchBarHeight: 50.0,
+                            horizontalPadding: 16.0,
+                            verticalPadding: 12.0,
+                            spacing: 8.0,
+                            bottomAccessory: isMiniPlayerVisible
+                                ? const MiniPlayer()
+                                : null,
+                            bottomAccessoryHeight: 56.0,
+                            bottomAccessoryEnabled: isMiniPlayerVisible,
+                            bottomAccessoryPlacement:
+                                GlassTabBarAccessoryPlacement.expanded,
+                            selectedIconColor: const Color(0xFFFF2D55),
+                            unselectedIconColor: CupertinoColors.white
+                                .withValues(alpha: 0.85),
+                            labelFontSize: 10,
+                            iconSize: 26,
+                            iconLabelSpacing: 0,
+                            quality: GlassQuality.premium,
+                            interactionBehavior: GlassInteractionBehavior.full,
+                            searchConfig: GlassSearchBarConfig(
+                              expandWhenActive: false,
+                              hintText: context.l10n?.search ?? 'Search',
+                              onSearchToggle: (active) {
+                                if (active && !isOfflineMode) {
+                                  closeCurrentBottomSheet();
+                                  widget.child.goBranch(1);
+                                }
+                              },
+                              searchIconColor: CupertinoColors.white
+                                  .withValues(alpha: 0.9),
+                            ),
+                          );
+                        },
                       )
                     : null,
               );
@@ -179,21 +198,6 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
         label: context.l10n?.home ?? 'Home',
         shellIndex: 0,
       ),
-    ];
-
-    // Only add search tab in online mode
-    if (!isOfflineMode) {
-      items.add(
-        _NavigationItem(
-          icon: CupertinoIcons.search,
-          selectedIcon: CupertinoIcons.search,
-          label: context.l10n?.search ?? 'Search',
-          shellIndex: 1,
-        ),
-      );
-    }
-
-    items.addAll([
       _NavigationItem(
         icon: CupertinoIcons.music_albums,
         selectedIcon: CupertinoIcons.music_albums_fill,
@@ -206,7 +210,7 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
         label: context.l10n?.settings ?? 'Settings',
         shellIndex: 3,
       ),
-    ]);
+    ];
 
     return items;
   }

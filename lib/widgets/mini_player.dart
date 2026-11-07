@@ -52,10 +52,10 @@ final Stream<FullPlayerState> _fullPlayerStateStream =
 class MiniPlayer extends StatelessWidget {
   const MiniPlayer({super.key});
 
-  static const double playerHeight = 72;
-  static const double _borderRadius = 20;
-  static const double _artworkSize = 52;
-  static const double _artworkRadius = 14;
+  static const double playerHeight = 56;
+  static const double _borderRadius = 28;
+  static const double _artworkSize = 40;
+  static const double _artworkRadius = 10;
 
   @override
   Widget build(BuildContext context) {
@@ -187,17 +187,19 @@ class _MiniPlayerBodyState extends State<_MiniPlayerBody>
             onTapCancel: () => _animationController.reverse(),
             onVerticalDragUpdate: _handleVerticalDrag,
             onTap: _navigateToNowPlaying,
-            child: GlassContainer.card(
+            child: GlassButton.custom(
+              onTap: _navigateToNowPlaying,
               quality: GlassQuality.premium,
-              settings: const LiquidGlassSettings(
-                thickness: 35,
-                blur: 18,
-                specularSharpness: GlassSpecularSharpness.sharp,
+              useOwnLayer: true,
+              width: double.infinity,
+              height: MiniPlayer.playerHeight,
+              shape: const LiquidRoundedRectangle(
+                borderRadius: MiniPlayer._borderRadius,
               ),
               child: SizedBox(
                 height: MiniPlayer.playerHeight,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
                   child: Row(
                     children: [
                       _ArtworkWidget(metadata: metadata),
@@ -251,7 +253,7 @@ class _ArtworkWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(right: 12),
+      padding: const EdgeInsets.only(right: 10),
       child: Hero(
         tag: 'now_playing_artwork',
         child: DecoratedBox(
@@ -259,8 +261,8 @@ class _ArtworkWidget extends StatelessWidget {
             borderRadius: BorderRadius.circular(MiniPlayer._artworkRadius),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 4,
+                color: Colors.black.withValues(alpha: 0.25),
+                blurRadius: 6,
                 offset: const Offset(0, 2),
               ),
             ],
@@ -268,7 +270,7 @@ class _ArtworkWidget extends StatelessWidget {
           child: SongArtworkWidget(
             metadata: metadata,
             size: MiniPlayer._artworkSize,
-            errorWidgetIconSize: 24,
+            errorWidgetIconSize: 20,
             borderRadius: MiniPlayer._artworkRadius,
           ),
         ),
@@ -291,7 +293,7 @@ class _MetadataWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(right: 8),
+      padding: const EdgeInsets.only(right: 6),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -303,11 +305,11 @@ class _MetadataWidget extends StatelessWidget {
             pauseDuration: const Duration(seconds: 2),
             child: Text(
               title,
-              style: TextStyle(
-                color: colorScheme.secondary,
-                fontSize: 15,
+              style: const TextStyle(
+                color: CupertinoColors.white,
+                fontSize: 14,
                 fontWeight: FontWeight.w600,
-                letterSpacing: 0.1,
+                letterSpacing: -0.2,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -318,8 +320,8 @@ class _MetadataWidget extends StatelessWidget {
             Text(
               artist!,
               style: TextStyle(
-                color: colorScheme.onSurfaceVariant,
-                fontSize: 13,
+                color: CupertinoColors.white.withValues(alpha: 0.65),
+                fontSize: 12,
                 fontWeight: FontWeight.w400,
               ),
               maxLines: 1,
@@ -347,26 +349,51 @@ class _ControlsWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isPlaying = playbackState.playing;
+    final processingState = playbackState.processingState;
+    final isLoading = processingState == AudioProcessingState.loading ||
+        processingState == AudioProcessingState.buffering;
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _CircularPlayButton(
-          colorScheme: colorScheme,
-          playbackState: playbackState,
-          progress: progress,
-        ),
+        if (isLoading)
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 8),
+            child: SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.0,
+                valueColor: AlwaysStoppedAnimation<Color>(CupertinoColors.white),
+              ),
+            ),
+          )
+        else
+          IconButton(
+            onPressed: isPlaying ? audioHandler.pause : audioHandler.play,
+            splashColor: Colors.transparent,
+            highlightColor: Colors.transparent,
+            padding: const EdgeInsets.all(4),
+            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+            icon: Icon(
+              isPlaying ? CupertinoIcons.pause_fill : CupertinoIcons.play_fill,
+              color: CupertinoColors.white,
+              size: 24,
+            ),
+          ),
         if (hasNext) ...[
-          const SizedBox(width: 4),
           IconButton(
             onPressed: audioHandler.skipToNext,
             splashColor: Colors.transparent,
             highlightColor: Colors.transparent,
+            padding: const EdgeInsets.all(4),
+            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
             icon: Icon(
-              CupertinoIcons.forward_fill,
-              color: colorScheme.onSurfaceVariant,
+              CupertinoIcons.forward_end_fill,
+              color: CupertinoColors.white.withValues(alpha: 0.9),
               size: 22,
             ),
-            visualDensity: VisualDensity.compact,
           ),
         ],
       ],
@@ -374,144 +401,4 @@ class _ControlsWidget extends StatelessWidget {
   }
 }
 
-class _CircularPlayButton extends StatelessWidget {
-  const _CircularPlayButton({
-    required this.colorScheme,
-    required this.playbackState,
-    required this.progress,
-  });
 
-  final ColorScheme colorScheme;
-  final PlaybackState playbackState;
-  final double progress;
-
-  @override
-  Widget build(BuildContext context) {
-    final processingState = playbackState.processingState;
-    final isPlaying = playbackState.playing;
-    final isLoading =
-        processingState == AudioProcessingState.loading ||
-        processingState == AudioProcessingState.buffering;
-    final isCompleted = processingState == AudioProcessingState.completed;
-
-    return SizedBox(
-      width: 48,
-      height: 48,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          CustomPaint(
-            size: const Size(48, 48),
-            painter: _CircularProgressPainter(
-              progress: progress,
-              backgroundColor: colorScheme.surfaceContainerHighest,
-              progressColor: colorScheme.primary,
-              strokeWidth: 3,
-            ),
-          ),
-          if (isLoading)
-            SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(
-                strokeWidth: 2.5,
-                valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
-              ),
-            )
-          else
-            IconButton(
-              onPressed: isCompleted
-                  ? () => audioHandler.playAgain()
-                  : (isPlaying ? audioHandler.pause : audioHandler.play),
-              splashColor: Colors.transparent,
-              highlightColor: Colors.transparent,
-              icon: Icon(
-                isCompleted
-                    ? FluentIcons.arrow_counterclockwise_24_filled
-                    : (isPlaying
-                          ? FluentIcons.pause_16_filled
-                          : FluentIcons.play_16_filled),
-                color: colorScheme.primary,
-                size: 22,
-              ),
-              visualDensity: VisualDensity.compact,
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CircularProgressPainter extends CustomPainter {
-  _CircularProgressPainter({
-    required this.progress,
-    required this.backgroundColor,
-    required this.progressColor,
-    required this.strokeWidth,
-  });
-
-  final double progress;
-  final Color backgroundColor;
-  final Color progressColor;
-  final double strokeWidth;
-
-  final waveAmplitude = 1.5;
-  final waveFrequency = 12.0;
-  final animationValue = 0.0;
-
-  Path _buildWavyArcPath(Size size, double startAngle, double sweepAngle) {
-    final cx = size.width / 2;
-    final cy = size.height / 2;
-    final baseRadius = (size.width - strokeWidth) / 2;
-    final steps = (sweepAngle.abs() * 180 / math.pi).round().clamp(4, 720);
-    final path = Path();
-
-    for (var i = 0; i <= steps; i++) {
-      final t = i / steps;
-      final angle = startAngle + sweepAngle * t;
-      final wave =
-          waveAmplitude * math.sin(waveFrequency * angle + animationValue);
-      final r = baseRadius + wave;
-      final x = cx + r * math.cos(angle);
-      final y = cy + r * math.sin(angle);
-      i == 0 ? path.moveTo(x, y) : path.lineTo(x, y);
-    }
-    return path;
-  }
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final trackPaint = Paint()
-      ..color = backgroundColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-
-    canvas.drawPath(
-      _buildWavyArcPath(size, -math.pi / 2, 2 * math.pi),
-      trackPaint,
-    );
-
-    if (progress > 0) {
-      final progressPaint = Paint()
-        ..color = progressColor
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = strokeWidth
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round;
-
-      canvas.drawPath(
-        _buildWavyArcPath(size, -math.pi / 2, 2 * math.pi * progress),
-        progressPaint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(_CircularProgressPainter old) =>
-      old.progress != progress ||
-      old.backgroundColor != backgroundColor ||
-      old.progressColor != progressColor ||
-      old.animationValue != animationValue;
-}

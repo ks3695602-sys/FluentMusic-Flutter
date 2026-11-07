@@ -1,4 +1,4 @@
-﻿/*
+/*
  *     Copyright (C) 2026 Valeri Gokadze
  *
  *     Musify is free software: you can redistribute it and/or modify
@@ -42,9 +42,15 @@ class ListeningRecapCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Card(
+    return Container(
+      decoration: BoxDecoration(
+        color: CupertinoColors.white.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: CupertinoColors.white.withValues(alpha: 0.1),
+          width: 0.8,
+        ),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -67,8 +73,8 @@ class ListeningRecapCard extends StatelessWidget {
                           child: Text(
                             '$minutes',
                             maxLines: 1,
-                            style: TextStyle(
-                              color: colorScheme.primary,
+                            style: const TextStyle(
+                              color: CupertinoColors.white,
                               fontSize: 36,
                               fontWeight: FontWeight.w800,
                               height: 1,
@@ -81,9 +87,9 @@ class ListeningRecapCard extends StatelessWidget {
                         context.l10n!.minutesListened,
                         maxLines: 2,
                         style: TextStyle(
-                          color: colorScheme.onSurfaceVariant,
+                          color: CupertinoColors.white.withValues(alpha: 0.7),
                           fontSize: 13,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
@@ -100,6 +106,7 @@ class ListeningRecapCard extends StatelessWidget {
               ],
             ),
             if (songs.isNotEmpty) ...[
+              const SizedBox(height: 8),
               for (var i = 0; i < songs.length; i++)
                 SongBar(
                   key: ValueKey(songs[i]['ytid'] ?? i),
@@ -109,7 +116,7 @@ class ListeningRecapCard extends StatelessWidget {
                   rank: i + 1,
                   onPlay: () => onSongTap(i),
                   barPadding: const EdgeInsetsDirectional.symmetric(
-                    vertical: 10,
+                    vertical: 8,
                   ),
                 ),
             ],
@@ -127,7 +134,6 @@ class _RecapBrandHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     final fallbackMaxWidth = MediaQuery.sizeOf(context).width - 64;
 
     return LayoutBuilder(
@@ -143,8 +149,12 @@ class _RecapBrandHeader extends StatelessWidget {
             alignment: AlignmentDirectional.centerEnd,
             child: DecoratedBox(
               decoration: BoxDecoration(
-                color: colorScheme.secondaryContainer,
+                color: CupertinoColors.white.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(999),
+                border: Border.all(
+                  color: CupertinoColors.white.withValues(alpha: 0.15),
+                  width: 0.8,
+                ),
               ),
               child: Padding(
                 padding: const EdgeInsets.symmetric(
@@ -154,17 +164,17 @@ class _RecapBrandHeader extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    ImageIcon(
-                      const AssetImage(_musifyIconAsset),
+                    const ImageIcon(
+                      AssetImage(_musifyIconAsset),
                       size: 16,
-                      color: colorScheme.onSecondaryContainer,
+                      color: CupertinoColors.white,
                     ),
                     const SizedBox(width: 6),
-                    Text(
-                      'Musify',
+                    const Text(
+                      'Fluent Music',
                       maxLines: 1,
                       style: TextStyle(
-                        color: colorScheme.onSecondaryContainer,
+                        color: CupertinoColors.white,
                         fontWeight: FontWeight.w800,
                         fontSize: 12,
                       ),
@@ -173,7 +183,7 @@ class _RecapBrandHeader extends StatelessWidget {
                       ' · $periodLabel',
                       maxLines: 1,
                       style: TextStyle(
-                        color: colorScheme.onSecondaryContainer,
+                        color: CupertinoColors.white.withValues(alpha: 0.8),
                         fontWeight: FontWeight.w600,
                         fontSize: 12,
                       ),

@@ -117,8 +117,8 @@ class LinuxMediaControls extends DBusObject {
     'CanQuit': const DBusBoolean(false),
     'CanRaise': DBusBoolean(raise != null),
     'HasTrackList': const DBusBoolean(false),
-    'Identity': const DBusString('Musify'),
-    'DesktopEntry': const DBusString('musify'),
+    'Identity': const DBusString('Fluent Music'),
+    'DesktopEntry': const DBusString('fluentmusic'),
     'SupportedUriSchemes': DBusArray.string([]),
     'SupportedMimeTypes': DBusArray.string([]),
   };

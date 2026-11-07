@@ -46,7 +46,7 @@ void ConfigureAppIdentity() {
     std::cerr << "Could not register Musify shell identity: " << result << '\n';
     return;
   }
-  SetString(key, L"DisplayName", L"Musify");
+  SetString(key, L"DisplayName", L"Fluent Music");
   SetString(key, L"IconUri", icon.wstring());
   RegCloseKey(key);
 }
