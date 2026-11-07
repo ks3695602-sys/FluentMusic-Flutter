@@ -154,7 +154,7 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
                             bottomAccessory: isMiniPlayerVisible
                                 ? const MiniPlayer()
                                 : null,
-                            bottomAccessoryHeight: 56.0,
+                            bottomAccessoryHeight: 64.0,
                             bottomAccessoryEnabled: isMiniPlayerVisible,
                             bottomAccessoryPlacement:
                                 GlassTabBarAccessoryPlacement.expanded,

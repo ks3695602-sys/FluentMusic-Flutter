@@ -1,4 +1,4 @@
-﻿/*
+/*
  *     Copyright (C) 2026 Valeri Gokadze
  *
  *     Musify is free software: you can redistribute it and/or modify
@@ -194,10 +194,24 @@ class _PlaylistPageState extends State<PlaylistPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Padding(
-        padding: commonSingleChildScrollViewPadding,
-        child: _isInitializingPlaylist
-            ? SizedBox(
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF1E1424),
+              Color(0xFF0F0A13),
+              Color(0xFF000000),
+            ],
+            stops: [0.0, 0.45, 1.0],
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: _isInitializingPlaylist
+              ? SizedBox(
                 height: MediaQuery.sizeOf(context).height - 100,
                 child: const Spinner(),
               )
@@ -247,6 +261,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
                 ],
               )
             : EmptyPlaylistState(message: context.l10n!.error),
+        ),
       ),
     );
   }
@@ -721,6 +736,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
     return SongBar(
       song,
       true,
+      backgroundColor: Colors.transparent,
       key: listItemKey('playlist_song', index, song),
       onRemove: (isRemovable && !isSearching) ? () => _removeSong(song) : null,
       onPlay: () {

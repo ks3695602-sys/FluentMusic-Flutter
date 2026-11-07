@@ -1,4 +1,4 @@
-﻿/*
+/*
  *     Copyright (C) 2026 Valeri Gokadze
  *
  *     Musify is free software: you can redistribute it and/or modify
@@ -37,6 +37,8 @@ class PlaylistSliverAppBar extends StatelessWidget {
     return SliverAppBar(
       leading: leading,
       pinned: true,
+      backgroundColor: Colors.transparent,
+      elevation: 0,
       expandedHeight: screenSize.width > screenSize.height ? 380 : 340,
       flexibleSpace: FlexibleSpaceBar(
         centerTitle: true,
@@ -48,10 +50,11 @@ class PlaylistSliverAppBar extends StatelessWidget {
         ),
         title: Text(
           title,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+          style: const TextStyle(
             fontWeight: FontWeight.w700,
-            color: Theme.of(context).colorScheme.onSurface,
-            letterSpacing: 0,
+            color: CupertinoColors.white,
+            fontSize: 18,
+            letterSpacing: -0.3,
           ),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,

@@ -74,7 +74,12 @@ class SettingsPage extends StatelessWidget {
       ),
       body: ListView(
         physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: EdgeInsets.fromLTRB(
+          16,
+          MediaQuery.paddingOf(context).top + 56,
+          16,
+          160,
+        ),
         children: [
           // 1. LIQUID GLASS & GRAPHICS PIPELINE
           _buildSectionHeader('LIQUID GLASS & GRAPHICS PIPELINE'),

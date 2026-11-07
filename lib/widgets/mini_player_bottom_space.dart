@@ -1,4 +1,4 @@
-﻿/*
+/*
  *     Copyright (C) 2026 Valeri Gokadze
  *
  *     Musify is free software: you can redistribute it and/or modify
@@ -21,34 +21,24 @@
 
 import 'package:flutter/cupertino.dart';
 
-/// Adds the current bottom [MediaQuery] padding as scrollable space for the
-/// floating mini player.
+/// Adds comfortable scrollable space for the floating mini player and bottom dock.
 class MiniPlayerBottomSpace extends StatelessWidget {
   const MiniPlayerBottomSpace({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const SafeArea(
-      top: false,
-      left: false,
-      right: false,
-      child: SizedBox.shrink(),
-    );
+    return const SizedBox(height: 150);
   }
 }
 
-/// Adds the current bottom [MediaQuery] padding as sliver scrollable space for
-/// the floating mini player.
+/// Adds comfortable sliver scrollable space for the floating mini player and bottom dock.
 class SliverMiniPlayerBottomSpace extends StatelessWidget {
   const SliverMiniPlayerBottomSpace({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const SliverSafeArea(
-      top: false,
-      left: false,
-      right: false,
-      sliver: SliverToBoxAdapter(child: SizedBox.shrink()),
+    return const SliverToBoxAdapter(
+      child: SizedBox(height: 150),
     );
   }
 }

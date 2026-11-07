@@ -1,4 +1,4 @@
-﻿/*
+/*
  *     Copyright (C) 2026 Valeri Gokadze
  *
  *     Musify is free software: you can redistribute it and/or modify
@@ -115,33 +115,76 @@ class _LibraryPageState extends State<LibraryPage> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: Text(context.l10n!.library)),
-      body: AnimatedBuilder(
-        animation: Listenable.merge([
-          pinnedPlaylistIds,
-          offlineMode,
-          userCustomPlaylists,
-          userPlaylistFolders,
-          offlinePlaylistService.offlinePlaylists,
-          userLikedPlaylists,
-          onlinePlaylists,
-          userPlaylists,
-          userOfflineSongs,
-        ]),
-        builder: (context, _) {
-          return Padding(
-            padding: commonSingleChildScrollViewPadding,
-            child: CustomScrollView(
-              slivers: [
-                ..._buildPinnedSlivers(),
-                ..._buildUserPlaylistsSlivers(),
-                if (!offlineMode.value) ..._buildLikedPlaylistsSlivers(),
-                ..._buildLikedArtistsSlivers(),
-                const SliverMiniPlayerBottomSpace(),
-              ],
-            ),
-          );
-        },
+      backgroundColor: Colors.transparent,
+      body: SafeArea(
+        bottom: false,
+        child: AnimatedBuilder(
+          animation: Listenable.merge([
+            pinnedPlaylistIds,
+            offlineMode,
+            userCustomPlaylists,
+            userPlaylistFolders,
+            offlinePlaylistService.offlinePlaylists,
+            userLikedPlaylists,
+            onlinePlaylists,
+            userPlaylists,
+            userOfflineSongs,
+          ]),
+          builder: (context, _) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: CustomScrollView(
+                physics: const BouncingScrollPhysics(),
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 12, bottom: 16),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            context.l10n?.library ?? 'Library',
+                            style: const TextStyle(
+                              color: CupertinoColors.white,
+                              fontSize: 32,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.6,
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () => showCreatePlaylistDialog(context),
+                            child: Container(
+                              width: 38,
+                              height: 38,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: CupertinoColors.white.withValues(alpha: 0.12),
+                                border: Border.all(
+                                  color: CupertinoColors.white.withValues(alpha: 0.2),
+                                  width: 1,
+                                ),
+                              ),
+                              child: const Icon(
+                                CupertinoIcons.add,
+                                color: CupertinoColors.white,
+                                size: 22,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  ..._buildPinnedSlivers(),
+                  ..._buildUserPlaylistsSlivers(),
+                  if (!offlineMode.value) ..._buildLikedPlaylistsSlivers(),
+                  ..._buildLikedArtistsSlivers(),
+                  const SliverMiniPlayerBottomSpace(),
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -209,76 +252,95 @@ class _LibraryPageState extends State<LibraryPage> {
     final slivers = <Widget>[];
 
     if (hasLibraryContent) {
-      slivers.add(
-        SliverToBoxAdapter(
-          child: Column(
-            children: [
-              SectionHeader(
-                title: context.l10n!.customPlaylists,
-                icon: FluentIcons.library_24_filled,
-                actionButton: isOffline
-                    ? null
-                    : Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            padding: const EdgeInsets.symmetric(horizontal: 2),
-                            onPressed: _showCreateFolderDialog,
-                            icon: Icon(
-                              FluentIcons.folder_add_24_regular,
-                              color: colorScheme.onSurfaceVariant,
-                            ),
-                            tooltip: context.l10n!.createFolder,
-                          ),
-                          IconButton(
-                            padding: const EdgeInsets.symmetric(horizontal: 2),
-                            onPressed: () => showCreatePlaylistDialog(context),
-                            icon: Icon(
-                              FluentIcons.add_24_regular,
-                              color: colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                      ),
+      if (!isOffline) {
+        slivers.add(
+          SliverToBoxAdapter(
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: CupertinoColors.white.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: CupertinoColors.white.withValues(alpha: 0.1),
+                  width: 0.8,
+                ),
               ),
-              if (!isOffline) ...[
-                PlaylistBar(
-                  context.l10n!.recentlyPlayed,
-                  onPressed: () =>
-                      NavigationManager.router.go('/library/userSongs/recents'),
-                  cubeIcon: FluentIcons.history_24_regular,
-                  borderRadius: commonCustomBarRadiusFirst,
-                  showBuildActions: false,
-                ),
-                PlaylistBar(
-                  context.l10n!.likedSongs,
-                  onPressed: () =>
-                      NavigationManager.router.go('/library/userSongs/liked'),
-                  cubeIcon: FluentIcons.heart_24_regular,
-                  showBuildActions: false,
-                ),
-                PlaylistBar(
-                  context.l10n!.offlineSongs,
-                  onPressed: () =>
-                      NavigationManager.router.go('/library/userSongs/offline'),
-                  cubeIcon: FluentIcons.cloud_off_24_regular,
-                  showBuildActions: false,
-                ),
-                PlaylistBar(
-                  context.l10n!.radioStations,
-                  onPressed: () =>
-                      NavigationManager.router.go('/library/radioStations'),
-                  cubeIcon: FluentIcons.sound_source_24_regular,
-                  borderRadius: hasCustomPlaylists || hasFolders
-                      ? BorderRadius.zero
-                      : commonCustomBarRadiusLast,
-                  showBuildActions: false,
-                ),
-              ],
-            ],
+              child: Column(
+                children: [
+                  PlaylistBar(
+                    context.l10n!.recentlyPlayed,
+                    onPressed: () =>
+                        NavigationManager.router.go('/library/userSongs/recents'),
+                    cubeIcon: CupertinoIcons.clock_fill,
+                    showBuildActions: false,
+                  ),
+                  const Divider(color: Colors.white10, height: 1, indent: 64),
+                  PlaylistBar(
+                    context.l10n!.likedSongs,
+                    onPressed: () =>
+                        NavigationManager.router.go('/library/userSongs/liked'),
+                    cubeIcon: CupertinoIcons.heart_fill,
+                    showBuildActions: false,
+                  ),
+                  const Divider(color: Colors.white10, height: 1, indent: 64),
+                  PlaylistBar(
+                    context.l10n!.offlineSongs,
+                    onPressed: () =>
+                        NavigationManager.router.go('/library/userSongs/offline'),
+                    cubeIcon: CupertinoIcons.arrow_down_circle_fill,
+                    showBuildActions: false,
+                  ),
+                  const Divider(color: Colors.white10, height: 1, indent: 64),
+                  PlaylistBar(
+                    context.l10n!.radioStations,
+                    onPressed: () =>
+                        NavigationManager.router.go('/library/radioStations'),
+                    cubeIcon: CupertinoIcons.radiowaves_left_right,
+                    showBuildActions: false,
+                  ),
+                ],
+              ),
+            ),
           ),
-        ),
-      );
+        );
+      }
+
+      if (hasFolders || hasCustomPlaylists) {
+        slivers.add(
+          SliverToBoxAdapter(
+            child: SectionHeader(
+              title: context.l10n!.customPlaylists,
+              icon: CupertinoIcons.music_albums,
+              actionButton: isOffline
+                  ? null
+                  : Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          padding: const EdgeInsets.symmetric(horizontal: 2),
+                          onPressed: _showCreateFolderDialog,
+                          icon: const Icon(
+                            CupertinoIcons.folder_badge_plus,
+                            color: CupertinoColors.white,
+                            size: 20,
+                          ),
+                          tooltip: context.l10n!.createFolder,
+                        ),
+                        IconButton(
+                          padding: const EdgeInsets.symmetric(horizontal: 2),
+                          onPressed: () => showCreatePlaylistDialog(context),
+                          icon: const Icon(
+                            CupertinoIcons.add,
+                            color: CupertinoColors.white,
+                            size: 20,
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
+          ),
+        );
+      }
 
       if (hasFolders) {
         slivers.add(_buildFolderSliverList(folders, hasCustomPlaylists));

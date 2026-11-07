@@ -1,4 +1,4 @@
-﻿/*
+/*
  *     Copyright (C) 2026 Valeri Gokadze
  *
  *     Musify is free software: you can redistribute it and/or modify
@@ -57,47 +57,60 @@ class RecommendedSongsSection extends StatelessWidget {
           title: title,
           icon: FluentIcons.sparkle_24_filled,
           actionButton: showPlayButton
-              ? IconButton(
-                  onPressed: () async {
+              ? GestureDetector(
+                  onTap: () async {
                     await audioHandler.playPlaylistSong(
                       playlist: {'title': title, 'list': songs},
                       songIndex: 0,
                       shuffle: false,
                     );
                   },
-                  icon: Icon(
-                    FluentIcons.play_circle_24_filled,
-                    color: Theme.of(context).colorScheme.primary,
-                    size: 30,
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: CupertinoColors.white.withValues(alpha: 0.12),
+                      border: Border.all(
+                        color: CupertinoColors.white.withValues(alpha: 0.18),
+                        width: 0.8,
+                      ),
+                    ),
+                    child: const Icon(
+                      CupertinoIcons.play_fill,
+                      color: CupertinoColors.white,
+                      size: 14,
+                    ),
                   ),
                 )
               : null,
         ),
-        ListView.builder(
+        ListView.separated(
           shrinkWrap: true,
-          physics: const BouncingScrollPhysics(),
+          physics: const NeverScrollableScrollPhysics(),
           itemCount: songs.length,
-          padding: commonListViewBottomPadding,
+          padding: EdgeInsets.zero,
+          separatorBuilder: (_, __) =>
+              const Divider(color: Colors.white10, height: 1, indent: 64),
           itemBuilder: (context, index) {
             final song = songs[index];
-            final borderRadius = getItemBorderRadius(index, songs.length);
             return RepaintBoundary(
               key: listItemKey(listKeyPrefix, index, song),
               child: SongBar(
                 song,
                 true,
-                barPadding: const EdgeInsetsDirectional.only(
-                  top: 10,
-                  bottom: 10,
-                  start: 12,
+                backgroundColor: Colors.transparent,
+                barPadding: const EdgeInsetsDirectional.symmetric(
+                  vertical: 8,
+                  horizontal: 6,
                 ),
-                borderRadius: borderRadius,
                 onAdd: onAddSong != null && song is Map
                     ? () => onAddSong!(song)
                     : null,
               ),
             );
           },
+        ),
         ),
       ],
     );

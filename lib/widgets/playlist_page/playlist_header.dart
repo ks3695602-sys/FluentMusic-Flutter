@@ -1,4 +1,4 @@
-﻿/*
+/*
  *     Copyright (C) 2026 Valeri Gokadze
  *
  *     Musify is free software: you can redistribute it and/or modify
@@ -61,13 +61,14 @@ class PlaylistHeader extends StatelessWidget {
       child: Column(
         children: [
           if (showTitle) ...[
-            const SizedBox(height: 24),
+            const SizedBox(height: 18),
             Text(
               title,
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: colorScheme.secondary,
-                letterSpacing: 0,
+              style: const TextStyle(
+                fontWeight: FontWeight.w800,
+                color: CupertinoColors.white,
+                fontSize: 24,
+                letterSpacing: -0.4,
               ),
               overflow: TextOverflow.ellipsis,
               maxLines: 2,
@@ -83,38 +84,38 @@ class PlaylistHeader extends StatelessWidget {
             children: [
               if (isArtist)
                 _Chip(
-                  icon: FluentIcons.person_16_regular,
+                  icon: CupertinoIcons.person_fill,
                   label: context.l10n!.artist,
-                  color: colorScheme.primaryContainer,
-                  onColor: colorScheme.onPrimaryContainer,
+                  color: CupertinoColors.white.withValues(alpha: 0.12),
+                  onColor: CupertinoColors.white,
                   theme: theme,
                 )
               else if (isAlbum != null)
                 _Chip(
                   icon: isAlbum!
-                      ? FluentIcons.cd_16_regular
-                      : FluentIcons.apps_list_24_regular,
+                      ? CupertinoIcons.music_albums_fill
+                      : CupertinoIcons.music_note_list,
                   label: isAlbum!
                       ? context.l10n!.album
                       : context.l10n!.playlist,
-                  color: colorScheme.primaryContainer,
-                  onColor: colorScheme.onPrimaryContainer,
+                  color: CupertinoColors.white.withValues(alpha: 0.12),
+                  onColor: CupertinoColors.white,
                   theme: theme,
                 ),
               if (songsLength != null)
                 _Chip(
-                  icon: FluentIcons.text_bullet_list_24_filled,
+                  icon: CupertinoIcons.list_number,
                   label: '$songsLength ${context.l10n!.songs}',
-                  color: colorScheme.secondaryContainer,
-                  onColor: colorScheme.onSecondaryContainer,
+                  color: CupertinoColors.white.withValues(alpha: 0.12),
+                  onColor: CupertinoColors.white,
                   theme: theme,
                 ),
               if (monthlyListeners != null)
                 _Chip(
-                  icon: FluentIcons.headphones_20_filled,
+                  icon: CupertinoIcons.headphones,
                   label: '$monthlyListeners ${context.l10n!.monthlyListeners}',
-                  color: colorScheme.secondaryContainer,
-                  onColor: colorScheme.onSecondaryContainer,
+                  color: CupertinoColors.white.withValues(alpha: 0.12),
+                  onColor: CupertinoColors.white,
                   theme: theme,
                 ),
             ],
@@ -182,10 +183,14 @@ class _Chip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: CupertinoColors.white.withValues(alpha: 0.15),
+          width: 0.8,
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -194,9 +199,10 @@ class _Chip extends StatelessWidget {
           const SizedBox(width: 6),
           Text(
             label,
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: onColor,
+            style: const TextStyle(
+              color: CupertinoColors.white,
               fontWeight: FontWeight.w600,
+              fontSize: 12,
               letterSpacing: 0.2,
             ),
           ),

@@ -1,4 +1,4 @@
-﻿/*
+/*
  *     Copyright (C) 2026 Valeri Gokadze
  *
  *     Musify is free software: you can redistribute it and/or modify
@@ -47,19 +47,27 @@ class PlaylistHeroArtwork extends StatelessWidget {
           playlist,
           size: size,
           cubeIcon: cubeIcon,
+          borderRadius: 22,
           showTypeLabel: false,
+          showPlayBadge: false,
         );
 
-        return ClipPath(
-          clipper: const ShapeBorderClipper(
-            shape: StarBorder(
-              points: 8,
-              pointRounding: 0.8,
-              valleyRounding: 0.2,
-              innerRadiusRatio: 0.6,
-            ),
+        return DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(22),
+            boxShadow: [
+              BoxShadow(
+                color: CupertinoColors.black.withValues(alpha: 0.45),
+                blurRadius: 28,
+                spreadRadius: 2,
+                offset: const Offset(0, 12),
+              ),
+            ],
           ),
-          child: artwork,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(22),
+            child: artwork,
+          ),
         );
       },
     );

@@ -181,60 +181,62 @@ class _MiniPlayerBodyState extends State<_MiniPlayerBody>
       builder: (context, child) {
         return Transform.scale(
           scale: _scaleAnimation.value,
-          child: GestureDetector(
-            onTapDown: (_) => _animationController.forward(),
-            onTapUp: (_) => _animationController.reverse(),
-            onTapCancel: () => _animationController.reverse(),
-            onVerticalDragUpdate: _handleVerticalDrag,
-            onTap: _navigateToNowPlaying,
-            child: GlassButton.custom(
-              onTap: _navigateToNowPlaying,
-              quality: GlassQuality.premium,
-              useOwnLayer: true,
-              width: double.infinity,
-              height: MiniPlayer.playerHeight,
-              shape: const LiquidRoundedRectangle(
-                borderRadius: MiniPlayer._borderRadius,
-              ),
-              child: SizedBox(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+            child: GestureDetector(
+              onTapDown: (_) => _animationController.forward(),
+              onTapUp: (_) => _animationController.reverse(),
+              onTapCancel: () => _animationController.reverse(),
+              onVerticalDragUpdate: _handleVerticalDrag,
+              child: GlassButton.custom(
+                onTap: _navigateToNowPlaying,
+                quality: GlassQuality.premium,
+                useOwnLayer: true,
+                width: double.infinity,
                 height: MiniPlayer.playerHeight,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: Row(
-                    children: [
-                      _ArtworkWidget(metadata: metadata),
-                      Expanded(
-                        child: AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 300),
-                          switchInCurve: Curves.easeIn,
-                          switchOutCurve: Curves.easeOut,
-                          layoutBuilder: (currentChild, previousChildren) =>
-                              Stack(
-                                alignment: Alignment.centerLeft,
-                                children: [
-                                  ...previousChildren,
-                                  if (currentChild != null) currentChild,
-                                ],
+                shape: const LiquidRoundedRectangle(
+                  borderRadius: MiniPlayer._borderRadius,
+                ),
+                child: SizedBox(
+                  height: MiniPlayer.playerHeight,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    child: Row(
+                      children: [
+                        _ArtworkWidget(metadata: metadata),
+                        Expanded(
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 300),
+                            switchInCurve: Curves.easeIn,
+                            switchOutCurve: Curves.easeOut,
+                            layoutBuilder: (currentChild, previousChildren) =>
+                                Stack(
+                                  alignment: Alignment.centerLeft,
+                                  children: [
+                                    ...previousChildren,
+                                    if (currentChild != null) currentChild,
+                                  ],
+                                ),
+                            transitionBuilder: (child, animation) =>
+                                FadeTransition(opacity: animation, child: child),
+                            child: KeyedSubtree(
+                              key: ValueKey(metadata.id),
+                              child: _MetadataWidget(
+                                title: metadata.title,
+                                artist: metadata.artist,
+                                colorScheme: colorScheme,
                               ),
-                          transitionBuilder: (child, animation) =>
-                              FadeTransition(opacity: animation, child: child),
-                          child: KeyedSubtree(
-                            key: ValueKey(metadata.id),
-                            child: _MetadataWidget(
-                              title: metadata.title,
-                              artist: metadata.artist,
-                              colorScheme: colorScheme,
                             ),
                           ),
                         ),
-                      ),
-                      _ControlsWidget(
-                        colorScheme: colorScheme,
-                        playbackState: state.playbackState,
-                        hasNext: widget.hasNext,
-                        progress: progress,
-                      ),
-                    ],
+                        _ControlsWidget(
+                          colorScheme: colorScheme,
+                          playbackState: state.playbackState,
+                          hasNext: widget.hasNext,
+                          progress: progress,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -293,27 +295,21 @@ class _MetadataWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(right: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 6),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          MarqueeWidget(
-            manualScrollEnabled: false,
-            animationDuration: const Duration(seconds: 8),
-            backDuration: const Duration(seconds: 2),
-            pauseDuration: const Duration(seconds: 2),
-            child: Text(
-              title,
-              style: const TextStyle(
-                color: CupertinoColors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                letterSpacing: -0.2,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+          Text(
+            title,
+            style: const TextStyle(
+              color: CupertinoColors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              letterSpacing: -0.2,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           if (artist != null && artist!.isNotEmpty) ...[
             const SizedBox(height: 2),

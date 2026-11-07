@@ -1,4 +1,4 @@
-﻿/*
+/*
  *     Copyright (C) 2026 Valeri Gokadze
  *
  *     Musify is free software: you can redistribute it and/or modify
@@ -99,13 +99,13 @@ class PlaylistBar extends StatelessWidget {
         : playlistTitle;
     Map<dynamic, dynamic>? updatedPlaylist;
     return Material(
-      color: colorScheme.surfaceContainerLow,
+      color: Colors.transparent,
       borderRadius: borderRadius,
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onPressed ?? _getDefaultOnPressed(context, updatedPlaylist),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
           child: Row(
             children: [
               if (isFolder)
@@ -140,10 +140,11 @@ class PlaylistBar extends StatelessWidget {
                         Expanded(
                           child: Text(
                             displayTitle,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontWeight: FontWeight.w600,
-                              fontSize: 15,
-                              color: colorScheme.onSurface,
+                              fontSize: 16,
+                              color: CupertinoColors.white,
+                              letterSpacing: -0.2,
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -313,6 +314,12 @@ class PlaylistBar extends StatelessWidget {
                     ];
                   },
                 ),
+              ] else ...[
+                Icon(
+                  CupertinoIcons.chevron_forward,
+                  size: 16,
+                  color: CupertinoColors.white.withValues(alpha: 0.35),
+                ),
               ],
             ],
           ),
@@ -343,24 +350,57 @@ class PlaylistBar extends StatelessWidget {
   Widget _buildIconFallback(ColorScheme colorScheme) {
     if (isArtist) {
       return Container(
-        width: 52,
-        height: 52,
+        width: 44,
+        height: 44,
         decoration: BoxDecoration(
-          color: colorScheme.secondaryContainer,
+          color: CupertinoColors.white.withValues(alpha: 0.12),
           shape: BoxShape.circle,
         ),
         child: Icon(
           cubeIcon,
-          size: 26,
-          color: colorScheme.onSecondaryContainer,
+          size: 22,
+          color: CupertinoColors.white,
         ),
       );
     }
 
-    return SevenSidedCookieShape(
-      size: 52,
-      color: colorScheme.secondaryContainer,
-      child: Icon(cubeIcon, size: 26, color: colorScheme.onSecondaryContainer),
+    Color iconBgColor = const Color(0xFF2C2C2E);
+    Color iconColor = CupertinoColors.white;
+    IconData resolvedIcon = cubeIcon;
+
+    final lowerTitle = playlistTitle.toLowerCase();
+    if (lowerTitle.contains('liked') || lowerTitle.contains('lieblings') || lowerTitle.contains('favorit')) {
+      iconBgColor = const Color(0xFFFF2D55).withValues(alpha: 0.22);
+      iconColor = const Color(0xFFFF2D55);
+      resolvedIcon = CupertinoIcons.heart_fill;
+    } else if (lowerTitle.contains('recent') || lowerTitle.contains('verlauf') || lowerTitle.contains('history')) {
+      iconBgColor = const Color(0xFF007AFF).withValues(alpha: 0.22);
+      iconColor = const Color(0xFF007AFF);
+      resolvedIcon = CupertinoIcons.clock_fill;
+    } else if (lowerTitle.contains('offline') || lowerTitle.contains('download')) {
+      iconBgColor = const Color(0xFF30D158).withValues(alpha: 0.22);
+      iconColor = const Color(0xFF30D158);
+      resolvedIcon = CupertinoIcons.arrow_down_circle_fill;
+    } else if (lowerTitle.contains('radio') || lowerTitle.contains('station')) {
+      iconBgColor = const Color(0xFFAF52DE).withValues(alpha: 0.22);
+      iconColor = const Color(0xFFAF52DE);
+      resolvedIcon = CupertinoIcons.radiowaves_left_right;
+    }
+
+    return Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        color: iconBgColor,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: iconColor.withValues(alpha: 0.3),
+          width: 0.8,
+        ),
+      ),
+      child: Center(
+        child: Icon(resolvedIcon, size: 22, color: iconColor),
+      ),
     );
   }
 
