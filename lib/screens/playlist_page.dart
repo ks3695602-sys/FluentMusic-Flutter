@@ -39,6 +39,7 @@ import 'package:musify/services/settings_manager.dart';
 import 'package:musify/utilities/app_utils.dart';
 import 'package:musify/utilities/async_loader.dart';
 import 'package:musify/utilities/flutter_toast.dart';
+import 'package:musify/utilities/playlist_dialogs.dart';
 import 'package:musify/utilities/playlist_utils.dart';
 import 'package:musify/utilities/song_filtering.dart';
 import 'package:musify/utilities/sort_utils.dart';
@@ -397,10 +398,13 @@ class _PlaylistPageState extends State<PlaylistPage> {
             },
             onAdd: () {
               if (!offlineMode.value) {
-                showAddToPlaylistDialog(
-                  context,
-                  playlist: _playlist,
-                );
+                final songs = _playlist['list'] as List? ?? [];
+                if (songs.isNotEmpty) {
+                  showAddToPlaylistDialog(
+                    context,
+                    songs: songs,
+                  );
+                }
               }
             },
           ),
@@ -460,7 +464,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
             CupertinoActionSheetAction(
               onPressed: () {
                 Navigator.pop(ctx);
-                offlinePlaylistService.downloadPlaylistSongs(
+                offlinePlaylistService.downloadPlaylist(
                   context,
                   _playlist,
                 );
