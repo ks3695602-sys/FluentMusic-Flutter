@@ -1,4 +1,4 @@
-name: Build & Release FluentMusic Flutter APK
+name: Build & Release FluentMusic Flutter
 
 on:
   workflow_dispatch:
@@ -16,7 +16,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  build-apk:
     name: Build FluentMusic Flutter APKs
     runs-on: ubuntu-latest
 
@@ -117,13 +117,85 @@ jobs:
           path: release_artifacts/*.apk
           retention-days: 30
 
-      - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main'
+  build-windows:
+    name: Build Apple Music Demo (Windows Desktop x64)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Enable Windows Desktop
+        run: flutter config --enable-windows-desktop
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build Windows Desktop Release
+        run: flutter build windows -t lib/screens/apple_music_demo_screen.dart --release
+
+      - name: Package Windows Release Archive
+        shell: powershell
+        run: |
+          $releaseDir = Get-ChildItem -Path "build\windows" -Recurse -Directory -Filter "Release" | Select-Object -First 1
+          if (-not $releaseDir) {
+            Write-Error "Release output directory not found under build\windows!"
+            exit 1
+          }
+          $targetPath = $releaseDir.FullName
+          Write-Host "Found Release bundle at: $targetPath"
+          Get-ChildItem -Path $targetPath
+
+          if (Test-Path "$targetPath\musify.exe") {
+            Copy-Item "$targetPath\musify.exe" "$targetPath\AppleMusicDemo.exe" -Force
+            Write-Host "Created convenience binary AppleMusicDemo.exe"
+          }
+
+          Compress-Archive -Path "$targetPath\*" -DestinationPath "FluentMusic-AppleMusicDemo-windows-x64.zip" -Force
+          Write-Host "Compressed archive created: FluentMusic-AppleMusicDemo-windows-x64.zip"
+          Get-Item FluentMusic-AppleMusicDemo-windows-x64.zip
+
+      - name: Upload Windows Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FluentMusic-AppleMusicDemo-windows-x64
+          path: FluentMusic-AppleMusicDemo-windows-x64.zip
+          retention-days: 30
+
+  release:
+    name: Publish Release Assets
+    needs: [build-apk, build-windows]
+    if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download APK Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: FluentMusic-Flutter-APKs
+          path: release_artifacts
+
+      - name: Download Windows Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: FluentMusic-AppleMusicDemo-windows-x64
+          path: release_artifacts
+
+      - name: List Release Files
+        run: ls -la release_artifacts
+
+      - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v1.3.0' }}
-          name: "FluentMusic ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v1.3.0 (Liquid Glass Edition)' }}"
-          files: release_artifacts/*.apk
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v1.3.1' }}
+          name: "FluentMusic ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v1.3.1 (Liquid Glass & Apple Music Demo)' }}"
+          files: release_artifacts/*
           generate_release_notes: true
           draft: false
           prerelease: false
