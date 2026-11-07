@@ -384,7 +384,7 @@ class PlaylistBar extends StatelessWidget {
     } else if (lowerTitle.contains('radio') || lowerTitle.contains('station')) {
       iconBgColor = const Color(0xFFAF52DE).withValues(alpha: 0.22);
       iconColor = const Color(0xFFAF52DE);
-      resolvedIcon = CupertinoIcons.radiowaves_left_right;
+      resolvedIcon = CupertinoIcons.antenna_radiowaves_left_right;
     }
 
     return Container(

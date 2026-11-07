@@ -111,7 +111,6 @@ class RecommendedSongsSection extends StatelessWidget {
             );
           },
         ),
-        ),
       ],
     );
   }

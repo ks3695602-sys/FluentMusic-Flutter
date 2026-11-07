@@ -295,7 +295,7 @@ class _LibraryPageState extends State<LibraryPage> {
                     context.l10n!.radioStations,
                     onPressed: () =>
                         NavigationManager.router.go('/library/radioStations'),
-                    cubeIcon: CupertinoIcons.radiowaves_left_right,
+                    cubeIcon: CupertinoIcons.antenna_radiowaves_left_right,
                     showBuildActions: false,
                   ),
                 ],
