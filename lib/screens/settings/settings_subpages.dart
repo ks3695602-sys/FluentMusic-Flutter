@@ -225,7 +225,7 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
                         const Icon(CupertinoIcons.sparkles, color: Colors.white, size: 22),
                         const SizedBox(width: 10),
                         Text(
-                          'Live Optics: ${theme.blur.toInt()}px blur',
+                          'Live Optics: ${liquidGlassBlurSetting.value.toInt()}px blur',
                           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
                         ),
                       ],
@@ -250,17 +250,19 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
                     title: const Text('Shader Quality Tier', style: TextStyle(color: Colors.white)),
                     subtitle: Padding(
                       padding: const EdgeInsets.only(top: 8.0),
-                      child: GlassSegmentedControl<String>(
-                        value: currentQuality,
+                      child: CupertinoSlidingSegmentedControl<String>(
+                        groupValue: currentQuality,
                         children: const {
-                          'premium': Text('Premium', style: TextStyle(fontSize: 12)),
-                          'standard': Text('Standard', style: TextStyle(fontSize: 12)),
-                          'minimal': Text('Minimal', style: TextStyle(fontSize: 12)),
+                          'premium': Text('Premium', style: TextStyle(color: Colors.white, fontSize: 12)),
+                          'standard': Text('Standard', style: TextStyle(color: Colors.white, fontSize: 12)),
+                          'minimal': Text('Minimal', style: TextStyle(color: Colors.white, fontSize: 12)),
                         },
                         onValueChanged: (val) {
-                          liquidGlassQualitySetting.value = val;
-                          addOrUpdateData('settings', 'liquidGlassQuality', val);
-                          updateLiquidGlassTheme();
+                          if (val != null) {
+                            liquidGlassQualitySetting.value = val;
+                            addOrUpdateData('settings', 'liquidGlassQuality', val);
+                            updateLiquidGlassTheme();
+                          }
                         },
                       ),
                     ),
@@ -422,16 +424,18 @@ class PlaybackSettingsPage extends StatelessWidget {
                     title: const Text('Streaming Quality', style: TextStyle(color: Colors.white)),
                     subtitle: Padding(
                       padding: const EdgeInsets.only(top: 8.0),
-                      child: GlassSegmentedControl<String>(
-                        value: currentQuality,
+                      child: CupertinoSlidingSegmentedControl<String>(
+                        groupValue: currentQuality,
                         children: const {
-                          'low': Text('Low (96k)', style: TextStyle(fontSize: 12)),
-                          'medium': Text('Med (160k)', style: TextStyle(fontSize: 12)),
-                          'high': Text('High (320k)', style: TextStyle(fontSize: 12)),
+                          'low': Text('Low (96k)', style: TextStyle(color: Colors.white, fontSize: 12)),
+                          'medium': Text('Med (160k)', style: TextStyle(color: Colors.white, fontSize: 12)),
+                          'high': Text('High (320k)', style: TextStyle(color: Colors.white, fontSize: 12)),
                         },
                         onValueChanged: (val) {
-                          audioQualitySetting.value = val;
-                          addOrUpdateData('settings', 'audioQuality', val);
+                          if (val != null) {
+                            audioQualitySetting.value = val;
+                            addOrUpdateData('settings', 'audioQuality', val);
+                          }
                         },
                       ),
                     ),

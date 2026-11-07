@@ -1,4 +1,4 @@
-﻿/*
+/*
  *     Copyright (C) 2026 Valeri Gokadze
  *
  *     Musify is free software: you can redistribute it and/or modify
@@ -565,6 +565,127 @@ class _SearchPageState extends State<SearchPage> {
         'results-${_songsSearchResult.length}-${_artistsSearchResult.length}-${_albumsSearchResult.length}-${_playlistsSearchResult.length}',
       ),
       children: widgets,
+    );
+  }
+
+  Widget _buildAppleBrowseSection(BuildContext context, List searchHistory) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (searchHistory.isNotEmpty) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Recent Searches',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  minSize: 0,
+                  onPressed: () => _showConfirmationDialog(context).then((confirmed) {
+                    if (confirmed == true) {
+                      clearSearchHistory();
+                    }
+                  }),
+                  child: const Text(
+                    'Clear',
+                    style: TextStyle(color: Color(0xFFFF2D55), fontSize: 14),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          GlassGroupedSection(
+            surfaceStyle: GlassSurfaceStyle.solid,
+            children: [
+              for (int i = 0; i < searchHistory.length && i < 5; i++)
+                GlassListTile(
+                  leading: const Icon(CupertinoIcons.search, color: Colors.white70, size: 18),
+                  title: Text(
+                    searchHistory[i].toString(),
+                    style: const TextStyle(color: Colors.white, fontSize: 15),
+                  ),
+                  trailing: const Icon(CupertinoIcons.arrow_up_left, color: Colors.white38, size: 16),
+                  onTap: () => _submitSearch(searchHistory[i].toString()),
+                ),
+            ],
+          ),
+          const SizedBox(height: 20),
+        ],
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          child: Text(
+            'Browse Categories',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: GridView.count(
+            crossAxisCount: 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: 1.8,
+            children: [
+              _buildCategoryTile('Bollywood Hits', const [Color(0xFFFF2D55), Color(0xFFFF375F)], CupertinoIcons.music_note_2),
+              _buildCategoryTile('Top 100 Global', const [Color(0xFF5856D6), Color(0xFFAF52DE)], CupertinoIcons.chart_bar_fill),
+              _buildCategoryTile('Chill & Acoustic', const [Color(0xFF007AFF), Color(0xFF5AC8FA)], CupertinoIcons.headphones),
+              _buildCategoryTile('Party & Dance', const [Color(0xFFFF9500), Color(0xFFFFCC00)], CupertinoIcons.flame_fill),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCategoryTile(String title, List<Color> gradientColors, IconData icon) {
+    return GestureDetector(
+      onTap: () {
+        _searchBarController.text = title;
+        _submitSearch(title);
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          gradient: LinearGradient(
+            colors: gradientColors,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+              ),
+            ),
+            Align(
+              alignment: Alignment.bottomRight,
+              child: Icon(icon, color: Colors.white.withOpacity(0.8), size: 22),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
