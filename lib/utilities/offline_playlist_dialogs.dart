@@ -20,6 +20,7 @@
  */
 
 import 'package:flutter/cupertino.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:musify/extensions/l10n.dart';
 import 'package:musify/services/playlist_download_service.dart';
 import 'package:musify/utilities/flutter_toast.dart';

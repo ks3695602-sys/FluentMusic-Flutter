@@ -4,7 +4,7 @@ homepage: https://github.com/ks3695602-sys/FluentMusic-Flutter
 repository: https://github.com/ks3695602-sys/FluentMusic-Flutter
 
 publish_to: 'none'
-version: 1.2.0+2
+version: 1.3.0+3
 
 environment:
   sdk: '>=3.13.0 <4.0.0'
@@ -36,6 +36,7 @@ dependencies:
   just_audio_media_kit:
     path: ./packages/just_audio_media_kit
   liquid_glass_widgets: ^1.16.1
+  material_ui: ^1.9.0
   media_kit_libs_linux: ^1.2.1
   media_kit_libs_windows_audio: ^1.0.9
   path_provider: ^2.1.6
