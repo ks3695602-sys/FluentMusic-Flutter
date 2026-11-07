@@ -143,12 +143,11 @@ jobs:
       - name: Package Windows Release Archive
         shell: powershell
         run: |
-          $releaseDir = Get-ChildItem -Path "build\windows" -Recurse -Directory -Filter "Release" | Select-Object -First 1
-          if (-not $releaseDir) {
-            Write-Error "Release output directory not found under build\windows!"
+          $targetPath = "build\windows\x64\runner\Release"
+          if (-not (Test-Path $targetPath)) {
+            Write-Error "Release output directory not found at $targetPath!"
             exit 1
           }
-          $targetPath = $releaseDir.FullName
           Write-Host "Found Release bundle at: $targetPath"
           Get-ChildItem -Path $targetPath
 
