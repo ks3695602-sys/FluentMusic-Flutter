@@ -20,7 +20,7 @@
  */
 
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 class AutoFormatText extends StatelessWidget {
   AutoFormatText({super.key, required this.text});
