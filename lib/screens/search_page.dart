@@ -591,7 +591,8 @@ class _SearchPageState extends State<SearchPage> {
                   minSize: 0,
                   onPressed: () => _showConfirmationDialog(context).then((confirmed) {
                     if (confirmed == true) {
-                      clearSearchHistory();
+                      searchHistoryNotifier.value = [];
+                      unawaited(addOrUpdateData<List>('user', 'searchHistory', []));
                     }
                   }),
                   child: const Text(
@@ -654,7 +655,7 @@ class _SearchPageState extends State<SearchPage> {
   Widget _buildCategoryTile(String title, List<Color> gradientColors, IconData icon) {
     return GestureDetector(
       onTap: () {
-        _searchBarController.text = title;
+        _searchBar.text = title;
         _submitSearch(title);
       },
       child: Container(

@@ -476,18 +476,18 @@ class _PlaylistPageState extends State<PlaylistPage> {
           ),
           if (isUserCreated)
             CupertinoActionSheetAction(
-              onPressed: () {
+              onPressed: () async {
                 Navigator.pop(ctx);
-                showEditPlaylistDialog(
-                  context,
-                  _playlist,
-                  onEdit: (newTitle, newDesc) {
-                    setState(() {
-                      _playlist['title'] = newTitle;
-                      _playlist['description'] = newDesc;
-                    });
-                  },
+                final result = await showDialog<Map?>(
+                  context: context,
+                  builder: (context) => EditPlaylistDialog(playlistData: _playlist),
                 );
+                if (result != null) {
+                  setState(() {
+                    _playlist['title'] = result['title'] ?? _playlist['title'];
+                    _playlist['description'] = result['description'] ?? _playlist['description'];
+                  });
+                }
               },
               child: const Text('Edit Playlist Details'),
             ),
