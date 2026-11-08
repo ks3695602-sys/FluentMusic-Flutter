@@ -277,7 +277,7 @@ class MusicClient {
 
       final results = <Video>[];
       final seenIds = <String>{};
-      for (final item in _findRenderers(root, _musicResponsiveListItemRenderer)) {
+      for (final item in _findRenderers(root, 'musicResponsiveListItemRenderer')) {
         final videoId = _trackVideoId(item);
         if (videoId == null || !seenIds.add(videoId)) continue;
 

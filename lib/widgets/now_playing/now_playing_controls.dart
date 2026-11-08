@@ -182,7 +182,11 @@ class NowPlayingControls extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
               child: Row(
                 children: [
-                  const Icon(CupertinoIcons.speaker_fill, size: 14, color: CupertinoColors.white38),
+                  Icon(
+                    CupertinoIcons.speaker_fill,
+                    size: 14,
+                    color: CupertinoColors.white.withValues(alpha: 0.38),
+                  ),
                   Expanded(
                     child: SliderTheme(
                       data: SliderTheme.of(context).copyWith(
@@ -208,7 +212,11 @@ class NowPlayingControls extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const Icon(CupertinoIcons.speaker_3_fill, size: 16, color: CupertinoColors.white38),
+                  Icon(
+                    CupertinoIcons.speaker_3_fill,
+                    size: 16,
+                    color: CupertinoColors.white.withValues(alpha: 0.38),
+                  ),
                 ],
               ),
             ),

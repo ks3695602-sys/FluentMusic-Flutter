@@ -94,7 +94,7 @@ class BottomActionsRow extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               child: Icon(
-                CupertinoIcons.airplayaudio,
+                FluentIcons.speaker_2_24_regular,
                 size: 24,
                 color: CupertinoColors.white.withValues(alpha: 0.65),
               ),
