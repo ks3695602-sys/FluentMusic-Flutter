@@ -273,7 +273,10 @@ class _SearchPageState extends State<SearchPage> {
       contentAwareBrightness: true,
       appBar: canPop
           ? GlassAppBar(
-              leading: buildGlassBackButton(context),
+              leading: GlassIconButton(
+                icon: const Icon(CupertinoIcons.back),
+                onPressed: () => Navigator.pop(context),
+              ),
               title: Text(
                 context.l10n?.search ?? 'Search',
                 style: const TextStyle(
@@ -764,40 +767,64 @@ class _SearchPageState extends State<SearchPage> {
                   maxLines: 1,
                 ),
                 const SizedBox(height: 20),
-                GlassButton(
-                  onTap: () {
+                CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  onPressed: () {
                     Navigator.pop(ctx);
                     final songsList = _songsSearchResult.whereType<Map>().toList();
                     audioHandler.addPlaylistToQueue(songsList, replace: true, startIndex: index);
                   },
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(CupertinoIcons.list_bullet, color: CupertinoColors.white, size: 20),
-                      SizedBox(width: 8),
-                      Text(
-                        'Play with Search Queue',
-                        style: TextStyle(color: CupertinoColors.white, fontWeight: FontWeight.w600),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      color: CupertinoColors.white.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: CupertinoColors.white.withValues(alpha: 0.20),
+                        width: 0.8,
                       ),
-                    ],
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(CupertinoIcons.list_bullet, color: CupertinoColors.white, size: 20),
+                        SizedBox(width: 8),
+                        Text(
+                          'Play with Search Queue',
+                          style: TextStyle(color: CupertinoColors.white, fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
-                GlassButton(
-                  onTap: () {
+                CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  onPressed: () {
                     Navigator.pop(ctx);
                     audioHandler.playSongWithRelated(song);
                   },
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(CupertinoIcons.radiowaves_right, color: CupertinoColors.white, size: 20),
-                      SizedBox(width: 8),
-                      Text(
-                        'Play with Related Songs',
-                        style: TextStyle(color: CupertinoColors.white, fontWeight: FontWeight.w600),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      color: CupertinoColors.white.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: CupertinoColors.white.withValues(alpha: 0.20),
+                        width: 0.8,
                       ),
-                    ],
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(CupertinoIcons.radiowaves_right, color: CupertinoColors.white, size: 20),
+                        SizedBox(width: 8),
+                        Text(
+                          'Play with Related Songs',
+                          style: TextStyle(color: CupertinoColors.white, fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: 14),
