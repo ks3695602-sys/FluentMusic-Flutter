@@ -302,9 +302,10 @@ void showSleepTimerDialog(BuildContext context) {
                       context,
                       label: 'End of Song',
                       onTap: () {
-                        final songDuration = audioPlayer.duration;
-                        final currentPos = audioPlayer.position;
-                        if (songDuration != null) {
+                        final posData = audioHandler.currentPositionData;
+                        final songDuration = posData.duration;
+                        final currentPos = posData.position;
+                        if (songDuration > Duration.zero) {
                           final remaining = songDuration - currentPos;
                           if (remaining.inSeconds > 0) {
                             audioHandler.setSleepTimer(remaining);

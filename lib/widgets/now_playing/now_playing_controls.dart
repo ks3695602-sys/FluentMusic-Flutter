@@ -194,14 +194,14 @@ class NowPlayingControls extends StatelessWidget {
                         thumbColor: CupertinoColors.white,
                       ),
                       child: StreamBuilder<double>(
-                        stream: audioPlayer.volumeStream,
-                        initialData: audioPlayer.volume,
+                        stream: audioHandler.volumeStream,
+                        initialData: audioHandler.volume,
                         builder: (context, volSnap) {
                           final vol = volSnap.data ?? 1.0;
                           return Slider(
                             value: vol.clamp(0.0, 1.0),
                             onChanged: (val) {
-                              audioPlayer.setVolume(val);
+                              audioHandler.setVolume(val);
                             },
                           );
                         },
