@@ -4,7 +4,7 @@ homepage: https://github.com/ks3695602-sys/FluentMusic-Flutter
 repository: https://github.com/ks3695602-sys/FluentMusic-Flutter
 
 publish_to: 'none'
-version: 1.3.4+7
+version: 1.3.5+8
 
 environment:
   sdk: '>=3.13.0 <4.0.0'
@@ -25,7 +25,7 @@ dependencies:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
-  flutter_lyric: ^2.0.2
+  flutter_lyric: ^4.1.0
   go_router: ^18.1.2
   hive: ^2.2.3
   hive_flutter: ^1.1.0

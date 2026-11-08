@@ -49,6 +49,7 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
       .distinct();
 
   bool? _previousOfflineMode;
+  bool _isMiniMode = false;
 
   /// Track the previously selected shell branch to detect reselects.
   int? _previousShellIndex;
@@ -83,18 +84,26 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
               final isLargeScreen = MediaQuery.of(context).size.width >= 600;
               final items = _getNavigationItems(isOfflineMode);
 
+              final isLight = Theme.of(context).brightness == Brightness.light;
+
               return GlassScaffold(
                 contentAwareBrightness: true,
                 background: Container(
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
-                      colors: [
-                        Color(0xFF160E1A),
-                        Color(0xFF0A070D),
-                        Color(0xFF000000),
-                      ],
+                      colors: isLight
+                          ? const [
+                              Color(0xFFF7F7F9),
+                              Color(0xFFEBEBF0),
+                              Color(0xFFFFFFFF),
+                            ]
+                          : const [
+                              Color(0xFF160E1A),
+                              Color(0xFF0A070D),
+                              Color(0xFF000000),
+                            ],
                     ),
                   ),
                 ),
@@ -118,7 +127,18 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
                               _onTabTapped(index, items),
                         ),
                       Expanded(
-                        child: widget.child,
+                        child: NotificationListener<ScrollNotification>(
+                          onNotification: (notification) {
+                            if (notification.metrics.axis == Axis.vertical) {
+                              final shouldBeMini = notification.metrics.pixels > 40;
+                              if (shouldBeMini != _isMiniMode) {
+                                setState(() => _isMiniMode = shouldBeMini);
+                              }
+                            }
+                            return false;
+                          },
+                          child: widget.child,
+                        ),
                       ),
                     ],
                   ),
@@ -156,11 +176,13 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
                                 : null,
                             bottomAccessoryHeight: 64.0,
                             bottomAccessoryEnabled: isMiniPlayerVisible,
-                            bottomAccessoryPlacement:
-                                GlassTabBarAccessoryPlacement.expanded,
+                            bottomAccessoryPlacement: _isMiniMode
+                                ? GlassTabBarAccessoryPlacement.inline
+                                : GlassTabBarAccessoryPlacement.expanded,
                             selectedIconColor: const Color(0xFFFF2D55),
-                            unselectedIconColor: CupertinoColors.white
-                                .withValues(alpha: 0.85),
+                            unselectedIconColor: isLight
+                                ? CupertinoColors.black.withValues(alpha: 0.65)
+                                : CupertinoColors.white.withValues(alpha: 0.85),
                             labelFontSize: 10,
                             iconSize: 26,
                             iconLabelSpacing: 0,

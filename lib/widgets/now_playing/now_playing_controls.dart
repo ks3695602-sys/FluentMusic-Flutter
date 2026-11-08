@@ -30,9 +30,14 @@ import 'package:material_ui/material_ui.dart';
 import 'package:musify/extensions/l10n.dart';
 import 'package:musify/main.dart';
 import 'package:musify/services/router_service.dart';
+import 'package:musify/services/common_services.dart';
+import 'package:musify/utilities/mediaitem.dart';
+import 'package:musify/utilities/playlist_dialogs.dart';
 import 'package:musify/services/settings_manager.dart';
 import 'package:musify/utilities/app_utils.dart';
 import 'package:musify/utilities/flutter_toast.dart';
+import 'package:musify/services/playlist_download_service.dart';
+import 'package:musify/widgets/now_playing/bottom_actions_row.dart';
 import 'package:musify/widgets/now_playing/marquee_text_widget.dart';
 import 'package:musify/widgets/playback_icon_button.dart';
 import 'package:musify/widgets/position_slider.dart';
@@ -90,34 +95,73 @@ class NowPlayingControls extends StatelessWidget {
                 horizontal: isDesktop ? 16 : 24,
                 vertical: spacing,
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onLongPress: () => _copyNowPlayingSong(context, metadata),
-                    child: MarqueeTextWidget(
-                      text: metadata.title,
-                      fontColor: colorScheme.secondary,
-                      fontSize: titleFontSize * fontScale,
-                      fontWeight: FontWeight.bold,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onLongPress: () => _copyNowPlayingSong(context, metadata),
+                          child: MarqueeTextWidget(
+                            text: metadata.title,
+                            fontColor: CupertinoColors.white,
+                            fontSize: titleFontSize * fontScale,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        if (metadata.artist != null)
+                          GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: canOpenArtist
+                                ? () => _openArtistPage(context, metadata)
+                                : null,
+                            onLongPress: () => _copyNowPlayingSong(context, metadata),
+                            child: MarqueeTextWidget(
+                              text: metadata.artist!,
+                              fontColor: CupertinoColors.white.withValues(alpha: 0.7),
+                              fontSize: artistFontSize * fontScale,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                      ],
                     ),
                   ),
-                  SizedBox(height: spacing),
-                  if (metadata.artist != null)
-                    GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: canOpenArtist
-                          ? () => _openArtistPage(context, metadata)
-                          : null,
-                      onLongPress: () => _copyNowPlayingSong(context, metadata),
-                      child: MarqueeTextWidget(
-                        text: metadata.artist!,
-                        fontColor: colorScheme.onSurfaceVariant,
-                        fontSize: artistFontSize * fontScale,
-                        fontWeight: FontWeight.w500,
-                      ),
+                  const SizedBox(width: 8),
+                  ValueListenableBuilder<List>(
+                    valueListenable: userLikedSongsList,
+                    builder: (context, likedList, _) {
+                      final isLiked = isSongAlreadyLiked(audioId);
+                      return CupertinoButton(
+                        padding: EdgeInsets.zero,
+                        minSize: 38,
+                        onPressed: () async {
+                          HapticFeedback.lightImpact();
+                          final songMap = mediaItemToMap(metadata);
+                          await updateSongLikeStatus(audioId, !isLiked, songData: songMap);
+                        },
+                        child: Icon(
+                          isLiked ? CupertinoIcons.star_fill : CupertinoIcons.star,
+                          color: isLiked ? const Color(0xFFFF2D55) : CupertinoColors.white.withValues(alpha: 0.85),
+                          size: 24,
+                        ),
+                      );
+                    },
+                  ),
+                  CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    minSize: 38,
+                    onPressed: () => _showAppleOptionsMenu(context, metadata),
+                    child: Icon(
+                      CupertinoIcons.ellipsis,
+                      color: CupertinoColors.white.withValues(alpha: 0.85),
+                      size: 24,
                     ),
+                  ),
                 ],
               ),
             ),
@@ -134,10 +178,152 @@ class NowPlayingControls extends StatelessWidget {
               iconSize: adjustedIconSize * iconScale,
               miniIconSize: adjustedMiniIconSize * iconScale,
             ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              child: Row(
+                children: [
+                  const Icon(CupertinoIcons.speaker_fill, size: 14, color: CupertinoColors.white38),
+                  Expanded(
+                    child: SliderTheme(
+                      data: SliderTheme.of(context).copyWith(
+                        trackHeight: 3.0,
+                        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5.0, elevation: 1.0),
+                        overlayShape: const RoundSliderOverlayShape(overlayRadius: 10.0),
+                        activeTrackColor: CupertinoColors.white,
+                        inactiveTrackColor: CupertinoColors.white.withValues(alpha: 0.18),
+                        thumbColor: CupertinoColors.white,
+                      ),
+                      child: StreamBuilder<double>(
+                        stream: audioPlayer.volumeStream,
+                        initialData: audioPlayer.volume,
+                        builder: (context, volSnap) {
+                          final vol = volSnap.data ?? 1.0;
+                          return Slider(
+                            value: vol.clamp(0.0, 1.0),
+                            onChanged: (val) {
+                              audioPlayer.setVolume(val);
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                  const Icon(CupertinoIcons.speaker_3_fill, size: 16, color: CupertinoColors.white38),
+                ],
+              ),
+            ),
             if (!isCompact) const Spacer(),
           ],
         );
       },
+    );
+  }
+
+  void _showAppleOptionsMenu(BuildContext context, MediaItem metadata) {
+    showCupertinoModalPopup(
+      context: context,
+      builder: (ctx) => CupertinoActionSheet(
+        title: Text(metadata.title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        message: Text(metadata.artist ?? ''),
+        actions: [
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(ctx);
+              showAddToPlaylistDialog(context, songs: [mediaItemToMap(metadata)]);
+            },
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(CupertinoIcons.plus_rectangle_on_rectangle),
+                SizedBox(width: 8),
+                Text('Add to Playlist'),
+              ],
+            ),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final audioId = metadata.extras?['ytid']?.toString();
+              if (audioId == null) return;
+              if (isSongAlreadyOffline(audioId)) {
+                await OfflinePlaylistService().removeSongFromOfflineAndResync(audioId);
+                if (context.mounted) {
+                  showToast(context, 'Removed from offline storage');
+                }
+              } else {
+                final success = await makeSongOffline(mediaItemToMap(metadata));
+                if (context.mounted && success) {
+                  showToast(context, 'Downloaded for offline playback');
+                }
+              }
+            },
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  isSongAlreadyOffline(metadata.extras?['ytid']?.toString())
+                      ? CupertinoIcons.check_mark_circled_solid
+                      : CupertinoIcons.arrow_down_circle,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  isSongAlreadyOffline(metadata.extras?['ytid']?.toString())
+                      ? 'Downloaded (Tap to Remove)'
+                      : 'Download for Offline',
+                ),
+              ],
+            ),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(ctx);
+              showSleepTimerDialog(context);
+            },
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(CupertinoIcons.timer),
+                SizedBox(width: 8),
+                Text('Sleep Timer'),
+              ],
+            ),
+          ),
+          if (_canOpenArtist(metadata))
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.pop(ctx);
+                _openArtistPage(context, metadata);
+              },
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(CupertinoIcons.person_crop_circle),
+                  SizedBox(width: 8),
+                  Text('Go to Artist'),
+                ],
+              ),
+            ),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _copyNowPlayingSong(context, metadata);
+            },
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(CupertinoIcons.doc_on_doc),
+                SizedBox(width: 8),
+                Text('Copy Title & Artist'),
+              ],
+            ),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          isDefaultAction: true,
+          onPressed: () => Navigator.pop(ctx),
+          child: const Text('Cancel'),
+        ),
+      ),
     );
   }
 

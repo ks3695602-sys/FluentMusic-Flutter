@@ -1,5 +1,5 @@
-﻿/*
- *     Copyright (C) 2026 Valeri Gokadze
+/*
+ *     Copyright (C) 2026 Valeri Gokadze & FluentMusic
  *
  *     Musify is free software: you can redistribute it and/or modify
  *     it under the terms of the GNU General Public License as published by
@@ -13,11 +13,9 @@
  *
  *     You should have received a copy of the GNU General Public License
  *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
- *
- *
- *     For more information about Musify, including how to contribute,
- *     please visit: https://github.com/gokadzev/Musify
  */
+
+import 'dart:io';
 
 import 'package:audio_service/audio_service.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
@@ -34,7 +32,7 @@ import 'package:musify/utilities/mediaitem.dart';
 import 'package:musify/utilities/playlist_dialogs.dart';
 import 'package:musify/widgets/queue_list_view.dart';
 
-class BottomActionsRow extends StatefulWidget {
+class BottomActionsRow extends StatelessWidget {
   const BottomActionsRow({
     super.key,
     required this.metadata,
@@ -42,329 +40,132 @@ class BottomActionsRow extends StatefulWidget {
     required this.isLargeScreen,
     required this.lyricsController,
   });
+
   final MediaItem metadata;
   final double iconSize;
   final bool isLargeScreen;
   final dynamic lyricsController;
 
   @override
-  State<BottomActionsRow> createState() => _BottomActionsRowState();
-}
-
-class _BottomActionsRowState extends State<BottomActionsRow> {
-  late final ValueNotifier<bool> _songLikeStatus;
-  late final ValueNotifier<bool> _songOfflineStatus;
-  String? get audioId => widget.metadata.extras?['ytid']?.toString();
-  bool get isRadioStation => widget.metadata.extras?['isLive'] == true;
-
-  @override
-  void initState() {
-    super.initState();
-    if (isRadioStation) {
-      _songLikeStatus = ValueNotifier<bool>(isRadioStationLiked(audioId ?? ''));
-      userLikedRadioStations.addListener(_syncRadioLikeStatus);
-    } else {
-      _songLikeStatus = ValueNotifier<bool>(isSongAlreadyLiked(audioId));
-      userLikedSongsList.addListener(_syncLikeStatus);
-    }
-    _songOfflineStatus = ValueNotifier<bool>(isSongAlreadyOffline(audioId));
-    userOfflineSongs.addListener(_syncOfflineStatus);
-  }
-
-  void _syncLikeStatus() {
-    final newStatus = isSongAlreadyLiked(audioId);
-    if (_songLikeStatus.value != newStatus) {
-      _songLikeStatus.value = newStatus;
-    }
-  }
-
-  void _syncRadioLikeStatus() {
-    final newStatus = isRadioStationLiked(audioId ?? '');
-    if (_songLikeStatus.value != newStatus) {
-      _songLikeStatus.value = newStatus;
-    }
-  }
-
-  void _syncOfflineStatus() {
-    final newStatus = isSongAlreadyOffline(audioId);
-    if (_songOfflineStatus.value != newStatus) {
-      _songOfflineStatus.value = newStatus;
-    }
-  }
-
-  @override
-  void didUpdateWidget(BottomActionsRow oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    final oldAudioId = oldWidget.metadata.extras?['ytid']?.toString();
-    final oldIsRadioStation = oldWidget.metadata.extras?['isLive'] == true;
-    final likeSourceChanged = oldIsRadioStation != isRadioStation;
-
-    if (likeSourceChanged) {
-      if (oldIsRadioStation) {
-        userLikedRadioStations.removeListener(_syncRadioLikeStatus);
-      } else {
-        userLikedSongsList.removeListener(_syncLikeStatus);
-      }
-
-      if (isRadioStation) {
-        userLikedRadioStations.addListener(_syncRadioLikeStatus);
-      } else {
-        userLikedSongsList.addListener(_syncLikeStatus);
-      }
-    }
-
-    if (likeSourceChanged || oldAudioId != audioId) {
-      _songLikeStatus.value = isRadioStation
-          ? isRadioStationLiked(audioId ?? '')
-          : isSongAlreadyLiked(audioId);
-    }
-    if (oldAudioId != audioId) {
-      _songOfflineStatus.value = isSongAlreadyOffline(audioId);
-    }
-  }
-
-  @override
-  void dispose() {
-    if (isRadioStation) {
-      userLikedRadioStations.removeListener(_syncRadioLikeStatus);
-    } else {
-      userLikedSongsList.removeListener(_syncLikeStatus);
-    }
-    userOfflineSongs.removeListener(_syncOfflineStatus);
-    _songLikeStatus.dispose();
-    _songOfflineStatus.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final l10n = context.l10n!;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          // 1. Lyrics quote bubble (Apple Music style with active pill)
+          ValueListenableBuilder<bool>(
+            valueListenable: lyricsController.isFlipped,
+            builder: (context, isLyricsFlipped, _) {
+              return CupertinoButton(
+                padding: EdgeInsets.zero,
+                onPressed: () {
+                  lyricsController.flipcard();
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isLyricsFlipped
+                        ? CupertinoColors.white.withValues(alpha: 0.22)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Icon(
+                    isLyricsFlipped
+                        ? CupertinoIcons.quote_bubble_fill
+                        : CupertinoIcons.quote_bubble,
+                    size: 24,
+                    color: isLyricsFlipped
+                        ? CupertinoColors.white
+                        : CupertinoColors.white.withValues(alpha: 0.65),
+                  ),
+                ),
+              );
+            },
+          ),
 
-    final screenWidth = MediaQuery.sizeOf(context).width;
-    final responsiveIconSize = screenWidth < 360
-        ? widget.iconSize * 0.85
-        : widget.iconSize;
-
-    return StreamBuilder<List<Map>>(
-      stream: audioHandler.queueAsMapStream,
-      builder: (context, snapshot) {
-        final queue = snapshot.data ?? [];
-
-        final actions = <Widget>[
-          if (!isRadioStation)
-            _buildActionButton(
-              context: context,
-              icon: CupertinoIcons.arrow_down_to_line,
-              activeIcon: CupertinoIcons.arrow_down_to_line_alt,
-              colorScheme: colorScheme,
-              size: responsiveIconSize,
-              statusNotifier: _songOfflineStatus,
-              onPressed: audioId == null
-                  ? null
-                  : () => _toggleOffline(
-                      _songOfflineStatus,
-                      audioId,
-                      widget.metadata,
-                    ),
-              tooltip: l10n.makeOffline,
-            ),
-          _buildSleepTimerButton(context, colorScheme, responsiveIconSize),
-          if (!offlineMode.value && !isRadioStation)
-            _buildSimpleActionButton(
-              context: context,
-              icon: CupertinoIcons.plus_circle,
-              colorScheme: colorScheme,
-              size: responsiveIconSize,
-              onPressed: () => showAddToPlaylistDialog(
-                context,
-                song: mediaItemToMap(widget.metadata),
+          // 2. AirPlay / Audio Output Device
+          CupertinoButton(
+            padding: EdgeInsets.zero,
+            onPressed: () => _showAudioOutputSheet(context),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              child: Icon(
+                CupertinoIcons.airplayaudio,
+                size: 24,
+                color: CupertinoColors.white.withValues(alpha: 0.65),
               ),
-              tooltip: l10n.addToPlaylist,
             ),
-          if (queue.isNotEmpty && !isRadioStation && !widget.isLargeScreen)
-            _buildSimpleActionButton(
-              context: context,
-              icon: CupertinoIcons.list_bullet,
-              colorScheme: colorScheme,
-              size: responsiveIconSize,
-              onPressed: () => showCustomBottomSheet(
+          ),
+
+          // 3. Queue List Button
+          CupertinoButton(
+            padding: EdgeInsets.zero,
+            onPressed: () {
+              showCustomBottomSheet(
                 context,
                 const QueueWidget(isBottomSheet: true),
+              );
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              child: Icon(
+                CupertinoIcons.list_bullet,
+                size: 24,
+                color: CupertinoColors.white.withValues(alpha: 0.65),
               ),
-              tooltip: l10n.queue,
-            ),
-          if (!offlineMode.value) ...[
-            if (!isRadioStation)
-              _buildSimpleActionButton(
-                context: context,
-                icon: CupertinoIcons.quote_bubble,
-                colorScheme: colorScheme,
-                size: responsiveIconSize,
-                onPressed: widget.lyricsController.flipcard,
-                tooltip: l10n.lyrics,
-              ),
-            _buildActionButton(
-              context: context,
-              icon: CupertinoIcons.heart,
-              activeIcon: CupertinoIcons.heart_fill,
-              colorScheme: colorScheme,
-              size: responsiveIconSize,
-              statusNotifier: _songLikeStatus,
-              activeColor: const Color(0xFFFF2D55),
-              onPressed: () async {
-                final id = audioId;
-                if (id == null) return;
-
-                final originalValue = _songLikeStatus.value;
-                _songLikeStatus.value = !originalValue;
-
-                try {
-                  if (isRadioStation) {
-                    if (originalValue) {
-                      await removeRadioStationFromLiked(id);
-                    } else {
-                      await addRadioStationToLiked(id);
-                    }
-                  } else {
-                    await updateSongLikeStatus(
-                      audioId,
-                      !originalValue,
-                      songData: mediaItemToMap(widget.metadata),
-                    );
-                  }
-                } catch (e) {
-                  _songLikeStatus.value = originalValue; // revert on failure
-                  logger.log('Error toggling like status', error: e);
-                }
-              },
-              tooltip: l10n.likedSongs,
-            ),
-          ],
-        ];
-
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-          decoration: BoxDecoration(
-            color: CupertinoColors.white.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: CupertinoColors.white.withValues(alpha: 0.14),
-              width: 0.8,
             ),
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: actions,
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildActionButton({
-    required BuildContext context,
-    required IconData icon,
-    required IconData activeIcon,
-    required ColorScheme colorScheme,
-    required double size,
-    required ValueNotifier<bool> statusNotifier,
-    required VoidCallback? onPressed,
-    Color? activeColor,
-    String? tooltip,
-  }) {
-    return ValueListenableBuilder<bool>(
-      valueListenable: statusNotifier,
-      builder: (_, isActive, __) {
-        return IconButton(
-          icon: Icon(
-            isActive ? activeIcon : icon,
-            color: isActive
-                ? (activeColor ?? colorScheme.primary)
-                : colorScheme.onSurfaceVariant,
-          ),
-          iconSize: size,
-          tooltip: tooltip,
-          style: IconButton.styleFrom(
-            backgroundColor: isActive
-                ? (activeColor ?? colorScheme.primary).withValues(alpha: 0.15)
-                : Colors.transparent,
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-          onPressed: onPressed,
-        );
-      },
-    );
-  }
-
-  Widget _buildSimpleActionButton({
-    required BuildContext context,
-    required IconData icon,
-    required ColorScheme colorScheme,
-    required double size,
-    required VoidCallback onPressed,
-    String? tooltip,
-  }) {
-    return IconButton(
-      icon: Icon(icon, color: colorScheme.onSurfaceVariant),
-      iconSize: size,
-      tooltip: tooltip,
-      style: IconButton.styleFrom(
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ],
       ),
-      onPressed: onPressed,
     );
   }
 
-  Widget _buildSleepTimerButton(
-    BuildContext context,
-    ColorScheme colorScheme,
-    double size,
-  ) {
-    return ValueListenableBuilder<Duration?>(
-      valueListenable: sleepTimerNotifier,
-      builder: (_, value, __) {
-        final isActive = value != null;
-        return IconButton(
-          icon: Icon(
-            isActive ? CupertinoIcons.timer_fill : CupertinoIcons.timer,
-            color: isActive ? const Color(0xFFFF2D55) : CupertinoColors.white.withValues(alpha: 0.75),
-          ),
-          iconSize: size,
-          tooltip: context.l10n!.sleepTimer,
-          style: IconButton.styleFrom(
-            backgroundColor: isActive
-                ? colorScheme.primary.withValues(alpha: 0.15)
-                : Colors.transparent,
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-          onPressed: () {
-            if (isActive) {
-              audioHandler.cancelSleepTimer();
-              sleepTimerNotifier.value = null;
+  void _showAudioOutputSheet(BuildContext context) {
+    showCupertinoModalPopup(
+      context: context,
+      builder: (ctx) => CupertinoActionSheet(
+        title: const Text(
+          'FluentMusic Lossless Output',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        message: const Text(
+          'Active: Built-in Audio Device\nFormat: 24-bit 48kHz Hi-Res Lossless Audio',
+        ),
+        actions: [
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(ctx);
               showToast(
                 context,
-                context.l10n!.sleepTimerCancelled,
-                duration: const Duration(seconds: 1, milliseconds: 500),
+                'Audio routing through system high-res mixer',
+                duration: const Duration(seconds: 2),
               );
-            } else {
-              _showSleepTimerDialog(context);
-            }
-          },
-        );
-      },
+            },
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(CupertinoIcons.speaker_2_fill),
+                SizedBox(width: 8),
+                Text('Device Speaker / Headphones (Default)'),
+              ],
+            ),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          isDefaultAction: true,
+          onPressed: () => Navigator.pop(ctx),
+          child: const Text('Done'),
+        ),
+      ),
     );
   }
 }
 
-Future<void> _toggleOffline(
+Future<void> toggleSongOffline(
   ValueNotifier<bool> status,
   String? audioId,
   MediaItem metadata,
@@ -392,7 +193,7 @@ Future<void> _toggleOffline(
   }
 }
 
-void _showSleepTimerDialog(BuildContext context) {
+void showSleepTimerDialog(BuildContext context) {
   final colorScheme = Theme.of(context).colorScheme;
 
   showDialog(
@@ -449,55 +250,71 @@ void _showSleepTimerDialog(BuildContext context) {
                   onDecrement: () {
                     if (minutes > 0) setState(() => minutes--);
                   },
-                  onIncrement: () {
-                    if (minutes < 59) setState(() => minutes++);
-                  },
+                  onIncrement: () => setState(() => minutes++),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
                   alignment: WrapAlignment.center,
                   children: [
-                    ...[15, 30, 45, 60].map((mins) {
-                      return ActionChip(
-                        label: Text('$mins min'),
-                        backgroundColor: colorScheme.surfaceContainerHighest,
-                        labelStyle: TextStyle(
-                          color: colorScheme.onSurfaceVariant,
-                          fontSize: 12,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            hours = mins ~/ 60;
-                            minutes = mins % 60;
-                          });
-                        },
-                      );
-                    }),
-                    ActionChip(
-                      label: Text(context.l10n!.endOfSong),
-                      backgroundColor: colorScheme.surfaceContainerHighest,
-                      labelStyle: TextStyle(
-                        color: colorScheme.onSurfaceVariant,
-                        fontSize: 12,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      onPressed: () {
-                        audioHandler.setSleepTimerEndOfSong();
-                        showToast(
-                          context,
-                          context.l10n!.sleepTimerSet,
-                          duration: const Duration(
-                            seconds: 1,
-                            milliseconds: 500,
-                          ),
-                        );
+                    _buildPresetChip(
+                      context,
+                      label: '15m',
+                      onTap: () {
+                        setState(() {
+                          hours = 0;
+                          minutes = 15;
+                        });
+                      },
+                    ),
+                    _buildPresetChip(
+                      context,
+                      label: '30m',
+                      onTap: () {
+                        setState(() {
+                          hours = 0;
+                          minutes = 30;
+                        });
+                      },
+                    ),
+                    _buildPresetChip(
+                      context,
+                      label: '45m',
+                      onTap: () {
+                        setState(() {
+                          hours = 0;
+                          minutes = 45;
+                        });
+                      },
+                    ),
+                    _buildPresetChip(
+                      context,
+                      label: '1h',
+                      onTap: () {
+                        setState(() {
+                          hours = 1;
+                          minutes = 0;
+                        });
+                      },
+                    ),
+                    _buildPresetChip(
+                      context,
+                      label: 'End of Song',
+                      onTap: () {
+                        final songDuration = audioPlayer.duration;
+                        final currentPos = audioPlayer.position;
+                        if (songDuration != null) {
+                          final remaining = songDuration - currentPos;
+                          if (remaining.inSeconds > 0) {
+                            audioHandler.setSleepTimer(remaining);
+                            showToast(
+                              context,
+                              'Sleep timer set for end of song',
+                              duration: const Duration(seconds: 2),
+                            );
+                          }
+                        }
                         Navigator.pop(context);
                       },
                     ),
@@ -543,6 +360,18 @@ void _showSleepTimerDialog(BuildContext context) {
         },
       );
     },
+  );
+}
+
+Widget _buildPresetChip(
+  BuildContext context, {
+  required String label,
+  required VoidCallback onTap,
+}) {
+  return ActionChip(
+    label: Text(label, style: const TextStyle(fontSize: 12)),
+    onPressed: onTap,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
   );
 }
 

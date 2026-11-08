@@ -133,4 +133,29 @@ class Lyrics {
     }
     return result;
   }
+
+  /// Formats the synced lyrics into a standard LRC string compatible with flutter_lyric
+  String toLrc() {
+    final lines = synced;
+    if (lines == null || lines.isEmpty) return plain ?? '';
+    final buffer = StringBuffer();
+    for (final line in lines) {
+      final m = line.start.inMinutes.toString().padLeft(2, '0');
+      final s = (line.start.inSeconds % 60).toString().padLeft(2, '0');
+      final ms = ((line.start.inMilliseconds % 1000) ~/ 10).toString().padLeft(2, '0');
+      if (line.hasWordSync) {
+        buffer.write('[$m:$s.$ms]');
+        for (final word in line.words) {
+          final wm = word.start.inMinutes.toString().padLeft(2, '0');
+          final ws = (word.start.inSeconds % 60).toString().padLeft(2, '0');
+          final wms = ((word.start.inMilliseconds % 1000) ~/ 10).toString().padLeft(2, '0');
+          buffer.write('<$wm:$ws.$wms>${word.text}');
+        }
+        buffer.writeln();
+      } else {
+        buffer.writeln('[$m:$s.$ms]${line.text}');
+      }
+    }
+    return buffer.toString();
+  }
 }

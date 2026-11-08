@@ -29,6 +29,7 @@ import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
 import 'package:musify/constants/clients.dart';
 import 'package:musify/main.dart' show logger;
+import 'package:musify/services/artist_service.dart';
 import 'package:musify/services/data_manager.dart';
 import 'package:musify/services/io_service.dart';
 import 'package:musify/services/lyrics_manager.dart';
@@ -174,7 +175,20 @@ Future<bool> _validateCachedUrl(String songId, String cachedUrl) async {
 
 Future<List> fetchSongsList(String searchQuery) async {
   try {
-    // If not in cache, perform the search
+    // 1. Prioritize YouTube Music dedicated official "Songs" shelf for clean metadata and 100% lyric hit rate
+    try {
+      final musicSongs = await ytMusicClient.music.searchSongs(searchQuery, limit: 25);
+      if (musicSongs.isNotEmpty) {
+        final songsList = musicSongs
+            .map((video) => returnSongLayout(0, video))
+            .toList();
+        return songsList;
+      }
+    } catch (e) {
+      logger.log('YT Music searchSongs failed, falling back to general search: $e');
+    }
+
+    // 2. Fallback to general YouTube video search if official shelf is empty
     final List<Video> searchResults = await ytClient.search.search(searchQuery);
     final songsList = searchResults
         .map((video) => returnSongLayout(0, video))
@@ -183,6 +197,25 @@ Future<List> fetchSongsList(String searchQuery) async {
     return songsList;
   } catch (e, stackTrace) {
     logger.log('Error in fetchSongsList', error: e, stackTrace: stackTrace);
+    return [];
+  }
+}
+
+/// Fetches a list of related songs for the given YouTube video ID.
+Future<List<Map<String, dynamic>>> getRelatedSongsList(String songYtId, {int limit = 15}) async {
+  try {
+    final song = await ytClient.videos.get(songYtId);
+    final related = await ytClient.videos.getRelatedVideos(song) ?? [];
+    final list = <Map<String, dynamic>>[];
+    for (var i = 0; i < related.length && list.length < limit; i++) {
+      final s = returnSongLayout(list.length, related[i]);
+      if (s['ytid'] != null && s['ytid'] != songYtId) {
+        list.add(Map<String, dynamic>.from(s));
+      }
+    }
+    return list;
+  } catch (e, st) {
+    logger.log('Error fetching related songs list for $songYtId', error: e, stackTrace: st);
     return [];
   }
 }

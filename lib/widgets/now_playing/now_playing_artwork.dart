@@ -1,4 +1,4 @@
-﻿/*
+/*
  *     Copyright (C) 2026 Valeri Gokadze
  *
  *     Musify is free software: you can redistribute it and/or modify
@@ -106,7 +106,7 @@ class NowPlayingArtwork extends StatelessWidget {
         child: SizedBox(
           width: imageSize,
           height: imageSize,
-          child: _LyricsView(metadata: metadata),
+          child: LyricsViewWidget(metadata: metadata),
         ),
       ),
     );
@@ -114,15 +114,15 @@ class NowPlayingArtwork extends StatelessWidget {
 }
 
 /// Fetches and caches lyrics lazily per song.
-class _LyricsView extends StatefulWidget {
-  const _LyricsView({required this.metadata});
+class LyricsViewWidget extends StatefulWidget {
+  const LyricsViewWidget({super.key, required this.metadata});
   final MediaItem metadata;
 
   @override
-  State<_LyricsView> createState() => _LyricsViewState();
+  State<LyricsViewWidget> createState() => _LyricsViewWidgetState();
 }
 
-class _LyricsViewState extends State<_LyricsView> {
+class _LyricsViewWidgetState extends State<LyricsViewWidget> {
   String? _resolvedKey;
   late Future<Lyrics?> _lyricsFuture;
 
@@ -133,7 +133,7 @@ class _LyricsViewState extends State<_LyricsView> {
   }
 
   @override
-  void didUpdateWidget(_LyricsView oldWidget) {
+  void didUpdateWidget(LyricsViewWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
     _resolveIfNeeded();
   }

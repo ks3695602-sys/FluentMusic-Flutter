@@ -1,4 +1,4 @@
-﻿/*
+/*
  *     Copyright (C) 2026 Valeri Gokadze
  *
  *     Musify is free software: you can redistribute it and/or modify
@@ -27,9 +27,11 @@ enum RotateSide { right, left, top, bottom }
 
 class FlipCardController {
   _FlipCardState? _state;
+  final ValueNotifier<bool> isFlipped = ValueNotifier<bool>(false);
 
   Future<void> flipcard() async {
     await _state?.flipCard();
+    isFlipped.value = (_state?._targetAngle ?? 0) != 0;
   }
 }
 

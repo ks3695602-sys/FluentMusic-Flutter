@@ -44,34 +44,50 @@ class SettingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final canPop = Navigator.canPop(context);
+    final topPadding = MediaQuery.paddingOf(context).top;
+
     return GlassScaffold(
       contentAwareBrightness: true,
       background: Container(
         color: Colors.black,
       ),
-      appBar: GlassAppBar(
-        leading: Navigator.canPop(context)
-            ? buildGlassBackButton(context)
-            : null,
-        title: Text(
-          context.l10n?.settings ?? 'Settings',
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 22,
-            color: Colors.white,
-          ),
-        ),
-      ),
+      appBar: canPop
+          ? GlassAppBar(
+              leading: buildGlassBackButton(context),
+              title: Text(
+                context.l10n?.settings ?? 'Settings',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                  color: Colors.white,
+                ),
+              ),
+            )
+          : null,
       body: ListView(
         physics: const BouncingScrollPhysics(),
         padding: EdgeInsets.fromLTRB(
           16,
-          MediaQuery.paddingOf(context).top + 20,
+          canPop ? 16 : topPadding + 16,
           16,
           40,
         ),
         children: [
-          // INSET GROUPED SETTINGS PLATTER (Matching Image 1)
+          if (!canPop)
+            Padding(
+              padding: const EdgeInsets.only(left: 4, bottom: 20, top: 4),
+              child: Text(
+                context.l10n?.settings ?? 'Settings',
+                style: const TextStyle(
+                  fontSize: 34,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  letterSpacing: -0.6,
+                ),
+              ),
+            ),
+          // INSET GROUPED SETTINGS PLATTER (Matching Image 4)
           GlassGroupedSection(
             surfaceStyle: GlassSurfaceStyle.solid,
             children: [

@@ -121,10 +121,11 @@ class _PositionSliderState extends State<PositionSlider> {
   );
 
   Widget _buildPositionRow(BuildContext context, PositionData positionData) {
-    final positionText = formatDuration(
-      _isDragging ? _dragValue.toInt() : positionData.position.inSeconds,
-    );
-    final durationText = formatDuration(positionData.duration.inSeconds);
+    final curSec = _isDragging ? _dragValue.toInt() : positionData.position.inSeconds;
+    final totalSec = positionData.duration.inSeconds;
+    final positionText = formatDuration(curSec);
+    final remainingSec = (totalSec - curSec) > 0 ? (totalSec - curSec) : 0;
+    final remainingText = '-';
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 22),
@@ -132,7 +133,30 @@ class _PositionSliderState extends State<PositionSlider> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(positionText, style: _textStyle),
-          Text(durationText, style: _textStyle),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: CupertinoColors.white.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(CupertinoIcons.double_music_note, size: 10, color: CupertinoColors.white),
+                SizedBox(width: 3),
+                Text(
+                  'Lossless',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: CupertinoColors.white,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Text(remainingText, style: _textStyle),
         ],
       ),
     );

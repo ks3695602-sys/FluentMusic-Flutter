@@ -456,6 +456,57 @@ class PlaybackSettingsPage extends StatelessWidget {
           const SizedBox(height: 20),
           GlassGroupedSection(
             surfaceStyle: GlassSurfaceStyle.solid,
+            header: const Text('BACKGROUND & QUEUE BEHAVIOR'),
+            children: [
+              // Feature 1: Keep Playing after App Dismissed from Recent
+              ValueListenableBuilder<bool>(
+                valueListenable: keepPlayingAfterDismiss,
+                builder: (_, keepPlaying, __) {
+                  return GlassListTile(
+                    leading: const Icon(CupertinoIcons.play_arrow_solid, color: Color(0xFF34C759)),
+                    title: const Text('Play After App Dismissed', style: TextStyle(color: Colors.white)),
+                    subtitle: const Text('Keep playback alive when swiped away from recent apps', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                    trailing: GlassSwitch(
+                      value: keepPlaying,
+                      onChanged: (val) {
+                        updateKeepPlayingAfterDismiss(val);
+                      },
+                    ),
+                  );
+                },
+              ),
+
+              // Feature 2: Search Playback Queue Mode
+              ValueListenableBuilder<String>(
+                valueListenable: searchQueueMode,
+                builder: (_, mode, __) {
+                  return GlassListTile(
+                    leading: const Icon(CupertinoIcons.list_number, color: Color(0xFFFF2D55)),
+                    title: const Text('Search Playback Queue', style: TextStyle(color: Colors.white)),
+                    subtitle: Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: CupertinoSlidingSegmentedControl<String>(
+                        groupValue: mode,
+                        children: const {
+                          'search_results': Text('Search List', style: TextStyle(color: Colors.white, fontSize: 12)),
+                          'related_autoplay': Text('Related Mix', style: TextStyle(color: Colors.white, fontSize: 12)),
+                          'ask_every_time': Text('Ask Me', style: TextStyle(color: Colors.white, fontSize: 12)),
+                        },
+                        onValueChanged: (val) {
+                          if (val != null) {
+                            updateSearchQueueMode(val);
+                          }
+                        },
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          GlassGroupedSection(
+            surfaceStyle: GlassSurfaceStyle.solid,
             header: const Text('SEAMLESS TRANSITIONS'),
             children: [
               ValueListenableBuilder<bool>(

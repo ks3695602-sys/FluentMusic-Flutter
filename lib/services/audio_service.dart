@@ -1980,6 +1980,28 @@ class MusifyAudioHandler extends BaseAudioHandler implements AndroidAutoHost {
     }
   }
 
+  /// Plays a song and asynchronously fetches and queues related tracks.
+  Future<bool> playSongWithRelated(Map song) async {
+    final success = await playSong(song);
+    if (!success) return false;
+
+    unawaited(() async {
+      try {
+        final ytid = song['ytid']?.toString() ?? '';
+        if (ytid.isNotEmpty) {
+          final related = await getRelatedSongsList(ytid, limit: 15);
+          if (related.isNotEmpty) {
+            await addPlaylistToQueue(related, replace: false);
+          }
+        }
+      } catch (e) {
+        logger.log('Failed to append related songs: $e');
+      }
+    }());
+
+    return true;
+  }
+
   Future<_PlaybackSource?> _resolvePlaybackSource(Map songData) async {
     final isOffline = await _resolveOfflineAndSetPaths(songData);
     if (!isOffline && offlineMode.value) {

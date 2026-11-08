@@ -159,6 +159,24 @@ final androidAutoEnabled = ValueNotifier<bool>(
   Hive.box('settings').get('androidAutoEnabled', defaultValue: true),
 );
 
+final keepPlayingAfterDismiss = ValueNotifier<bool>(
+  Hive.box('settings').get('keepPlayingAfterDismiss', defaultValue: true),
+);
+
+final searchQueueMode = ValueNotifier<String>(
+  Hive.box('settings').get('searchQueueMode', defaultValue: 'search_results') as String,
+);
+
+void updateKeepPlayingAfterDismiss(bool value) {
+  keepPlayingAfterDismiss.value = value;
+  Hive.box('settings').put('keepPlayingAfterDismiss', value);
+}
+
+void updateSearchQueueMode(String value) {
+  searchQueueMode.value = value;
+  Hive.box('settings').put('searchQueueMode', value);
+}
+
 final streamingSourceSetting = ValueNotifier<String>(
   Hive.box('settings').get('streamingSource', defaultValue: 'YouTube Music'),
 );
