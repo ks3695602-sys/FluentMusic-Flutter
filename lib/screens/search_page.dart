@@ -765,7 +765,7 @@ class _SearchPageState extends State<SearchPage> {
                 ),
                 const SizedBox(height: 20),
                 GlassButton(
-                  onPressed: () {
+                  onTap: () {
                     Navigator.pop(ctx);
                     final songsList = _songsSearchResult.whereType<Map>().toList();
                     audioHandler.addPlaylistToQueue(songsList, replace: true, startIndex: index);
@@ -784,7 +784,7 @@ class _SearchPageState extends State<SearchPage> {
                 ),
                 const SizedBox(height: 12),
                 GlassButton(
-                  onPressed: () {
+                  onTap: () {
                     Navigator.pop(ctx);
                     audioHandler.playSongWithRelated(song);
                   },

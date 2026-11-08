@@ -316,7 +316,7 @@ class _MobileLayout extends StatelessWidget {
                 ),
 
                 // Bottom: Position slider + compact playback controls + 3-item trio
-                PositionSlider(metadata: metadata),
+                const PositionSlider(),
                 _buildCompactControls(context),
                 BottomActionsRow(
                   metadata: metadata,
@@ -527,8 +527,9 @@ class _MobileLayout extends StatelessWidget {
           ),
           const SizedBox(width: 24),
           const PlaybackIconButton(
-            size: 54,
+            iconSize: 54,
             iconColor: CupertinoColors.white,
+            backgroundColor: Colors.transparent,
           ),
           const SizedBox(width: 24),
           IconButton(
