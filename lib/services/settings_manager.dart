@@ -77,6 +77,10 @@ final syncedLyricsEnabled = ValueNotifier<bool>(
   Hive.box('settings').get('syncedLyricsEnabled', defaultValue: true),
 );
 
+final lyricsOffsetMs = ValueNotifier<int>(
+  Hive.box('settings').get('lyricsOffsetMs', defaultValue: 0) as int,
+);
+
 List<double> _readEqualizerGains() {
   final raw = Hive.box('settings')
       .get('equalizerBandGains', defaultValue: const <dynamic>[]);

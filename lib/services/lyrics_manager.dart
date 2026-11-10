@@ -28,6 +28,7 @@ import 'package:http/http.dart' as http;
 import 'package:musify/services/lyrics/lrc_parser.dart';
 import 'package:musify/services/lyrics/lyrics_models.dart';
 import 'package:musify/services/lyrics/lyrics_query.dart';
+import 'package:musify/services/lyrics/ttml_parser.dart';
 
 export 'package:musify/services/lyrics/lyrics_models.dart';
 
@@ -98,14 +99,30 @@ class LyricsManager {
   }
 
   Future<Lyrics?> _search(List<TrackInfo> variants) async {
+    // 1. Priority 1: YouLyPlus (Word/Syllable synchronized lyrics)
+    for (final variant in variants.take(2)) {
+      final youly = await _fetchFromYouLyPlus(variant);
+      if (youly != null && youly.synced != null && youly.synced!.isNotEmpty) {
+        return youly;
+      }
+    }
+
+    // 2. Priority 2: BetterLyrics (Apple TTML Word/Syllable synchronized lyrics)
+    for (final variant in variants.take(2)) {
+      final better = await _fetchFromBetterLyrics(variant);
+      if (better != null && better.synced != null && better.synced!.isNotEmpty) {
+        return better;
+      }
+    }
+
+    // 3. Priority 3: LRCLIB (Open community synced LRC)
     for (final variant in variants.take(3)) {
       final lrclib = await _fetchFromLrclib(variant);
       if (lrclib != null) return lrclib;
     }
 
+    // 4. Priority 4: Plain-text scrapers (un-synced fallback)
     for (final variant in variants.take(2)) {
-      // Start every scraper at once, then consume in priority order so the
-      // worst case is one timeout instead of the sum of all of them.
       final pending = <Future<Lyrics?>>[
         _fetchFromLyricsOvh(variant),
         _fetchFromParolesNet(variant),
@@ -117,6 +134,131 @@ class LyricsManager {
       }
     }
     return null;
+  }
+
+  // ------------------------------------------------------------- YouLyPlus
+
+  Future<Lyrics?> _fetchFromYouLyPlus(TrackInfo track) async {
+    const mirrors = [
+      'lyricsplus.prjktla.my.id',
+      'lyricsplus.binimum.org',
+    ];
+
+    for (final host in mirrors) {
+      try {
+        final queryParams = <String, String>{
+          'title': track.title,
+          'artist': track.artist,
+        };
+        if (track.album != null && track.album!.trim().isNotEmpty) {
+          queryParams['album'] = track.album!;
+        }
+        if (track.duration != null && track.duration!.inSeconds > 0) {
+          queryParams['duration'] = track.duration!.inSeconds.toString();
+        }
+
+        final uri = Uri.https(host, '/v2/lyrics/get', queryParams);
+        final response = await _get(uri);
+        if (response.statusCode != 200) continue;
+
+        final body = utf8.decode(response.bodyBytes, allowMalformed: true);
+        if (body.trim().isEmpty) continue;
+
+        // Check if raw TTML was returned directly
+        if (body.contains('<tt') || body.contains('<p')) {
+          final lines = parseTtml(body);
+          if (lines.isNotEmpty) {
+            return Lyrics(
+              source: 'YouLy+',
+              plain: lines.map((l) => l.text).join('\n'),
+              synced: lines,
+            );
+          }
+        }
+
+        final json = jsonDecode(body);
+        if (json is Map<String, dynamic>) {
+          // If JSON contains TTML string field
+          if (json['ttml'] is String &&
+              (json['ttml'] as String).trim().isNotEmpty) {
+            final lines = parseTtml(json['ttml'] as String);
+            if (lines.isNotEmpty) {
+              return Lyrics(
+                source: 'YouLy+',
+                plain: lines.map((l) => l.text).join('\n'),
+                synced: lines,
+              );
+            }
+          }
+
+          // If JSON contains structured lyrics array
+          if (json['lyrics'] is List) {
+            final rawLyrics = json['lyrics'] as List;
+            final lines = <LyricLine>[];
+            for (final item in rawLyrics) {
+              if (item is Map) {
+                final timeMs =
+                    item['time'] is num ? (item['time'] as num).toInt() : 0;
+                final text = (item['text'] ?? '').toString().trim();
+                if (text.isNotEmpty) {
+                  lines.add(LyricLine(Duration(milliseconds: timeMs), text));
+                }
+              }
+            }
+            if (lines.isNotEmpty) {
+              return Lyrics(
+                source: 'YouLy+',
+                plain: lines.map((l) => l.text).join('\n'),
+                synced: lines,
+              );
+            }
+          }
+        }
+      } catch (e, st) {
+        _logError('YouLy+ lookup failed on $host', e, st);
+      }
+    }
+    return null;
+  }
+
+  // ----------------------------------------------------------- BetterLyrics
+
+  Future<Lyrics?> _fetchFromBetterLyrics(TrackInfo track) async {
+    try {
+      final queryParams = <String, String>{
+        's': track.title,
+        'a': track.artist,
+      };
+      if (track.album != null && track.album!.trim().isNotEmpty) {
+        queryParams['al'] = track.album!;
+      }
+      if (track.duration != null && track.duration!.inSeconds > 0) {
+        queryParams['d'] = track.duration!.inSeconds.toString();
+      }
+
+      final uri = Uri.https('api.betterlyrics.org', '/getLyrics', queryParams);
+      final response = await _get(uri);
+      if (response.statusCode != 200) return null;
+
+      final body = utf8.decode(response.bodyBytes, allowMalformed: true);
+      final json = jsonDecode(body);
+      if (json is! Map<String, dynamic>) return null;
+
+      final ttmlRaw = json['ttml'];
+      if (ttmlRaw is! String || ttmlRaw.trim().isEmpty) return null;
+
+      final lines = parseTtml(ttmlRaw);
+      if (lines.isEmpty) return null;
+
+      return Lyrics(
+        source: 'BetterLyrics',
+        plain: lines.map((l) => l.text).join('\n'),
+        synced: lines,
+      );
+    } catch (e, st) {
+      _logError('BetterLyrics lookup failed', e, st);
+      return null;
+    }
   }
 
   // ---------------------------------------------------------------- LRCLIB

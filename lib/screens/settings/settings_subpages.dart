@@ -32,10 +32,15 @@ import 'package:musify/utilities/language_utils.dart';
 import 'package:musify/widgets/mini_player_bottom_space.dart';
 
 Widget buildGlassBackButton(BuildContext context) {
+  final isDark = Theme.of(context).brightness == Brightness.dark;
   return Padding(
     padding: const EdgeInsets.all(6.0),
     child: GlassIconButton(
-      icon: const Icon(CupertinoIcons.chevron_back, color: Colors.white, size: 20),
+      icon: Icon(
+        CupertinoIcons.chevron_back,
+        color: isDark ? Colors.white : Colors.black87,
+        size: 20,
+      ),
       onPressed: () => Navigator.of(context).pop(),
     ),
   );
@@ -191,52 +196,189 @@ class AppearanceSettingsPage extends StatefulWidget {
 class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final titleColor = isDark ? Colors.white : const Color(0xFF1C1C1E);
+    final subtitleColor = isDark ? Colors.white70 : const Color(0xFF636366);
+
     return GlassScaffold(
       contentAwareBrightness: true,
       appBar: GlassAppBar(
         leading: buildGlassBackButton(context),
-        title: const Text('Appearance & Optics', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+          'Liquid Glass',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: titleColor,
+          ),
+        ),
       ),
       body: ListView(
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
         children: [
-          // LIVE INTERACTIVE GLASS PREVIEW
+          // 1. LIVE ARCHITECTURAL WALLPAPER PREVIEW CARD
           ValueListenableBuilder<GlassThemeData>(
             valueListenable: liquidGlassThemeNotifier,
             builder: (context, theme, _) {
               return Container(
-                height: 120,
+                height: 220,
                 margin: const EdgeInsets.only(bottom: 20),
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(28),
                   gradient: const LinearGradient(
-                    colors: [Color(0xFFE0284F), Color(0xFF6B11FF), Color(0xFF007AFF)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+                    colors: [
+                      Color(0xFF2C3E50),
+                      Color(0xFF1A1A2E),
+                      Color(0xFF0F0C29),
+                    ],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
                   ),
                 ),
-                child: Center(
-                  child: GlassContainer.card(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(CupertinoIcons.sparkles, color: Colors.white, size: 22),
-                        const SizedBox(width: 10),
-                        Text(
-                          'Live Optics: ${liquidGlassBlurSetting.value.toInt()}px blur',
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(28),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      // Architectural background texture
+                      Positioned.fill(
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: RadialGradient(
+                              center: const Alignment(0.0, -0.4),
+                              radius: 1.2,
+                              colors: [
+                                Colors.blueGrey.shade700,
+                                const Color(0xFF141727),
+                                Colors.black,
+                              ],
+                            ),
+                          ),
                         ),
-                      ],
-                    ),
+                      ),
+                      // Text behind glass to demonstrate real refraction
+                      Positioned(
+                        bottom: 34,
+                        left: 20,
+                        right: 20,
+                        child: Text(
+                          'Aurora Borealis',
+                          style: TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.5,
+                            color: Colors.white.withValues(alpha: 0.8),
+                          ),
+                        ),
+                      ),
+                      // Floating liquid glass search bar pill
+                      Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: GlassButton.custom(
+                            onTap: () {},
+                            height: 48,
+                            width: double.infinity,
+                            shape: const LiquidRoundedRectangle(
+                              borderRadius: 24,
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  CupertinoIcons.search,
+                                  color: Colors.white.withValues(alpha: 0.85),
+                                  size: 18,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Songs, albums or artists',
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.85),
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               );
             },
           ),
 
-          // LIQUID GLASS ENGINE CONTROLS
+          // 2. DEDICATED OPTICS SLIDER (Clear <-> Tinted)
+          ValueListenableBuilder<double>(
+            valueListenable: liquidGlassDockOpacitySetting,
+            builder: (context, tintVal, _) {
+              return Container(
+                margin: const EdgeInsets.only(bottom: 24),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? const Color(0xFF1C1C1E)
+                      : const Color(0xFFE5E5EA),
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          CupertinoIcons.drop,
+                          size: 22,
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: GlassSlider(
+                              value: tintVal.clamp(0.05, 0.50),
+                              min: 0.05,
+                              max: 0.50,
+                              onChanged: (newVal) {
+                                liquidGlassDockOpacitySetting.value = newVal;
+                                addOrUpdateData(
+                                  'settings',
+                                  'liquidGlassDockOpacity',
+                                  newVal,
+                                );
+                                updateLiquidGlassTheme();
+                              },
+                            ),
+                          ),
+                        ),
+                        Icon(
+                          CupertinoIcons.drop_fill,
+                          size: 22,
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Clear is more transparent and tinted increases opacity, adding contrast to content and controls',
+                      style: TextStyle(
+                        color: isDark ? Colors.white60 : Colors.black54,
+                        fontSize: 13,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+
+          // 3. LIQUID GLASS ENGINE CONTROLS
           GlassGroupedSection(
             surfaceStyle: GlassSurfaceStyle.solid,
             header: const Text('LIQUID GLASS & GRAPHICS PIPELINE'),
@@ -246,21 +388,40 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
                 valueListenable: liquidGlassQualitySetting,
                 builder: (_, currentQuality, __) {
                   return GlassListTile(
-                    leading: const Icon(CupertinoIcons.wand_rays, color: Color(0xFFAF52DE)),
-                    title: const Text('Shader Quality Tier', style: TextStyle(color: Colors.white)),
+                    leading: const Icon(
+                      CupertinoIcons.wand_rays,
+                      color: Color(0xFFAF52DE),
+                    ),
+                    title: Text(
+                      'Shader Quality Tier',
+                      style: TextStyle(color: titleColor),
+                    ),
                     subtitle: Padding(
                       padding: const EdgeInsets.only(top: 8.0),
                       child: CupertinoSlidingSegmentedControl<String>(
                         groupValue: currentQuality,
-                        children: const {
-                          'premium': Text('Premium', style: TextStyle(color: Colors.white, fontSize: 12)),
-                          'standard': Text('Standard', style: TextStyle(color: Colors.white, fontSize: 12)),
-                          'minimal': Text('Minimal', style: TextStyle(color: Colors.white, fontSize: 12)),
+                        children: {
+                          'premium': Text(
+                            'Premium',
+                            style: TextStyle(color: titleColor, fontSize: 12),
+                          ),
+                          'standard': Text(
+                            'Standard',
+                            style: TextStyle(color: titleColor, fontSize: 12),
+                          ),
+                          'minimal': Text(
+                            'Minimal',
+                            style: TextStyle(color: titleColor, fontSize: 12),
+                          ),
                         },
                         onValueChanged: (val) {
                           if (val != null) {
                             liquidGlassQualitySetting.value = val;
-                            addOrUpdateData('settings', 'liquidGlassQuality', val);
+                            addOrUpdateData(
+                              'settings',
+                              'liquidGlassQuality',
+                              val,
+                            );
                             updateLiquidGlassTheme();
                           }
                         },
@@ -275,12 +436,25 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
                 valueListenable: liquidGlassBlurSetting,
                 builder: (_, blurVal, __) {
                   return GlassListTile(
-                    leading: const Icon(CupertinoIcons.slider_horizontal_3, color: Color(0xFF007AFF)),
+                    leading: const Icon(
+                      CupertinoIcons.slider_horizontal_3,
+                      color: Color(0xFF007AFF),
+                    ),
                     title: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Blur & Refraction', style: TextStyle(color: Colors.white)),
-                        Text('${blurVal.toInt()}px', style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold)),
+                        Text(
+                          'Blur & Refraction',
+                          style: TextStyle(color: titleColor),
+                        ),
+                        Text(
+                          '${blurVal.toInt()}px',
+                          style: TextStyle(
+                            color: subtitleColor,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ],
                     ),
                     subtitle: Padding(
@@ -291,7 +465,11 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
                         max: 40.0,
                         onChanged: (newVal) {
                           liquidGlassBlurSetting.value = newVal;
-                          addOrUpdateData('settings', 'liquidGlassBlur', newVal);
+                          addOrUpdateData(
+                            'settings',
+                            'liquidGlassBlur',
+                            newVal,
+                          );
                           updateLiquidGlassTheme();
                         },
                       ),
@@ -305,12 +483,25 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
                 valueListenable: liquidGlassThicknessSetting,
                 builder: (_, thickVal, __) {
                   return GlassListTile(
-                    leading: const Icon(CupertinoIcons.cube, color: Color(0xFFFF9500)),
+                    leading: const Icon(
+                      CupertinoIcons.cube,
+                      color: Color(0xFFFF9500),
+                    ),
                     title: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Glass Thickness', style: TextStyle(color: Colors.white)),
-                        Text('${thickVal.toInt()}', style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold)),
+                        Text(
+                          'Glass Thickness',
+                          style: TextStyle(color: titleColor),
+                        ),
+                        Text(
+                          '${thickVal.toInt()}',
+                          style: TextStyle(
+                            color: subtitleColor,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ],
                     ),
                     subtitle: Padding(
@@ -321,37 +512,12 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
                         max: 50.0,
                         onChanged: (newVal) {
                           liquidGlassThicknessSetting.value = newVal;
-                          addOrUpdateData('settings', 'liquidGlassThickness', newVal);
+                          addOrUpdateData(
+                            'settings',
+                            'liquidGlassThickness',
+                            newVal,
+                          );
                           updateLiquidGlassTheme();
-                        },
-                      ),
-                    ),
-                  );
-                },
-              ),
-
-              // DOCK OPACITY SLIDER
-              ValueListenableBuilder<double>(
-                valueListenable: liquidGlassDockOpacitySetting,
-                builder: (_, dockOpacity, __) {
-                  return GlassListTile(
-                    leading: const Icon(CupertinoIcons.rectangle_dock, color: Color(0xFF30D158)),
-                    title: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('Bottom Dock Tint', style: TextStyle(color: Colors.white)),
-                        Text('${(dockOpacity * 100).toInt()}%', style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                    subtitle: Padding(
-                      padding: const EdgeInsets.only(top: 6.0),
-                      child: GlassSlider(
-                        value: dockOpacity,
-                        min: 0.05,
-                        max: 0.50,
-                        onChanged: (newVal) {
-                          liquidGlassDockOpacitySetting.value = newVal;
-                          addOrUpdateData('settings', 'liquidGlassDockOpacity', newVal);
                         },
                       ),
                     ),
@@ -363,7 +529,7 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
 
           const SizedBox(height: 20),
 
-          // THEME & DISPLAY
+          // 4. THEME & DISPLAY
           GlassGroupedSection(
             surfaceStyle: GlassSurfaceStyle.solid,
             header: const Text('THEME & DISPLAY'),
@@ -372,9 +538,18 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
                 valueListenable: usePureBlackColor,
                 builder: (_, pureBlack, __) {
                   return GlassListTile(
-                    leading: const Icon(CupertinoIcons.moon_fill, color: Colors.white),
-                    title: const Text('OLED Pure Black', style: TextStyle(color: Colors.white)),
-                    subtitle: const Text('Deep OLED true black backdrop', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                    leading: Icon(
+                      CupertinoIcons.moon_fill,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                    title: Text(
+                      'OLED Pure Black',
+                      style: TextStyle(color: titleColor),
+                    ),
+                    subtitle: Text(
+                      'Deep OLED true black backdrop',
+                      style: TextStyle(color: subtitleColor, fontSize: 12),
+                    ),
                     trailing: GlassSwitch(
                       value: pureBlack,
                       onChanged: (val) {
@@ -402,151 +577,240 @@ class PlaybackSettingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final titleColor = isDark ? Colors.white : const Color(0xFF1C1C1E);
+    final subtitleColor = isDark ? Colors.white70 : const Color(0xFF636366);
+
     return GlassScaffold(
       contentAwareBrightness: true,
       appBar: GlassAppBar(
         leading: buildGlassBackButton(context),
-        title: const Text('Playback', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+          'Playback',
+          style: TextStyle(fontWeight: FontWeight.bold, color: titleColor),
+        ),
       ),
-      body: ListView(
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-        children: [
-          GlassGroupedSection(
-            surfaceStyle: GlassSurfaceStyle.solid,
-            header: const Text('AUDIO QUALITY'),
-            children: [
-              ValueListenableBuilder<String>(
-                valueListenable: audioQualitySetting,
-                builder: (_, currentQuality, __) {
-                  return GlassListTile(
-                    leading: const Icon(CupertinoIcons.waveform, color: Color(0xFF007AFF)),
-                    title: const Text('Streaming Quality', style: TextStyle(color: Colors.white)),
-                    subtitle: Padding(
-                      padding: const EdgeInsets.only(top: 8.0),
-                      child: CupertinoSlidingSegmentedControl<String>(
-                        groupValue: currentQuality,
-                        children: const {
-                          'low': Text('Low (96k)', style: TextStyle(color: Colors.white, fontSize: 12)),
-                          'medium': Text('Med (160k)', style: TextStyle(color: Colors.white, fontSize: 12)),
-                          'high': Text('High (320k)', style: TextStyle(color: Colors.white, fontSize: 12)),
-                        },
-                        onValueChanged: (val) {
-                          if (val != null) {
-                            audioQualitySetting.value = val;
-                            addOrUpdateData('settings', 'audioQuality', val);
-                          }
+      body: SafeArea(
+        top: false,
+        child: ListView(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+          children: [
+            GlassGroupedSection(
+              surfaceStyle: GlassSurfaceStyle.solid,
+              header: const Text('AUDIO QUALITY'),
+              children: [
+                ValueListenableBuilder<String>(
+                  valueListenable: audioQualitySetting,
+                  builder: (_, currentQuality, __) {
+                    return GlassListTile(
+                      leading: const Icon(
+                        CupertinoIcons.waveform,
+                        color: Color(0xFF007AFF),
+                      ),
+                      title: Text(
+                        'Streaming Quality',
+                        style: TextStyle(color: titleColor),
+                      ),
+                      subtitle: Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: CupertinoSlidingSegmentedControl<String>(
+                          groupValue: currentQuality,
+                          children: {
+                            'low': Text(
+                              'Low (96k)',
+                              style: TextStyle(color: titleColor, fontSize: 12),
+                            ),
+                            'medium': Text(
+                              'Med (160k)',
+                              style: TextStyle(color: titleColor, fontSize: 12),
+                            ),
+                            'high': Text(
+                              'High (320k)',
+                              style: TextStyle(color: titleColor, fontSize: 12),
+                            ),
+                          },
+                          onValueChanged: (val) {
+                            if (val != null) {
+                              audioQualitySetting.value = val;
+                              addOrUpdateData('settings', 'audioQuality', val);
+                            }
+                          },
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                GlassListTile(
+                  leading: const Icon(
+                    CupertinoIcons.slider_horizontal_below_rectangle,
+                    color: Color(0xFF30D158),
+                  ),
+                  title: Text(
+                    'Hardware Equalizer',
+                    style: TextStyle(color: titleColor),
+                  ),
+                  subtitle: Text(
+                    'Bass boost, reverb & 10-band equalization',
+                    style: TextStyle(color: subtitleColor, fontSize: 12),
+                  ),
+                  trailing: GlassListTile.chevron,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      CupertinoPageRoute(
+                        builder: (_) => const EqualizerPage(),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            GlassGroupedSection(
+              surfaceStyle: GlassSurfaceStyle.solid,
+              header: const Text('BACKGROUND & QUEUE BEHAVIOR'),
+              children: [
+                // Feature 1: Keep Playing after App Dismissed from Recent
+                ValueListenableBuilder<bool>(
+                  valueListenable: keepPlayingAfterDismiss,
+                  builder: (_, keepPlaying, __) {
+                    return GlassListTile(
+                      leading: const Icon(
+                        CupertinoIcons.play_arrow_solid,
+                        color: Color(0xFF34C759),
+                      ),
+                      title: Text(
+                        'Play After App Dismissed',
+                        style: TextStyle(color: titleColor),
+                      ),
+                      subtitle: Text(
+                        'Keep playback alive when swiped away from recent apps',
+                        style: TextStyle(color: subtitleColor, fontSize: 12),
+                      ),
+                      trailing: GlassSwitch(
+                        value: keepPlaying,
+                        onChanged: (val) {
+                          updateKeepPlayingAfterDismiss(val);
                         },
                       ),
-                    ),
-                  );
-                },
-              ),
-              GlassListTile(
-                leading: const Icon(CupertinoIcons.slider_horizontal_below_rectangle, color: Color(0xFF30D158)),
-                title: const Text('Hardware Equalizer', style: TextStyle(color: Colors.white)),
-                subtitle: const Text('Bass boost, reverb & 10-band equalization', style: TextStyle(color: Colors.white54, fontSize: 12)),
-                trailing: GlassListTile.chevron,
-                onTap: () {
-                  Navigator.push(context, CupertinoPageRoute(builder: (_) => const EqualizerPage()));
-                },
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          GlassGroupedSection(
-            surfaceStyle: GlassSurfaceStyle.solid,
-            header: const Text('BACKGROUND & QUEUE BEHAVIOR'),
-            children: [
-              // Feature 1: Keep Playing after App Dismissed from Recent
-              ValueListenableBuilder<bool>(
-                valueListenable: keepPlayingAfterDismiss,
-                builder: (_, keepPlaying, __) {
-                  return GlassListTile(
-                    leading: const Icon(CupertinoIcons.play_arrow_solid, color: Color(0xFF34C759)),
-                    title: const Text('Play After App Dismissed', style: TextStyle(color: Colors.white)),
-                    subtitle: const Text('Keep playback alive when swiped away from recent apps', style: TextStyle(color: Colors.white54, fontSize: 12)),
-                    trailing: GlassSwitch(
-                      value: keepPlaying,
-                      onChanged: (val) {
-                        updateKeepPlayingAfterDismiss(val);
-                      },
-                    ),
-                  );
-                },
-              ),
+                    );
+                  },
+                ),
 
-              // Feature 2: Search Playback Queue Mode
-              ValueListenableBuilder<String>(
-                valueListenable: searchQueueMode,
-                builder: (_, mode, __) {
-                  return GlassListTile(
-                    leading: const Icon(CupertinoIcons.list_number, color: Color(0xFFFF2D55)),
-                    title: const Text('Search Playback Queue', style: TextStyle(color: Colors.white)),
-                    subtitle: Padding(
-                      padding: const EdgeInsets.only(top: 8.0),
-                      child: CupertinoSlidingSegmentedControl<String>(
-                        groupValue: mode,
-                        children: const {
-                          'search_results': Text('Search List', style: TextStyle(color: Colors.white, fontSize: 12)),
-                          'related_autoplay': Text('Related Mix', style: TextStyle(color: Colors.white, fontSize: 12)),
-                          'ask_every_time': Text('Ask Me', style: TextStyle(color: Colors.white, fontSize: 12)),
-                        },
-                        onValueChanged: (val) {
-                          if (val != null) {
-                            updateSearchQueueMode(val);
-                          }
+                // Feature 2: Search Playback Queue Mode
+                ValueListenableBuilder<String>(
+                  valueListenable: searchQueueMode,
+                  builder: (_, mode, __) {
+                    return GlassListTile(
+                      leading: const Icon(
+                        CupertinoIcons.list_number,
+                        color: Color(0xFFFF2D55),
+                      ),
+                      title: Text(
+                        'Search Playback Queue',
+                        style: TextStyle(color: titleColor),
+                      ),
+                      subtitle: Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: CupertinoSlidingSegmentedControl<String>(
+                          groupValue: mode,
+                          children: {
+                            'search_results': Text(
+                              'Search List',
+                              style: TextStyle(color: titleColor, fontSize: 12),
+                            ),
+                            'related_autoplay': Text(
+                              'Related Mix',
+                              style: TextStyle(color: titleColor, fontSize: 12),
+                            ),
+                            'ask_every_time': Text(
+                              'Ask Me',
+                              style: TextStyle(color: titleColor, fontSize: 12),
+                            ),
+                          },
+                          onValueChanged: (val) {
+                            if (val != null) {
+                              updateSearchQueueMode(val);
+                            }
+                          },
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            GlassGroupedSection(
+              surfaceStyle: GlassSurfaceStyle.solid,
+              header: const Text('SEAMLESS TRANSITIONS'),
+              children: [
+                ValueListenableBuilder<bool>(
+                  valueListenable: gaplessPlaybackEnabled,
+                  builder: (_, gapless, __) {
+                    return GlassListTile(
+                      leading: const Icon(
+                        CupertinoIcons.play_circle_fill,
+                        color: Color(0xFFFF9500),
+                      ),
+                      title: Text(
+                        'Gapless Playback',
+                        style: TextStyle(color: titleColor),
+                      ),
+                      subtitle: Text(
+                        'Pre-buffer next track for zero gap',
+                        style: TextStyle(color: subtitleColor, fontSize: 12),
+                      ),
+                      trailing: GlassSwitch(
+                        value: gapless,
+                        onChanged: (val) {
+                          gaplessPlaybackEnabled.value = val;
+                          addOrUpdateData(
+                            'settings',
+                            'gaplessPlaybackEnabled',
+                            val,
+                          );
                         },
                       ),
-                    ),
-                  );
-                },
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          GlassGroupedSection(
-            surfaceStyle: GlassSurfaceStyle.solid,
-            header: const Text('SEAMLESS TRANSITIONS'),
-            children: [
-              ValueListenableBuilder<bool>(
-                valueListenable: gaplessPlaybackEnabled,
-                builder: (_, gapless, __) {
-                  return GlassListTile(
-                    leading: const Icon(CupertinoIcons.play_circle_fill, color: Color(0xFFFF9500)),
-                    title: const Text('Gapless Playback', style: TextStyle(color: Colors.white)),
-                    subtitle: const Text('Pre-buffer next track for zero gap', style: TextStyle(color: Colors.white54, fontSize: 12)),
-                    trailing: GlassSwitch(
-                      value: gapless,
-                      onChanged: (val) {
-                        gaplessPlaybackEnabled.value = val;
-                        addOrUpdateData('settings', 'gaplessPlaybackEnabled', val);
-                      },
-                    ),
-                  );
-                },
-              ),
-              ValueListenableBuilder<bool>(
-                valueListenable: playNextSongAutomatically,
-                builder: (_, autoPlay, __) {
-                  return GlassListTile(
-                    leading: const Icon(CupertinoIcons.infinite, color: Color(0xFFAF52DE)),
-                    title: const Text('Infinite Autoplay', style: TextStyle(color: Colors.white)),
-                    subtitle: const Text('Continue similar music when queue ends', style: TextStyle(color: Colors.white54, fontSize: 12)),
-                    trailing: GlassSwitch(
-                      value: autoPlay,
-                      onChanged: (val) {
-                        playNextSongAutomatically.value = val;
-                        addOrUpdateData('settings', 'playNextSongAutomatically', val);
-                      },
-                    ),
-                  );
-                },
-              ),
-            ],
-          ),
-          const MiniPlayerBottomSpace(),
-        ],
+                    );
+                  },
+                ),
+                ValueListenableBuilder<bool>(
+                  valueListenable: playNextSongAutomatically,
+                  builder: (_, autoPlay, __) {
+                    return GlassListTile(
+                      leading: const Icon(
+                        CupertinoIcons.infinite,
+                        color: Color(0xFFAF52DE),
+                      ),
+                      title: Text(
+                        'Infinite Autoplay',
+                        style: TextStyle(color: titleColor),
+                      ),
+                      subtitle: Text(
+                        'Continue similar music when queue ends',
+                        style: TextStyle(color: subtitleColor, fontSize: 12),
+                      ),
+                      trailing: GlassSwitch(
+                        value: autoPlay,
+                        onChanged: (val) {
+                          playNextSongAutomatically.value = val;
+                          addOrUpdateData(
+                            'settings',
+                            'playNextSongAutomatically',
+                            val,
+                          );
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+            const MiniPlayerBottomSpace(),
+          ],
+        ),
       ),
     );
   }

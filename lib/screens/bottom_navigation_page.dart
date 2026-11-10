@@ -152,11 +152,15 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
                           final isSearching = widget.child.currentIndex == 1;
 
                           return GlassTabBar.searchable(
-                            isSearchActive: isSearching,
+                            isSearchActive: _isMiniMode || isSearching,
                             selectedIndex:
                                 _getCurrentIndex(items, isOfflineMode),
-                            onTabSelected: (index) =>
-                                _onTabTapped(index, items),
+                            onTabSelected: (index) {
+                              if (_isMiniMode) {
+                                setState(() => _isMiniMode = false);
+                              }
+                              _onTabTapped(index, items);
+                            },
                             tabs: items
                                 .map(
                                   (item) => GlassTab(
@@ -174,7 +178,7 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
                             bottomAccessory: isMiniPlayerVisible
                                 ? const MiniPlayer()
                                 : null,
-                            bottomAccessoryHeight: 64.0,
+                            bottomAccessoryHeight: 56.0,
                             bottomAccessoryEnabled: isMiniPlayerVisible,
                             bottomAccessoryPlacement: _isMiniMode
                                 ? GlassTabBarAccessoryPlacement.inline
@@ -195,6 +199,9 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
                                 if (active && !isOfflineMode) {
                                   closeCurrentBottomSheet();
                                   widget.child.goBranch(1);
+                                } else if (!active &&
+                                    widget.child.currentIndex == 1) {
+                                  widget.child.goBranch(0);
                                 }
                               },
                               searchIconColor: CupertinoColors.white

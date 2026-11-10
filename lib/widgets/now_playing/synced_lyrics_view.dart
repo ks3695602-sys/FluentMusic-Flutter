@@ -51,6 +51,8 @@ class _SyncedLyricsViewState extends State<SyncedLyricsView> {
   @override
   void initState() {
     super.initState();
+    _offset = Duration(milliseconds: lyricsOffsetMs.value);
+    lyricsOffsetMs.addListener(_onOffsetChanged);
     _rebuildKeys();
     _positionSubscription = audioHandler.positionDataStream.listen((data) {
       if (!mounted) return;
@@ -73,6 +75,13 @@ class _SyncedLyricsViewState extends State<SyncedLyricsView> {
     });
   }
 
+  void _onOffsetChanged() {
+    if (!mounted) return;
+    setState(() {
+      _offset = Duration(milliseconds: lyricsOffsetMs.value);
+    });
+  }
+
   @override
   void didUpdateWidget(covariant SyncedLyricsView oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -85,6 +94,7 @@ class _SyncedLyricsViewState extends State<SyncedLyricsView> {
 
   @override
   void dispose() {
+    lyricsOffsetMs.removeListener(_onOffsetChanged);
     _positionSubscription?.cancel();
     _scrollController.dispose();
     super.dispose();
@@ -221,8 +231,10 @@ class _AppleKaraokeLine extends StatelessWidget {
       );
     }
 
+    final activeWords = line.hasWordSync ? line.words : line.interpolatedWords;
+
     // Active line with word-level synchronization
-    if (line.hasWordSync && wordByWordLyricsEnabled.value) {
+    if (activeWords.isNotEmpty && wordByWordLyricsEnabled.value) {
       return GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
@@ -232,7 +244,7 @@ class _AppleKaraokeLine extends StatelessWidget {
             crossAxisAlignment: WrapCrossAlignment.center,
             spacing: 6,
             runSpacing: 4,
-            children: line.words.map((word) {
+            children: activeWords.map((word) {
               final isPassed = currentPosition >= word.end;
               final isCurrent =
                   currentPosition >= word.start && currentPosition < word.end;
@@ -257,8 +269,9 @@ class _AppleKaraokeLine extends StatelessWidget {
                     shadows: isCurrent
                         ? [
                             BoxShadow(
-                              color: CupertinoColors.white.withValues(alpha: 0.6),
-                              blurRadius: 16,
+                              color:
+                                  CupertinoColors.white.withValues(alpha: 0.7),
+                              blurRadius: 18,
                               spreadRadius: 2,
                             ),
                           ]

@@ -113,10 +113,16 @@ class AboutPage extends StatelessWidget {
                     ClipRRect(
                       borderRadius: BorderRadius.circular(14),
                       child: Image.network(
-                        'https://avatars.githubusercontent.com/u/79704324?v=4',
+                        'https://github.com/ks3695602-sys.png',
                         width: 52,
                         height: 52,
                         fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Image.asset(
+                          'assets/icons/ic_launcher.png',
+                          width: 52,
+                          height: 52,
+                          fit: BoxFit.cover,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 14),

@@ -1824,6 +1824,11 @@ class MusifyAudioHandler extends BaseAudioHandler implements AndroidAutoHost {
     _updatePlaybackState();
   }
 
+  Future<void> setPitch(double pitch) async {
+    await audioPlayer.setPitch(pitch);
+    _updatePlaybackState();
+  }
+
   @override
   Future<void> seek(Duration position) async {
     try {

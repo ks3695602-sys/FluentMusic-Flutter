@@ -290,10 +290,49 @@ class _MusifyState extends State<Musify> with WidgetsBindingObserver {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await LiquidGlassWidgets.initialize(
-    warmUpMode: GlassWarmUpMode.always,
-  );
-  await initialisation();
+  try {
+    await LiquidGlassWidgets.initialize(
+      warmUpMode: GlassWarmUpMode.always,
+    ).timeout(const Duration(seconds: 3));
+  } catch (e) {
+    debugPrint('LiquidGlassWidgets initialize warning: $e');
+  }
+
+  try {
+    await initialisation().timeout(
+      const Duration(seconds: 4),
+      onTimeout: () {
+        debugPrint(
+          'FluentMusic initialisation() timed out after 4 seconds; launching fallback UI.',
+        );
+      },
+    );
+  } catch (e, stack) {
+    debugPrint('FluentMusic initialisation() exception: $e\n$stack');
+  }
+
+  // Ensure audioHandler is initialized even if initialization timed out or failed
+  try {
+    audioHandler;
+  } catch (_) {
+    try {
+      audioHandler = MusifyAudioHandler();
+    } catch (e) {
+      debugPrint('Fallback audioHandler initialization error: $e');
+    }
+  }
+
+  // Ensure applicationDirPath is initialized even if initialization timed out
+  try {
+    applicationDirPath;
+  } catch (_) {
+    try {
+      applicationDirPath = (await getApplicationDocumentsDirectory()).path;
+      await FilePaths.ensureDirectoriesExist();
+    } catch (e) {
+      debugPrint('Fallback applicationDirPath initialization error: $e');
+    }
+  }
 
   runApp(
     ValueListenableBuilder<GlassThemeData>(

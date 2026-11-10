@@ -38,7 +38,7 @@ import 'package:musify/utilities/url_launcher.dart';
 import 'package:musify/widgets/auto_format_text.dart';
 
 const String checkUrl =
-    'https://raw.githubusercontent.com/gokadzev/Musify/update/check.json';
+    'https://raw.githubusercontent.com/ks3695602-sys/FluentMusic-Flutter/main/check.json';
 const String releasesUrl =
     'https://api.github.com/repos/ks3695602-sys/FluentMusic-Flutter/releases/latest';
 const String downloadUrlKey = 'url';

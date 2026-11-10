@@ -29,7 +29,9 @@ import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' hide ColorScheme
 import 'package:musify/main.dart';
 import 'package:flutter/services.dart';
 import 'package:musify/services/common_services.dart';
+import 'package:musify/services/data_manager.dart';
 import 'package:musify/services/playlist_download_service.dart';
+import 'package:musify/services/settings_manager.dart';
 import 'package:musify/utilities/flutter_toast.dart';
 import 'package:musify/utilities/mediaitem.dart';
 import 'package:musify/utilities/playlist_dialogs.dart';
@@ -113,36 +115,61 @@ class _NowPlayingPageState extends State<NowPlayingPage> {
                 ),
               ),
             ),
-            GlassScaffold(
-              contentAwareBrightness: true,
-              backgroundColor: Colors.transparent,
-              appBar: GlassAppBar(
-                leading: GlassIconButton(
-                  icon: const Icon(CupertinoIcons.chevron_down),
-                  onPressed: () => Navigator.pop(context),
-                ),
-                title: Text(
-                  metadata.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              body: isLargeScreen
-                  ? _DesktopLayout(
-                      metadata: metadata,
-                      size: size,
-                      adjustedIconSize: baseIconSize,
-                      adjustedMiniIconSize: miniIconSize,
-                      lyricsController: _lyricsController,
-                    )
-                  : _MobileLayout(
-                      metadata: metadata,
-                      size: size,
-                      adjustedIconSize: baseIconSize,
-                      adjustedMiniIconSize: miniIconSize,
-                      isLargeScreen: isLargeScreen,
-                      lyricsController: _lyricsController,
-                    ),
+            ValueListenableBuilder<bool>(
+              valueListenable: _lyricsController.isFlipped,
+              builder: (context, isLyricsMode, _) {
+                return GlassScaffold(
+                  contentAwareBrightness: true,
+                  backgroundColor: Colors.transparent,
+                  appBar: isLyricsMode
+                      ? null
+                      : GlassAppBar(
+                          leading: GlassIconButton(
+                            icon: const Icon(CupertinoIcons.chevron_down),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                          title: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 36,
+                                height: 5,
+                                margin: const EdgeInsets.only(bottom: 6),
+                                decoration: BoxDecoration(
+                                  color: CupertinoColors.white.withValues(alpha: 0.35),
+                                  borderRadius: BorderRadius.circular(2.5),
+                                ),
+                              ),
+                              Text(
+                                metadata.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                  body: isLargeScreen
+                      ? _DesktopLayout(
+                          metadata: metadata,
+                          size: size,
+                          adjustedIconSize: baseIconSize,
+                          adjustedMiniIconSize: miniIconSize,
+                          lyricsController: _lyricsController,
+                        )
+                      : _MobileLayout(
+                          metadata: metadata,
+                          size: size,
+                          adjustedIconSize: baseIconSize,
+                          adjustedMiniIconSize: miniIconSize,
+                          isLargeScreen: isLargeScreen,
+                          lyricsController: _lyricsController,
+                        ),
+                );
+              },
             ),
           ],
         );
@@ -246,30 +273,53 @@ class _MobileLayout extends StatelessWidget {
       valueListenable: lyricsController.isFlipped,
       builder: (context, isLyricsMode, _) {
         if (isLyricsMode && !isLive) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Column(
-              children: [
-                // Image 3 Apple Karaoke Top Bar: 44x44 cover thumbnail + title/artist + star + more
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Row(
-                    children: [
-                      GestureDetector(
-                        onTap: lyricsController.flipcard,
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: SizedBox(
-                            width: 44,
-                            height: 44,
-                            child: SongArtworkWidget(
-                              metadata: metadata,
-                              size: 44,
-                              borderRadius: 10,
+          return SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                children: [
+                  // iOS Pull-Down Pill Grabber
+                  Center(
+                    child: GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Container(
+                        width: 36,
+                        height: 5,
+                        margin: const EdgeInsets.only(top: 6, bottom: 8),
+                        decoration: BoxDecoration(
+                          color: CupertinoColors.white.withValues(alpha: 0.35),
+                          borderRadius: BorderRadius.circular(2.5),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // Image 3 Apple Karaoke Top Bar: Dismiss down + 44x44 thumbnail + title/artist + star + more
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      children: [
+                        GlassIconButton(
+                          icon: const Icon(CupertinoIcons.chevron_down, size: 20, color: CupertinoColors.white),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: lyricsController.flipcard,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: SizedBox(
+                              width: 44,
+                              height: 44,
+                              child: SongArtworkWidget(
+                                metadata: metadata,
+                                size: 44,
+                                borderRadius: 10,
+                              ),
                             ),
                           ),
                         ),
-                      ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: GestureDetector(
@@ -327,6 +377,7 @@ class _MobileLayout extends StatelessWidget {
                 const SizedBox(height: 16),
               ],
             ),
+          ),
           );
         }
 
@@ -502,6 +553,138 @@ class _MobileLayout extends StatelessWidget {
                 Text('Sleep Timer'),
               ],
             ),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _showLyricsOffsetSheet(context);
+            },
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(CupertinoIcons.timer_badge_plus),
+                SizedBox(width: 8),
+                Text('Lyrics Timing Sync Offset'),
+              ],
+            ),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _showPlaybackSpeedSheet(context);
+            },
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(CupertinoIcons.speedometer),
+                SizedBox(width: 8),
+                Text('Playback Speed & Pitch'),
+              ],
+            ),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          isDefaultAction: true,
+          onPressed: () => Navigator.pop(ctx),
+          child: const Text('Cancel'),
+        ),
+      ),
+    );
+  }
+
+  void _showLyricsOffsetSheet(BuildContext context) {
+    showCupertinoModalPopup(
+      context: context,
+      builder: (ctx) => ValueListenableBuilder<int>(
+        valueListenable: lyricsOffsetMs,
+        builder: (context, offset, _) {
+          return CupertinoActionSheet(
+            title: const Text('Lyrics Timing Sync Offset', style: TextStyle(fontWeight: FontWeight.bold)),
+            message: Text(
+              'Current Offset: ms\n(Tap ±250ms to nudge lyrics timing)',
+            ),
+            actions: [
+              CupertinoActionSheetAction(
+                onPressed: () {
+                  final newOffset = offset - 250;
+                  lyricsOffsetMs.value = newOffset;
+                  addOrUpdateData('settings', 'lyricsOffsetMs', newOffset);
+                },
+                child: const Text('◀ -250 ms (Lyrics Appear Earlier)'),
+              ),
+              CupertinoActionSheetAction(
+                onPressed: () {
+                  final newOffset = offset + 250;
+                  lyricsOffsetMs.value = newOffset;
+                  addOrUpdateData('settings', 'lyricsOffsetMs', newOffset);
+                },
+                child: const Text('▶ +250 ms (Lyrics Appear Later)'),
+              ),
+              CupertinoActionSheetAction(
+                onPressed: () {
+                  lyricsOffsetMs.value = 0;
+                  addOrUpdateData('settings', 'lyricsOffsetMs', 0);
+                },
+                child: const Text('↺ Reset to Default (0 ms)'),
+              ),
+            ],
+            cancelButton: CupertinoActionSheetAction(
+              isDefaultAction: true,
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Done'),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _showPlaybackSpeedSheet(BuildContext context) {
+    showCupertinoModalPopup(
+      context: context,
+      builder: (ctx) => CupertinoActionSheet(
+        title: const Text('Playback Speed & Pitch', style: TextStyle(fontWeight: FontWeight.bold)),
+        message: const Text('Select speed and audio preset'),
+        actions: [
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(ctx);
+              audioHandler.setSpeed(1.0);
+              (audioHandler as dynamic).setPitch(1.0);
+            },
+            child: const Text('1.0x - Normal'),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(ctx);
+              audioHandler.setSpeed(1.25);
+              (audioHandler as dynamic).setPitch(1.0);
+            },
+            child: const Text('1.25x - Sped-Up'),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(ctx);
+              audioHandler.setSpeed(1.5);
+              (audioHandler as dynamic).setPitch(1.0);
+            },
+            child: const Text('1.5x - Fast'),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(ctx);
+              audioHandler.setSpeed(0.85);
+              (audioHandler as dynamic).setPitch(0.85);
+            },
+            child: const Text('0.85x - Slowed + Reverb Vibe'),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(ctx);
+              audioHandler.setSpeed(1.3);
+              (audioHandler as dynamic).setPitch(1.3);
+            },
+            child: const Text('1.3x - Nightcore Pitch'),
           ),
         ],
         cancelButton: CupertinoActionSheetAction(

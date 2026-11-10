@@ -17,6 +17,7 @@
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:musify/extensions/l10n.dart';
 
 /// Apple Music iOS 26 Playlist Action Trio: Frosted Shuffle + Solid White Play Pill + Frosted Add (+).
@@ -42,91 +43,61 @@ class PlaylistActionButtons extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           // 1. Frosted Shuffle Circle
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: CupertinoColors.white.withValues(alpha: 0.14),
-              border: Border.all(
-                color: CupertinoColors.white.withValues(alpha: 0.20),
-                width: 0.8,
-              ),
+          GlassIconButton(
+            icon: const Icon(
+              CupertinoIcons.shuffle,
+              color: CupertinoColors.white,
+              size: 20,
             ),
-            child: CupertinoButton(
-              padding: EdgeInsets.zero,
-              borderRadius: BorderRadius.circular(24),
-              onPressed: isLoading ? null : () => onShuffle(),
-              child: const Icon(
-                CupertinoIcons.shuffle,
-                color: CupertinoColors.white,
-                size: 20,
-              ),
-            ),
+            onPressed: isLoading ? null : () => onShuffle(),
           ),
 
-          const SizedBox(width: 14),
+          const SizedBox(width: 16),
 
           // 2. Solid White Play Pill (Centerpiece)
-          SizedBox(
+          GlassButton.custom(
+            onTap: isLoading ? () {} : onPlay,
             height: 48,
-            width: 140,
-            child: CupertinoButton(
-              padding: EdgeInsets.zero,
-              color: CupertinoColors.white,
-              borderRadius: BorderRadius.circular(24),
-              onPressed: isLoading ? null : onPlay,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (isLoading)
-                    const CupertinoActivityIndicator(color: CupertinoColors.black)
-                  else ...[
-                    const Icon(
-                      CupertinoIcons.play_fill,
-                      color: CupertinoColors.black,
-                      size: 18,
+            width: 144,
+            shape: const LiquidRoundedRectangle(borderRadius: 24),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (isLoading)
+                  const CupertinoActivityIndicator(
+                    color: CupertinoColors.white,
+                  )
+                else ...[
+                  const Icon(
+                    CupertinoIcons.play_fill,
+                    color: CupertinoColors.white,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    context.l10n?.play ?? 'Play',
+                    style: const TextStyle(
+                      color: CupertinoColors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.2,
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      context.l10n?.play ?? 'Play',
-                      style: const TextStyle(
-                        color: CupertinoColors.black,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -0.2,
-                      ),
-                    ),
-                  ],
+                  ),
                 ],
-              ),
+              ],
             ),
           ),
 
-          const SizedBox(width: 14),
+          const SizedBox(width: 16),
 
           // 3. Frosted Add (+) Circle
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: CupertinoColors.white.withValues(alpha: 0.14),
-              border: Border.all(
-                color: CupertinoColors.white.withValues(alpha: 0.20),
-                width: 0.8,
-              ),
+          GlassIconButton(
+            icon: const Icon(
+              CupertinoIcons.plus,
+              color: CupertinoColors.white,
+              size: 22,
             ),
-            child: CupertinoButton(
-              padding: EdgeInsets.zero,
-              borderRadius: BorderRadius.circular(24),
-              onPressed: onAdd ?? () {},
-              child: const Icon(
-                CupertinoIcons.plus,
-                color: CupertinoColors.white,
-                size: 22,
-              ),
-            ),
+            onPressed: onAdd ?? () {},
           ),
         ],
       ),

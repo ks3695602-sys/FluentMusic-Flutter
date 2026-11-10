@@ -73,6 +73,38 @@ class LyricLine {
 
   bool get hasWordSync => words.isNotEmpty;
 
+  /// Generates character-weighted syllable durations when provider timestamps are line-only (YouLyPlus model).
+  List<LyricWord> get interpolatedWords {
+    if (words.isNotEmpty) return words;
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return const [];
+
+    final splitWords = trimmed.split(RegExp(r'\s+'));
+    if (splitWords.isEmpty) return const [];
+
+    final lineDuration = (end != null && end! > start)
+        ? end! - start
+        : const Duration(seconds: 4);
+
+    final totalChars = splitWords.fold<int>(0, (sum, w) => sum + w.length);
+    if (totalChars <= 0) return const [];
+
+    var currentStart = start;
+    final result = <LyricWord>[];
+    for (var i = 0; i < splitWords.length; i++) {
+      final w = splitWords[i];
+      final wordMillis =
+          (lineDuration.inMilliseconds * (w.length / totalChars)).round();
+      final wordEnd = (i == splitWords.length - 1)
+          ? (end ?? (currentStart + Duration(milliseconds: wordMillis)))
+          : (currentStart + Duration(milliseconds: wordMillis));
+
+      result.add(LyricWord(text: w, start: currentStart, end: wordEnd));
+      currentStart = wordEnd;
+    }
+    return result;
+  }
+
   /// Returns the index of the word sung at [position], or -1 if before line start.
   int wordIndexAt(Duration position) {
     if (words.isEmpty) return -1;

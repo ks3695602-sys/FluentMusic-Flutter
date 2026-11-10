@@ -21,6 +21,7 @@
 
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' hide ColorScheme;
 import 'package:material_ui/material_ui.dart';
 import 'package:musify/extensions/l10n.dart';
 
@@ -83,40 +84,44 @@ class PlaylistHeader extends StatelessWidget {
             runSpacing: 8,
             children: [
               if (isArtist)
-                _Chip(
-                  icon: CupertinoIcons.person_fill,
+                GlassChip(
+                  icon: const Icon(
+                    CupertinoIcons.person_fill,
+                    size: 14,
+                    color: CupertinoColors.white,
+                  ),
                   label: context.l10n!.artist,
-                  color: CupertinoColors.white.withValues(alpha: 0.12),
-                  onColor: CupertinoColors.white,
-                  theme: theme,
                 )
               else if (isAlbum != null)
-                _Chip(
-                  icon: isAlbum!
-                      ? CupertinoIcons.music_albums_fill
-                      : CupertinoIcons.music_note_list,
+                GlassChip(
+                  icon: Icon(
+                    isAlbum!
+                        ? CupertinoIcons.music_albums_fill
+                        : CupertinoIcons.music_note_list,
+                    size: 14,
+                    color: CupertinoColors.white,
+                  ),
                   label: isAlbum!
                       ? context.l10n!.album
                       : context.l10n!.playlist,
-                  color: CupertinoColors.white.withValues(alpha: 0.12),
-                  onColor: CupertinoColors.white,
-                  theme: theme,
                 ),
               if (songsLength != null)
-                _Chip(
-                  icon: CupertinoIcons.list_number,
+                GlassChip(
+                  icon: const Icon(
+                    CupertinoIcons.list_number,
+                    size: 14,
+                    color: CupertinoColors.white,
+                  ),
                   label: '$songsLength ${context.l10n!.songs}',
-                  color: CupertinoColors.white.withValues(alpha: 0.12),
-                  onColor: CupertinoColors.white,
-                  theme: theme,
                 ),
               if (monthlyListeners != null)
-                _Chip(
-                  icon: CupertinoIcons.headphones,
+                GlassChip(
+                  icon: const Icon(
+                    CupertinoIcons.headphones,
+                    size: 14,
+                    color: CupertinoColors.white,
+                  ),
                   label: '$monthlyListeners ${context.l10n!.monthlyListeners}',
-                  color: CupertinoColors.white.withValues(alpha: 0.12),
-                  onColor: CupertinoColors.white,
-                  theme: theme,
                 ),
             ],
           ),

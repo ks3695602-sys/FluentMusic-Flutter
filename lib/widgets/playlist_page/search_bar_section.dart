@@ -1,4 +1,4 @@
-﻿/*
+/*
  *     Copyright (C) 2026 Valeri Gokadze
  *
  *     Musify is free software: you can redistribute it and/or modify
@@ -20,7 +20,7 @@
  */
 
 import 'package:flutter/cupertino.dart';
-import 'package:musify/widgets/custom_search_bar.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 class SearchBarSection extends StatefulWidget {
   const SearchBarSection({
@@ -42,12 +42,15 @@ class SearchBarSection extends StatefulWidget {
 class _SearchBarSectionState extends State<SearchBarSection> {
   @override
   Widget build(BuildContext context) {
-    return CustomSearchBar(
-      controller: widget.controller,
-      focusNode: widget.focusNode,
-      labelText: widget.labelText,
-      onSubmitted: (_) {},
-      onChanged: widget.onSearchChanged,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+      child: GlassSearchBar(
+        controller: widget.controller,
+        focusNode: widget.focusNode,
+        placeholder: widget.labelText,
+        onChanged: widget.onSearchChanged,
+        useOwnLayer: true,
+      ),
     );
   }
 }

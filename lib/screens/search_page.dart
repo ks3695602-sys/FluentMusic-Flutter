@@ -168,7 +168,8 @@ class _SearchPageState extends State<SearchPage> {
           }
 
           if (!mounted || requestId != _latestSearchRequest) return;
-          setState(() => _songsSearchResult = songs);
+          final prioritized = _prioritizeStudioTracks(songs, query);
+          setState(() => _songsSearchResult = prioritized);
         } catch (e, stackTrace) {
           logger.log(
             'Error while searching online songs',
@@ -599,7 +600,40 @@ class _SearchPageState extends State<SearchPage> {
     );
   }
 
+  List<dynamic> _prioritizeStudioTracks(List<dynamic> songs, String query) {
+    final lowerQuery = query.toLowerCase();
+    final isSearchingForLive = lowerQuery.contains('live') || lowerQuery.contains('concert');
+    if (isSearchingForLive) return songs;
+
+    final studioList = <dynamic>[];
+    final liveList = <dynamic>[];
+
+    for (final song in songs) {
+      if (song is Map) {
+        final title = (song['title'] ?? '').toString().toLowerCase();
+        final isLiveOrUnofficial = title.contains('(live') ||
+            title.contains('[live') ||
+            title.contains('live at') ||
+            title.contains('live from') ||
+            title.contains('fancam') ||
+            title.contains('concert');
+        if (isLiveOrUnofficial) {
+          liveList.add(song);
+        } else {
+          studioList.add(song);
+        }
+      } else {
+        studioList.add(song);
+      }
+    }
+    return [...studioList, ...liveList];
+  }
+
   Widget _buildAppleBrowseSection(BuildContext context, List searchHistory) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final titleColor = isDark ? Colors.white : const Color(0xFF1C1C1E);
+    final subColor = isDark ? Colors.white : const Color(0xFF2C2C2E);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -609,12 +643,12 @@ class _SearchPageState extends State<SearchPage> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'Recent Searches',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: titleColor,
                   ),
                 ),
                 CupertinoButton(
@@ -639,26 +673,26 @@ class _SearchPageState extends State<SearchPage> {
             children: [
               for (int i = 0; i < searchHistory.length && i < 5; i++)
                 GlassListTile(
-                  leading: const Icon(CupertinoIcons.search, color: Colors.white70, size: 18),
+                  leading: Icon(CupertinoIcons.search, color: isDark ? Colors.white70 : Colors.black54, size: 18),
                   title: Text(
                     searchHistory[i].toString(),
-                    style: const TextStyle(color: Colors.white, fontSize: 15),
+                    style: TextStyle(color: subColor, fontSize: 15),
                   ),
-                  trailing: const Icon(CupertinoIcons.arrow_up_left, color: Colors.white38, size: 16),
+                  trailing: Icon(CupertinoIcons.arrow_up_left, color: isDark ? Colors.white38 : Colors.black38, size: 16),
                   onTap: () => _submitSearch(searchHistory[i].toString()),
                 ),
             ],
           ),
           const SizedBox(height: 20),
         ],
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           child: Text(
             'Browse Categories',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: titleColor,
             ),
           ),
         ),
