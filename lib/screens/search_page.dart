@@ -630,7 +630,7 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   Widget _buildAppleBrowseSection(BuildContext context, List searchHistory) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDark = CupertinoTheme.of(context).brightness == Brightness.dark;
     final titleColor = isDark ? Colors.white : const Color(0xFF1C1C1E);
     final subColor = isDark ? Colors.white : const Color(0xFF2C2C2E);
 

@@ -562,7 +562,7 @@ class _MobileLayout extends StatelessWidget {
             child: const Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(CupertinoIcons.timer_badge_plus),
+                Icon(CupertinoIcons.slider_horizontal_3),
                 SizedBox(width: 8),
                 Text('Lyrics Timing Sync Offset'),
               ],
