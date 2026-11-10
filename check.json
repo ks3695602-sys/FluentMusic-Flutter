@@ -1,0 +1,6 @@
+{
+  "version": "1.3.6",
+  "buildNumber": "9",
+  "log": "FluentMusic v1.3.6 Ultimate Overhaul:\n- Priority 1 & 2 lyrics pipeline (YouLy+ & BetterLyrics) with Apple TTML syllable parsing and word glow sweep\n- Liquid Glass dynamic Clear/Tinted optics slider with text refraction preview card\n- Player lyrics mode double-header collision eliminated with native iOS pull-down grabber handle\n- Real-time lyrics timing sync offset (±250ms) and playback speed/pitch audio presets\n- Playlist page redesigned with native liquid_glass_widgets (GlassChip, GlassButton, GlassIconButton, GlassSearchBar)\n- Light Mode high-contrast text and UI visibility fixes\n- Studio track priority ranking over unofficial live clips\n- Splash screen initialization deadlock 4s fail-safe fix\n- New 1024px launcher icon mipmaps and branding assets",
+  "downloadUrl": "https://github.com/ks3695602-sys/FluentMusic-Flutter/releases/download/v1.3.6/FluentMusic-universal-release.apk"
+}
