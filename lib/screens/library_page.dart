@@ -137,42 +137,55 @@ class _LibraryPageState extends State<LibraryPage> {
                 physics: const BouncingScrollPhysics(),
                 slivers: [
                   SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 12, bottom: 16),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            context.l10n?.library ?? 'Library',
-                            style: const TextStyle(
-                              color: CupertinoColors.white,
-                              fontSize: 32,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: -0.6,
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: () => showCreatePlaylistDialog(context),
-                            child: Container(
-                              width: 38,
-                              height: 38,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: CupertinoColors.white.withValues(alpha: 0.12),
-                                border: Border.all(
-                                  color: CupertinoColors.white.withValues(alpha: 0.2),
-                                  width: 1,
+                    child: Builder(
+                      builder: (ctx) {
+                        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+                        final titleColor = isDark ? CupertinoColors.white : const Color(0xFF1C1C1E);
+                        final iconBgColor = isDark
+                            ? CupertinoColors.white.withValues(alpha: 0.12)
+                            : const Color(0xFF000000).withValues(alpha: 0.08);
+                        final iconBorderColor = isDark
+                            ? CupertinoColors.white.withValues(alpha: 0.20)
+                            : const Color(0xFF000000).withValues(alpha: 0.15);
+
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 12, bottom: 16),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                context.l10n?.library ?? 'Library',
+                                style: TextStyle(
+                                  color: titleColor,
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: -0.6,
                                 ),
                               ),
-                              child: const Icon(
-                                CupertinoIcons.add,
-                                color: CupertinoColors.white,
-                                size: 22,
+                              GestureDetector(
+                                onTap: () => showCreatePlaylistDialog(context),
+                                child: Container(
+                                  width: 38,
+                                  height: 38,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: iconBgColor,
+                                    border: Border.all(
+                                      color: iconBorderColor,
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Icon(
+                                    CupertinoIcons.add,
+                                    color: titleColor,
+                                    size: 22,
+                                  ),
+                                ),
                               ),
-                            ),
+                            ],
                           ),
-                        ],
-                      ),
+                        );
+                      },
                     ),
                   ),
                   ..._buildPinnedSlivers(),

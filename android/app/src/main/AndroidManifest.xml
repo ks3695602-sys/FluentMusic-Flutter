@@ -36,6 +36,11 @@
         android:usesCleartextTraffic="true"
         android:enableOnBackInvokedCallback="true">
 
+        <!-- Force Impeller Graphics Engine for Liquid Glass optical refraction & shaders -->
+        <meta-data
+            android:name="io.flutter.embedding.android.EnableImpeller"
+            android:value="true" />
+
         <!-- AudioServiceActivity -->
         <activity
             android:name="com.ryanheise.audioservice.AudioServiceActivity"

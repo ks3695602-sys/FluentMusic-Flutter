@@ -188,17 +188,33 @@ class _MiniPlayerBodyState extends State<_MiniPlayerBody>
               onTapUp: (_) => _animationController.reverse(),
               onTapCancel: () => _animationController.reverse(),
               onVerticalDragUpdate: _handleVerticalDrag,
-              child: GlassButton.custom(
+              child: GestureDetector(
                 onTap: _navigateToNowPlaying,
-                quality: GlassQuality.premium,
-                useOwnLayer: true,
-                width: double.infinity,
-                height: MiniPlayer.playerHeight,
-                shape: const LiquidRoundedRectangle(
-                  borderRadius: MiniPlayer._borderRadius,
-                ),
-                child: SizedBox(
+                behavior: HitTestBehavior.opaque,
+                child: Container(
                   height: MiniPlayer.playerHeight,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? const Color(0xFF242426).withValues(alpha: 0.88)
+                        : const Color(0xFFFFFFFF).withValues(alpha: 0.90),
+                    borderRadius: BorderRadius.circular(MiniPlayer._borderRadius),
+                    border: Border.all(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? CupertinoColors.white.withValues(alpha: 0.14)
+                          : CupertinoColors.black.withValues(alpha: 0.08),
+                      width: 0.8,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(
+                          alpha: Theme.of(context).brightness == Brightness.dark ? 0.30 : 0.08,
+                        ),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 10),
                     child: Row(
@@ -294,6 +310,12 @@ class _MetadataWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryTextColor = isDark ? CupertinoColors.white : const Color(0xFF1C1C1E);
+    final secondaryTextColor = isDark
+        ? CupertinoColors.white.withValues(alpha: 0.65)
+        : const Color(0xFF8E8E93);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6),
       child: Column(
@@ -302,8 +324,8 @@ class _MetadataWidget extends StatelessWidget {
         children: [
           Text(
             title,
-            style: const TextStyle(
-              color: CupertinoColors.white,
+            style: TextStyle(
+              color: primaryTextColor,
               fontSize: 14,
               fontWeight: FontWeight.w600,
               letterSpacing: -0.2,
@@ -316,7 +338,7 @@ class _MetadataWidget extends StatelessWidget {
             Text(
               artist!,
               style: TextStyle(
-                color: CupertinoColors.white.withValues(alpha: 0.65),
+                color: secondaryTextColor,
                 fontSize: 12,
                 fontWeight: FontWeight.w400,
               ),
@@ -345,6 +367,8 @@ class _ControlsWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final iconColor = isDark ? CupertinoColors.white : const Color(0xFF1C1C1E);
     final isPlaying = playbackState.playing;
     final processingState = playbackState.processingState;
     final isLoading = processingState == AudioProcessingState.loading ||
@@ -354,14 +378,14 @@ class _ControlsWidget extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (isLoading)
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
             child: SizedBox(
               width: 20,
               height: 20,
               child: CircularProgressIndicator(
                 strokeWidth: 2.0,
-                valueColor: AlwaysStoppedAnimation<Color>(CupertinoColors.white),
+                valueColor: AlwaysStoppedAnimation<Color>(iconColor),
               ),
             ),
           )
@@ -374,7 +398,7 @@ class _ControlsWidget extends StatelessWidget {
             constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
             icon: Icon(
               isPlaying ? CupertinoIcons.pause_fill : CupertinoIcons.play_fill,
-              color: CupertinoColors.white,
+              color: iconColor,
               size: 24,
             ),
           ),
@@ -387,7 +411,7 @@ class _ControlsWidget extends StatelessWidget {
             constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
             icon: Icon(
               CupertinoIcons.forward_end_fill,
-              color: CupertinoColors.white.withValues(alpha: 0.9),
+              color: iconColor.withValues(alpha: isDark ? 0.9 : 0.8),
               size: 22,
             ),
           ),

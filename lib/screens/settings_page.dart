@@ -46,21 +46,25 @@ class SettingsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final canPop = Navigator.canPop(context);
     final topPadding = MediaQuery.paddingOf(context).top;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final titleColor = isDark ? Colors.white : const Color(0xFF1C1C1E);
+    final subtitleColor = isDark ? Colors.white60 : const Color(0xFF8E8E93);
+    final bgColor = isDark ? Colors.black : const Color(0xFFF2F2F7);
 
     return GlassScaffold(
       contentAwareBrightness: true,
       background: Container(
-        color: Colors.black,
+        color: bgColor,
       ),
       appBar: canPop
           ? GlassAppBar(
               leading: buildGlassBackButton(context),
               title: Text(
                 context.l10n?.settings ?? 'Settings',
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 20,
-                  color: Colors.white,
+                  color: titleColor,
                 ),
               ),
             )
@@ -79,15 +83,15 @@ class SettingsPage extends StatelessWidget {
               padding: const EdgeInsets.only(left: 4, bottom: 20, top: 4),
               child: Text(
                 context.l10n?.settings ?? 'Settings',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 34,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: titleColor,
                   letterSpacing: -0.6,
                 ),
               ),
             ),
-          // INSET GROUPED SETTINGS PLATTER (Matching Image 4)
+          // INSET GROUPED SETTINGS PLATTER
           GlassGroupedSection(
             surfaceStyle: GlassSurfaceStyle.solid,
             children: [
@@ -97,11 +101,13 @@ class SettingsPage extends StatelessWidget {
                   icon: CupertinoIcons.person_fill,
                   color: const Color(0xFFFF3B30),
                 ),
-                title: const Text('Account', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white)),
-                subtitle: const Text('Sign in and manage account sync', style: TextStyle(color: Colors.white54, fontSize: 13)),
+                title: Text('Account', style: TextStyle(fontWeight: FontWeight.w600, color: titleColor)),
+                subtitle: Text('Sign in and manage account sync', style: TextStyle(color: subtitleColor, fontSize: 13)),
                 trailing: GlassListTile.chevron,
                 onTap: () {
-                  Navigator.push(context, CupertinoPageRoute(builder: (_) => const AccountSettingsPage()));
+                  Navigator.of(context, rootNavigator: true).push(
+                    CupertinoPageRoute(builder: (_) => const AccountSettingsPage()),
+                  );
                 },
               ),
 
@@ -111,25 +117,29 @@ class SettingsPage extends StatelessWidget {
                   icon: CupertinoIcons.chart_bar_fill,
                   color: const Color(0xFFFF9500),
                 ),
-                title: const Text('Listening Stats', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white)),
-                subtitle: const Text('Your top songs, artists, and playback history', style: TextStyle(color: Colors.white54, fontSize: 13)),
+                title: Text('Listening Stats', style: TextStyle(fontWeight: FontWeight.w600, color: titleColor)),
+                subtitle: Text('Your top songs, artists, and playback history', style: TextStyle(color: subtitleColor, fontSize: 13)),
                 trailing: GlassListTile.chevron,
                 onTap: () {
-                  Navigator.push(context, CupertinoPageRoute(builder: (_) => const ListeningStatsSettingsPage()));
+                  Navigator.of(context, rootNavigator: true).push(
+                    CupertinoPageRoute(builder: (_) => const ListeningStatsSettingsPage()),
+                  );
                 },
               ),
 
-              // 3. Appearance
+              // 3. Appearance & Liquid Glass
               GlassListTile(
                 leading: _buildSquircleIcon(
                   icon: CupertinoIcons.paintbrush_fill,
                   color: const Color(0xFFAF52DE),
                 ),
-                title: const Text('Appearance', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white)),
-                subtitle: const Text('Themes, layout, and visual styles', style: TextStyle(color: Colors.white54, fontSize: 13)),
+                title: Text('Appearance', style: TextStyle(fontWeight: FontWeight.w600, color: titleColor)),
+                subtitle: Text('Themes, layout, and visual styles', style: TextStyle(color: subtitleColor, fontSize: 13)),
                 trailing: GlassListTile.chevron,
                 onTap: () {
-                  Navigator.push(context, CupertinoPageRoute(builder: (_) => const AppearanceSettingsPage()));
+                  Navigator.of(context, rootNavigator: true).push(
+                    CupertinoPageRoute(builder: (_) => const AppearanceSettingsPage()),
+                  );
                 },
               ),
 
@@ -139,11 +149,13 @@ class SettingsPage extends StatelessWidget {
                   icon: CupertinoIcons.music_note_2,
                   color: const Color(0xFF007AFF),
                 ),
-                title: const Text('Playback', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white)),
-                subtitle: const Text('Audio behavior, crossfade, and background', style: TextStyle(color: Colors.white54, fontSize: 13)),
+                title: Text('Playback', style: TextStyle(fontWeight: FontWeight.w600, color: titleColor)),
+                subtitle: Text('Audio behavior, crossfade, and background', style: TextStyle(color: subtitleColor, fontSize: 13)),
                 trailing: GlassListTile.chevron,
                 onTap: () {
-                  Navigator.push(context, CupertinoPageRoute(builder: (_) => const PlaybackSettingsPage()));
+                  Navigator.of(context, rootNavigator: true).push(
+                    CupertinoPageRoute(builder: (_) => const PlaybackSettingsPage()),
+                  );
                 },
               ),
 
@@ -153,11 +165,13 @@ class SettingsPage extends StatelessWidget {
                   icon: CupertinoIcons.circle_grid_hex_fill,
                   color: const Color(0xFF5856D6),
                 ),
-                title: const Text('FluentMusic Canvas', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white)),
-                subtitle: const Text('Sources, mobile data and cache', style: TextStyle(color: Colors.white54, fontSize: 13)),
+                title: Text('FluentMusic Canvas', style: TextStyle(fontWeight: FontWeight.w600, color: titleColor)),
+                subtitle: Text('Sources, mobile data and cache', style: TextStyle(color: subtitleColor, fontSize: 13)),
                 trailing: GlassListTile.chevron,
                 onTap: () {
-                  Navigator.push(context, CupertinoPageRoute(builder: (_) => const CanvasSettingsPage()));
+                  Navigator.of(context, rootNavigator: true).push(
+                    CupertinoPageRoute(builder: (_) => const CanvasSettingsPage()),
+                  );
                 },
               ),
 
@@ -167,11 +181,13 @@ class SettingsPage extends StatelessWidget {
                   icon: CupertinoIcons.doc_text_fill,
                   color: const Color(0xFFFF2D55),
                 ),
-                title: const Text('Lyrics', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white)),
-                subtitle: const Text('Lyrics providers and translation', style: TextStyle(color: Colors.white54, fontSize: 13)),
+                title: Text('Lyrics', style: TextStyle(fontWeight: FontWeight.w600, color: titleColor)),
+                subtitle: Text('Lyrics providers and translation', style: TextStyle(color: subtitleColor, fontSize: 13)),
                 trailing: GlassListTile.chevron,
                 onTap: () {
-                  Navigator.push(context, CupertinoPageRoute(builder: (_) => const LyricsSettingsPage()));
+                  Navigator.of(context, rootNavigator: true).push(
+                    CupertinoPageRoute(builder: (_) => const LyricsSettingsPage()),
+                  );
                 },
               ),
 
@@ -181,11 +197,13 @@ class SettingsPage extends StatelessWidget {
                   icon: CupertinoIcons.globe,
                   color: const Color(0xFF34C759),
                 ),
-                title: const Text('Content', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white)),
-                subtitle: const Text('Language, country, and recommendations', style: TextStyle(color: Colors.white54, fontSize: 13)),
+                title: Text('Content', style: TextStyle(fontWeight: FontWeight.w600, color: titleColor)),
+                subtitle: Text('Language, country, and recommendations', style: TextStyle(color: subtitleColor, fontSize: 13)),
                 trailing: GlassListTile.chevron,
                 onTap: () {
-                  Navigator.push(context, CupertinoPageRoute(builder: (_) => const ContentSettingsPage()));
+                  Navigator.of(context, rootNavigator: true).push(
+                    CupertinoPageRoute(builder: (_) => const ContentSettingsPage()),
+                  );
                 },
               ),
 
@@ -195,11 +213,13 @@ class SettingsPage extends StatelessWidget {
                   icon: CupertinoIcons.slider_horizontal_3,
                   color: const Color(0xFFFFCC00),
                 ),
-                title: const Text('Behavior', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white)),
-                subtitle: const Text('History, defaults, and privacy behavior', style: TextStyle(color: Colors.white54, fontSize: 13)),
+                title: Text('Behavior', style: TextStyle(fontWeight: FontWeight.w600, color: titleColor)),
+                subtitle: Text('History, defaults, and privacy behavior', style: TextStyle(color: subtitleColor, fontSize: 13)),
                 trailing: GlassListTile.chevron,
                 onTap: () {
-                  Navigator.push(context, CupertinoPageRoute(builder: (_) => const BehaviorSettingsPage()));
+                  Navigator.of(context, rootNavigator: true).push(
+                    CupertinoPageRoute(builder: (_) => const BehaviorSettingsPage()),
+                  );
                 },
               ),
 
@@ -209,11 +229,13 @@ class SettingsPage extends StatelessWidget {
                   icon: CupertinoIcons.car_fill,
                   color: const Color(0xFF30D158),
                 ),
-                title: const Text('Android Auto', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white)),
-                subtitle: const Text('Driving playback, browsing and data', style: TextStyle(color: Colors.white54, fontSize: 13)),
+                title: Text('Android Auto', style: TextStyle(fontWeight: FontWeight.w600, color: titleColor)),
+                subtitle: Text('Driving playback, browsing and data', style: TextStyle(color: subtitleColor, fontSize: 13)),
                 trailing: GlassListTile.chevron,
                 onTap: () {
-                  Navigator.push(context, CupertinoPageRoute(builder: (_) => const AndroidAutoSettingsPage()));
+                  Navigator.of(context, rootNavigator: true).push(
+                    CupertinoPageRoute(builder: (_) => const AndroidAutoSettingsPage()),
+                  );
                 },
               ),
             ],

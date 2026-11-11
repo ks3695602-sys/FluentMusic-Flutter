@@ -38,6 +38,12 @@ class SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final titleColor = isDark ? CupertinoColors.white : const Color(0xFF1C1C1E);
+    final chevronColor = isDark
+        ? CupertinoColors.white.withValues(alpha: 0.5)
+        : const Color(0xFF8E8E93);
+
     return Padding(
       padding: const EdgeInsets.only(top: 18, bottom: 12),
       child: Row(
@@ -48,8 +54,8 @@ class SectionTitle extends StatelessWidget {
               title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: CupertinoColors.white,
+              style: TextStyle(
+                color: titleColor,
                 fontSize: 22,
                 fontWeight: FontWeight.w700,
                 letterSpacing: -0.5,
@@ -61,7 +67,7 @@ class SectionTitle extends StatelessWidget {
             Icon(
               CupertinoIcons.chevron_forward,
               size: 16,
-              color: CupertinoColors.white.withValues(alpha: 0.5),
+              color: chevronColor,
             ),
           ],
         ],

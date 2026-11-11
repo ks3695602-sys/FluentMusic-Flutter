@@ -192,8 +192,8 @@ jobs:
       - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v1.3.6' }}
-          name: "FluentMusic ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v1.3.6 (Apple HIG & iOS 26 Liquid Glass Overhaul)' }}"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v1.3.7' }}
+          name: "FluentMusic ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v1.3.7 (Studio-Grade Apple Music Lyrics & Liquid Glass Overhaul)' }}"
           files: release_artifacts/*
           generate_release_notes: true
           draft: false

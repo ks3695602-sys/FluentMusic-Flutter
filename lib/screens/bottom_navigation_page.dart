@@ -49,7 +49,6 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
       .distinct();
 
   bool? _previousOfflineMode;
-  bool _isMiniMode = false;
 
   /// Track the previously selected shell branch to detect reselects.
   int? _previousShellIndex;
@@ -127,18 +126,7 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
                               _onTabTapped(index, items),
                         ),
                       Expanded(
-                        child: NotificationListener<ScrollNotification>(
-                          onNotification: (notification) {
-                            if (notification.metrics.axis == Axis.vertical) {
-                              final shouldBeMini = notification.metrics.pixels > 40;
-                              if (shouldBeMini != _isMiniMode) {
-                                setState(() => _isMiniMode = shouldBeMini);
-                              }
-                            }
-                            return false;
-                          },
-                          child: widget.child,
-                        ),
+                        child: widget.child,
                       ),
                     ],
                   ),
@@ -152,13 +140,10 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
                           final isSearching = widget.child.currentIndex == 1;
 
                           return GlassTabBar.searchable(
-                            isSearchActive: _isMiniMode || isSearching,
+                            isSearchActive: isSearching,
                             selectedIndex:
                                 _getCurrentIndex(items, isOfflineMode),
                             onTabSelected: (index) {
-                              if (_isMiniMode) {
-                                setState(() => _isMiniMode = false);
-                              }
                               _onTabTapped(index, items);
                             },
                             tabs: items
@@ -180,9 +165,8 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
                                 : null,
                             bottomAccessoryHeight: 56.0,
                             bottomAccessoryEnabled: isMiniPlayerVisible,
-                            bottomAccessoryPlacement: _isMiniMode
-                                ? GlassTabBarAccessoryPlacement.inline
-                                : GlassTabBarAccessoryPlacement.expanded,
+                            bottomAccessoryPlacement:
+                                GlassTabBarAccessoryPlacement.expanded,
                             selectedIconColor: const Color(0xFFFF2D55),
                             unselectedIconColor: isLight
                                 ? CupertinoColors.black.withValues(alpha: 0.65)

@@ -76,6 +76,18 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final titleColor = isDark ? CupertinoColors.white : const Color(0xFF1C1C1E);
+    final subtitleColor = isDark
+        ? CupertinoColors.white.withValues(alpha: 0.65)
+        : const Color(0xFF8E8E93);
+    final iconBgColor = isDark
+        ? CupertinoColors.white.withValues(alpha: 0.12)
+        : const Color(0xFF000000).withValues(alpha: 0.08);
+    final iconBorderColor = isDark
+        ? CupertinoColors.white.withValues(alpha: 0.20)
+        : const Color(0xFF000000).withValues(alpha: 0.15);
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: SafeArea(
@@ -90,31 +102,31 @@ class _HomePageState extends State<HomePage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Listen Now',
                     style: TextStyle(
-                      color: CupertinoColors.white,
+                      color: titleColor,
                       fontSize: 32,
                       fontWeight: FontWeight.w800,
                       letterSpacing: -0.6,
                     ),
                   ),
                   GestureDetector(
-                    onTap: () => context.push('/settings'),
+                    onTap: () => context.go('/settings'),
                     child: Container(
                       width: 38,
                       height: 38,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: CupertinoColors.white.withValues(alpha: 0.12),
+                        color: iconBgColor,
                         border: Border.all(
-                          color: CupertinoColors.white.withValues(alpha: 0.2),
+                          color: iconBorderColor,
                           width: 1,
                         ),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         CupertinoIcons.person_crop_circle_fill,
-                        color: CupertinoColors.white,
+                        color: titleColor,
                         size: 24,
                       ),
                     ),
@@ -165,6 +177,12 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildRecentlyPlayedSection() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final itemTitleColor = isDark ? CupertinoColors.white : const Color(0xFF1C1C1E);
+    final itemSubColor = isDark
+        ? CupertinoColors.white.withValues(alpha: 0.65)
+        : const Color(0xFF8E8E93);
+
     return ValueListenableBuilder<List>(
       valueListenable: userRecentlyPlayed,
       builder: (context, recents, _) {
@@ -247,8 +265,8 @@ class _HomePageState extends State<HomePage> {
                             title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: CupertinoColors.white,
+                            style: TextStyle(
+                              color: itemTitleColor,
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                             ),
@@ -259,8 +277,7 @@ class _HomePageState extends State<HomePage> {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              color:
-                                  CupertinoColors.white.withValues(alpha: 0.6),
+                              color: itemSubColor,
                               fontSize: 12,
                             ),
                           ),
@@ -309,6 +326,12 @@ class _HomePageState extends State<HomePage> {
         : context.l10n!.suggestedPlaylists;
     final itemsNumber = playlists.length.clamp(0, recommendedCubesNumber);
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final itemTitleColor = isDark ? CupertinoColors.white : const Color(0xFF1C1C1E);
+    final itemSubColor = isDark
+        ? CupertinoColors.white.withValues(alpha: 0.65)
+        : const Color(0xFF8E8E93);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -350,8 +373,8 @@ class _HomePageState extends State<HomePage> {
                         title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: CupertinoColors.white,
+                        style: TextStyle(
+                          color: itemTitleColor,
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                         ),
@@ -362,8 +385,7 @@ class _HomePageState extends State<HomePage> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color:
-                              CupertinoColors.white.withValues(alpha: 0.6),
+                          color: itemSubColor,
                           fontSize: 12,
                         ),
                       ),
