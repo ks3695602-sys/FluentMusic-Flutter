@@ -866,7 +866,7 @@ class PlaybackSettingsPage extends StatelessWidget {
                 ),
                 GlassListTile(
                   leading: const Icon(
-                    CupertinoIcons.equalizer,
+                    CupertinoIcons.slider_horizontal_3,
                     color: Color(0xFFAF52DE),
                   ),
                   title: Text(
