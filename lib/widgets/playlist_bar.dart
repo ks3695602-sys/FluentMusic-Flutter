@@ -94,6 +94,11 @@ class PlaylistBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final titleColor = isDark ? CupertinoColors.white : const Color(0xFF1C1C1E);
+    final chevronColor = isDark
+        ? CupertinoColors.white.withValues(alpha: 0.35)
+        : CupertinoColors.black.withValues(alpha: 0.25);
     final displayTitle = isArtist
         ? normalizeArtistDisplayTitle(playlistTitle)
         : playlistTitle;
@@ -140,10 +145,10 @@ class PlaylistBar extends StatelessWidget {
                         Expanded(
                           child: Text(
                             displayTitle,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontWeight: FontWeight.w600,
                               fontSize: 16,
-                              color: CupertinoColors.white,
+                              color: titleColor,
                               letterSpacing: -0.2,
                             ),
                             overflow: TextOverflow.ellipsis,
@@ -318,7 +323,7 @@ class PlaylistBar extends StatelessWidget {
                 Icon(
                   CupertinoIcons.chevron_forward,
                   size: 16,
-                  color: CupertinoColors.white.withValues(alpha: 0.35),
+                  color: chevronColor,
                 ),
               ],
             ],
@@ -348,24 +353,27 @@ class PlaylistBar extends StatelessWidget {
   }
 
   Widget _buildIconFallback(ColorScheme colorScheme) {
+    final isDark = colorScheme.brightness == Brightness.dark;
     if (isArtist) {
       return Container(
         width: 44,
         height: 44,
         decoration: BoxDecoration(
-          color: CupertinoColors.white.withValues(alpha: 0.12),
+          color: isDark
+              ? CupertinoColors.white.withValues(alpha: 0.12)
+              : CupertinoColors.black.withValues(alpha: 0.08),
           shape: BoxShape.circle,
         ),
         child: Icon(
           cubeIcon,
           size: 22,
-          color: CupertinoColors.white,
+          color: isDark ? CupertinoColors.white : const Color(0xFF1C1C1E),
         ),
       );
     }
 
-    Color iconBgColor = const Color(0xFF2C2C2E);
-    Color iconColor = CupertinoColors.white;
+    Color iconBgColor = isDark ? const Color(0xFF2C2C2E) : const Color(0xFFE5E5EA);
+    Color iconColor = isDark ? CupertinoColors.white : const Color(0xFF1C1C1E);
     IconData resolvedIcon = cubeIcon;
 
     final lowerTitle = playlistTitle.toLowerCase();

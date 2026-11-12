@@ -175,13 +175,14 @@ class Lyrics {
       final m = line.start.inMinutes.toString().padLeft(2, '0');
       final s = (line.start.inSeconds % 60).toString().padLeft(2, '0');
       final ms = ((line.start.inMilliseconds % 1000) ~/ 10).toString().padLeft(2, '0');
-      if (line.hasWordSync) {
+      final wordsToUse = line.hasWordSync ? line.words : line.interpolatedWords;
+      if (wordsToUse.isNotEmpty) {
         buffer.write('[$m:$s.$ms]');
-        for (final word in line.words) {
+        for (final word in wordsToUse) {
           final wm = word.start.inMinutes.toString().padLeft(2, '0');
           final ws = (word.start.inSeconds % 60).toString().padLeft(2, '0');
           final wms = ((word.start.inMilliseconds % 1000) ~/ 10).toString().padLeft(2, '0');
-          buffer.write('<$wm:$ws.$wms>${word.text}');
+          buffer.write('<$wm:$ws.$wms>${word.text} ');
         }
         buffer.writeln();
       } else {

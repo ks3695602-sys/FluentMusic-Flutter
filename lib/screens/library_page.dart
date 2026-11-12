@@ -229,6 +229,7 @@ class _LibraryPageState extends State<LibraryPage> {
 
   List<Widget> _buildUserPlaylistsSlivers() {
     final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isOffline = offlineMode.value;
 
     final rawOfflinePlaylists = offlinePlaylistService.offlinePlaylists.value;
@@ -271,10 +272,14 @@ class _LibraryPageState extends State<LibraryPage> {
             child: Container(
               margin: const EdgeInsets.only(bottom: 20),
               decoration: BoxDecoration(
-                color: CupertinoColors.white.withValues(alpha: 0.05),
+                color: isDark
+                    ? CupertinoColors.white.withValues(alpha: 0.05)
+                    : const Color(0xFF000000).withValues(alpha: 0.04),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: CupertinoColors.white.withValues(alpha: 0.1),
+                  color: isDark
+                      ? CupertinoColors.white.withValues(alpha: 0.1)
+                      : const Color(0xFF000000).withValues(alpha: 0.08),
                   width: 0.8,
                 ),
               ),
@@ -287,7 +292,7 @@ class _LibraryPageState extends State<LibraryPage> {
                     cubeIcon: CupertinoIcons.clock_fill,
                     showBuildActions: false,
                   ),
-                  const Divider(color: Colors.white10, height: 1, indent: 64),
+                  Divider(color: isDark ? Colors.white10 : Colors.black12, height: 1, indent: 64),
                   PlaylistBar(
                     context.l10n!.likedSongs,
                     onPressed: () =>
@@ -295,7 +300,7 @@ class _LibraryPageState extends State<LibraryPage> {
                     cubeIcon: CupertinoIcons.heart_fill,
                     showBuildActions: false,
                   ),
-                  const Divider(color: Colors.white10, height: 1, indent: 64),
+                  Divider(color: isDark ? Colors.white10 : Colors.black12, height: 1, indent: 64),
                   PlaylistBar(
                     context.l10n!.offlineSongs,
                     onPressed: () =>
@@ -303,7 +308,7 @@ class _LibraryPageState extends State<LibraryPage> {
                     cubeIcon: CupertinoIcons.arrow_down_circle_fill,
                     showBuildActions: false,
                   ),
-                  const Divider(color: Colors.white10, height: 1, indent: 64),
+                  Divider(color: isDark ? Colors.white10 : Colors.black12, height: 1, indent: 64),
                   PlaylistBar(
                     context.l10n!.radioStations,
                     onPressed: () =>
@@ -324,22 +329,26 @@ class _LibraryPageState extends State<LibraryPage> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                   decoration: BoxDecoration(
-                    color: CupertinoColors.white.withValues(alpha: 0.08),
+                    color: isDark
+                        ? CupertinoColors.white.withValues(alpha: 0.08)
+                        : const Color(0xFF000000).withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(24),
                     border: Border.all(
-                      color: CupertinoColors.white.withValues(alpha: 0.16),
+                      color: isDark
+                          ? CupertinoColors.white.withValues(alpha: 0.16)
+                          : const Color(0xFF000000).withValues(alpha: 0.10),
                       width: 0.8,
                     ),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(CupertinoIcons.sparkles, color: Color(0xFFFF2D55), size: 16),
-                      SizedBox(width: 8),
+                      const Icon(CupertinoIcons.sparkles, color: Color(0xFFFF2D55), size: 16),
+                      const SizedBox(width: 8),
                       Text(
                         'Smart Lossless Cache Active',
                         style: TextStyle(
-                          color: CupertinoColors.white,
+                          color: isDark ? CupertinoColors.white : const Color(0xFF1C1C1E),
                           fontWeight: FontWeight.w600,
                           fontSize: 13,
                           letterSpacing: -0.2,
@@ -368,9 +377,9 @@ class _LibraryPageState extends State<LibraryPage> {
                         IconButton(
                           padding: const EdgeInsets.symmetric(horizontal: 2),
                           onPressed: _showCreateFolderDialog,
-                          icon: const Icon(
+                          icon: Icon(
                             CupertinoIcons.folder_badge_plus,
-                            color: CupertinoColors.white,
+                            color: isDark ? CupertinoColors.white : const Color(0xFF1C1C1E),
                             size: 20,
                           ),
                           tooltip: context.l10n!.createFolder,
@@ -378,9 +387,9 @@ class _LibraryPageState extends State<LibraryPage> {
                         IconButton(
                           padding: const EdgeInsets.symmetric(horizontal: 2),
                           onPressed: () => showCreatePlaylistDialog(context),
-                          icon: const Icon(
+                          icon: Icon(
                             CupertinoIcons.add,
-                            color: CupertinoColors.white,
+                            color: isDark ? CupertinoColors.white : const Color(0xFF1C1C1E),
                             size: 20,
                           ),
                         ),

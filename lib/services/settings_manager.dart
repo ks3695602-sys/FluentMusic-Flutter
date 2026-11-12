@@ -124,7 +124,7 @@ final liquidGlassQualitySetting = ValueNotifier<String>(
 );
 
 final liquidGlassBlurSetting = ValueNotifier<double>(
-  (Hive.box('settings').get('liquidGlassBlur', defaultValue: 18.0) as num).toDouble(),
+  (Hive.box('settings').get('liquidGlassBlur', defaultValue: 8.0) as num).toDouble(),
 );
 
 final liquidGlassThicknessSetting = ValueNotifier<double>(

@@ -16,6 +16,7 @@
  */
 
 import 'dart:io';
+import 'dart:ui' as ui;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show Colors, Theme, ThemeMode;
 import 'package:hive_flutter/hive_flutter.dart';
@@ -59,11 +60,20 @@ class AccountSettingsPage extends StatefulWidget {
 class _AccountSettingsPageState extends State<AccountSettingsPage> {
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final titleColor = isDark ? Colors.white : const Color(0xFF1C1C1E);
+    final subtitleColor = isDark ? Colors.white60 : const Color(0xFF636366);
+    final bgColor = isDark ? Colors.black : const Color(0xFFF2F2F7);
+
     return GlassScaffold(
       contentAwareBrightness: true,
+      background: Container(color: bgColor),
       appBar: GlassAppBar(
         leading: buildGlassBackButton(context),
-        title: const Text('Account', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+          'Account',
+          style: TextStyle(fontWeight: FontWeight.bold, color: titleColor),
+        ),
       ),
       body: ListView(
         physics: const BouncingScrollPhysics(),
@@ -80,31 +90,69 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                     color: const Color(0xFFFF3B30).withValues(alpha: 0.18),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(CupertinoIcons.person_crop_circle, color: Color(0xFFFF3B30), size: 28),
+                  child: const Icon(
+                    CupertinoIcons.person_crop_circle,
+                    color: Color(0xFFFF3B30),
+                    size: 28,
+                  ),
                 ),
-                title: const Text('FluentMusic User', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white)),
-                subtitle: const Text('Local profile (Private Mode)', style: TextStyle(color: Colors.white54, fontSize: 13)),
+                title: Text(
+                  'FluentMusic User',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: titleColor,
+                  ),
+                ),
+                subtitle: Text(
+                  'Local profile (Private Mode)',
+                  style: TextStyle(color: subtitleColor, fontSize: 13),
+                ),
               ),
             ],
           ),
           const SizedBox(height: 20),
           GlassGroupedSection(
             surfaceStyle: GlassSurfaceStyle.solid,
-            header: const Text('DATA & BACKUP'),
+            header: Text(
+              'DATA & BACKUP',
+              style: TextStyle(
+                color: subtitleColor,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             children: [
               GlassListTile(
-                leading: const Icon(CupertinoIcons.cloud_upload, color: Color(0xFF007AFF)),
-                title: const Text('Backup Playlists & Favorites', style: TextStyle(color: Colors.white)),
-                subtitle: const Text('Export JSON snapshot to local storage', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                leading: const Icon(
+                  CupertinoIcons.cloud_upload,
+                  color: Color(0xFF007AFF),
+                ),
+                title: Text(
+                  'Backup Playlists & Favorites',
+                  style: TextStyle(color: titleColor),
+                ),
+                subtitle: Text(
+                  'Export JSON snapshot to local storage',
+                  style: TextStyle(color: subtitleColor, fontSize: 12),
+                ),
                 trailing: GlassListTile.chevron,
                 onTap: () async {
                   showToast(context, 'Exporting backup to Downloads...');
                 },
               ),
               GlassListTile(
-                leading: const Icon(CupertinoIcons.cloud_download, color: Color(0xFF30D158)),
-                title: const Text('Restore from Backup', style: TextStyle(color: Colors.white)),
-                subtitle: const Text('Import previously exported JSON data', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                leading: const Icon(
+                  CupertinoIcons.cloud_download,
+                  color: Color(0xFF30D158),
+                ),
+                title: Text(
+                  'Restore from Backup',
+                  style: TextStyle(color: titleColor),
+                ),
+                subtitle: Text(
+                  'Import previously exported JSON data',
+                  style: TextStyle(color: subtitleColor, fontSize: 12),
+                ),
                 trailing: GlassListTile.chevron,
                 onTap: () async {
                   showToast(context, 'Select JSON backup file to restore');
@@ -127,11 +175,20 @@ class ListeningStatsSettingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final titleColor = isDark ? Colors.white : const Color(0xFF1C1C1E);
+    final subtitleColor = isDark ? Colors.white60 : const Color(0xFF636366);
+    final bgColor = isDark ? Colors.black : const Color(0xFFF2F2F7);
+
     return GlassScaffold(
       contentAwareBrightness: true,
+      background: Container(color: bgColor),
       appBar: GlassAppBar(
         leading: buildGlassBackButton(context),
-        title: const Text('Listening Stats', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+          'Listening Stats',
+          style: TextStyle(fontWeight: FontWeight.bold, color: titleColor),
+        ),
       ),
       body: ListView(
         physics: const BouncingScrollPhysics(),
@@ -142,12 +199,28 @@ class ListeningStatsSettingsPage extends StatelessWidget {
             builder: (_, enabled, __) {
               return GlassGroupedSection(
                 surfaceStyle: GlassSurfaceStyle.solid,
-                header: const Text('TRACKING & RECAP'),
+                header: Text(
+                  'TRACKING & RECAP',
+                  style: TextStyle(
+                    color: subtitleColor,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 children: [
                   GlassListTile(
-                    leading: const Icon(CupertinoIcons.chart_pie_fill, color: Color(0xFFFF9500)),
-                    title: const Text('Time Machine & Listening Stats', style: TextStyle(color: Colors.white)),
-                    subtitle: const Text('Track minutes listened, top artists & recap', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                    leading: const Icon(
+                      CupertinoIcons.chart_pie_fill,
+                      color: Color(0xFFFF9500),
+                    ),
+                    title: Text(
+                      'Time Machine & Listening Stats',
+                      style: TextStyle(color: titleColor),
+                    ),
+                    subtitle: Text(
+                      'Track minutes listened, top artists & recap',
+                      style: TextStyle(color: subtitleColor, fontSize: 12),
+                    ),
                     trailing: GlassSwitch(
                       value: enabled,
                       onChanged: (val) {
@@ -163,15 +236,33 @@ class ListeningStatsSettingsPage extends StatelessWidget {
           const SizedBox(height: 20),
           GlassGroupedSection(
             surfaceStyle: GlassSurfaceStyle.solid,
-            header: const Text('ACTIONS'),
+            header: Text(
+              'ACTIONS',
+              style: TextStyle(
+                color: subtitleColor,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             children: [
               GlassListTile(
-                leading: const Icon(CupertinoIcons.trash, color: Color(0xFFFF3B30)),
-                title: const Text('Clear Listening History', style: TextStyle(color: Color(0xFFFF3B30))),
-                subtitle: const Text('Resets play count and recap calculations', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                leading: const Icon(
+                  CupertinoIcons.trash,
+                  color: Color(0xFFFF3B30),
+                ),
+                title: const Text(
+                  'Clear Listening History',
+                  style: TextStyle(color: Color(0xFFFF3B30)),
+                ),
+                subtitle: Text(
+                  'Resets play count and recap calculations',
+                  style: TextStyle(color: subtitleColor, fontSize: 12),
+                ),
                 onTap: () async {
                   await listeningStatsService.clearStats();
-                  if (context.mounted) showToast(context, 'Listening stats cleared');
+                  if (context.mounted) {
+                    showToast(context, 'Listening stats cleared');
+                  }
                 },
               ),
             ],
@@ -199,17 +290,16 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final titleColor = isDark ? Colors.white : const Color(0xFF1C1C1E);
     final subtitleColor = isDark ? Colors.white70 : const Color(0xFF636366);
+    final bgColor = isDark ? Colors.black : const Color(0xFFF2F2F7);
 
     return GlassScaffold(
       contentAwareBrightness: true,
+      background: Container(color: bgColor),
       appBar: GlassAppBar(
         leading: buildGlassBackButton(context),
         title: Text(
           'Liquid Glass',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: titleColor,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold, color: titleColor),
         ),
       ),
       body: ListView(
@@ -240,7 +330,6 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      // Architectural background texture
                       Positioned.fill(
                         child: DecoratedBox(
                           decoration: BoxDecoration(
@@ -256,7 +345,6 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
                           ),
                         ),
                       ),
-                      // Text behind glass to demonstrate real refraction
                       Positioned(
                         bottom: 34,
                         left: 20,
@@ -271,7 +359,6 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
                           ),
                         ),
                       ),
-                      // Floating liquid glass search bar pill
                       Center(
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -381,8 +468,41 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
           // 3. LIQUID GLASS ENGINE CONTROLS
           GlassGroupedSection(
             surfaceStyle: GlassSurfaceStyle.solid,
-            header: const Text('LIQUID GLASS & GRAPHICS PIPELINE'),
+            header: Text(
+              'LIQUID GLASS & GRAPHICS PIPELINE',
+              style: TextStyle(
+                color: subtitleColor,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             children: [
+              // HARDWARE SHADER DIAGNOSTIC TILE
+              GlassListTile(
+                leading: Icon(
+                  CupertinoIcons.sparkles,
+                  color: ui.ImageFilter.isShaderFilterSupported
+                      ? const Color(0xFF30D158)
+                      : const Color(0xFFFF9500),
+                ),
+                title: Text(
+                  'Hardware Shader Pipeline',
+                  style: TextStyle(color: titleColor),
+                ),
+                subtitle: Text(
+                  ui.ImageFilter.isShaderFilterSupported
+                      ? 'Impeller Active (Real Optics & Dispersion)'
+                      : 'Fallback Engine Active (Gaussian Blur Filter)',
+                  style: TextStyle(
+                    color: ui.ImageFilter.isShaderFilterSupported
+                        ? const Color(0xFF30D158)
+                        : const Color(0xFFFF9500),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+
               // QUALITY TIER
               ValueListenableBuilder<String>(
                 valueListenable: liquidGlassQualitySetting,
@@ -431,7 +551,7 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
                 },
               ),
 
-              // BLUR INTENSITY SLIDER
+              // BLUR INTENSITY SLIDER (Reduced default so refraction is sharp)
               ValueListenableBuilder<double>(
                 valueListenable: liquidGlassBlurSetting,
                 builder: (_, blurVal, __) {
@@ -460,8 +580,8 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
                     subtitle: Padding(
                       padding: const EdgeInsets.only(top: 6.0),
                       child: GlassSlider(
-                        value: blurVal,
-                        min: 8.0,
+                        value: blurVal.clamp(2.0, 40.0),
+                        min: 2.0,
                         max: 40.0,
                         onChanged: (newVal) {
                           liquidGlassBlurSetting.value = newVal;
@@ -507,7 +627,7 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
                     subtitle: Padding(
                       padding: const EdgeInsets.only(top: 6.0),
                       child: GlassSlider(
-                        value: thickVal,
+                        value: thickVal.clamp(10.0, 50.0),
                         min: 10.0,
                         max: 50.0,
                         onChanged: (newVal) {
@@ -532,7 +652,14 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
           // 4. THEME & DISPLAY
           GlassGroupedSection(
             surfaceStyle: GlassSurfaceStyle.solid,
-            header: const Text('THEME & DISPLAY'),
+            header: Text(
+              'THEME & DISPLAY',
+              style: TextStyle(
+                color: subtitleColor,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             children: [
               ValueListenableBuilder<bool>(
                 valueListenable: usePureBlackColor,
@@ -580,9 +707,11 @@ class PlaybackSettingsPage extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final titleColor = isDark ? Colors.white : const Color(0xFF1C1C1E);
     final subtitleColor = isDark ? Colors.white70 : const Color(0xFF636366);
+    final bgColor = isDark ? Colors.black : const Color(0xFFF2F2F7);
 
     return GlassScaffold(
       contentAwareBrightness: true,
+      background: Container(color: bgColor),
       appBar: GlassAppBar(
         leading: buildGlassBackButton(context),
         title: Text(
@@ -598,7 +727,14 @@ class PlaybackSettingsPage extends StatelessWidget {
           children: [
             GlassGroupedSection(
               surfaceStyle: GlassSurfaceStyle.solid,
-              header: const Text('AUDIO QUALITY'),
+              header: Text(
+                'AUDIO QUALITY',
+                style: TextStyle(
+                  color: subtitleColor,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               children: [
                 ValueListenableBuilder<String>(
                   valueListenable: audioQualitySetting,
@@ -641,125 +777,77 @@ class PlaybackSettingsPage extends StatelessWidget {
                     );
                   },
                 ),
-                GlassListTile(
-                  leading: const Icon(
-                    CupertinoIcons.slider_horizontal_below_rectangle,
-                    color: Color(0xFF30D158),
-                  ),
-                  title: Text(
-                    'Hardware Equalizer',
-                    style: TextStyle(color: titleColor),
-                  ),
-                  subtitle: Text(
-                    'Bass boost, reverb & 10-band equalization',
-                    style: TextStyle(color: subtitleColor, fontSize: 12),
-                  ),
-                  trailing: GlassListTile.chevron,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      CupertinoPageRoute(
-                        builder: (_) => const EqualizerPage(),
-                      ),
-                    );
-                  },
-                ),
               ],
             ),
             const SizedBox(height: 20),
             GlassGroupedSection(
               surfaceStyle: GlassSurfaceStyle.solid,
-              header: const Text('BACKGROUND & QUEUE BEHAVIOR'),
-              children: [
-                // Feature 1: Keep Playing after App Dismissed from Recent
-                ValueListenableBuilder<bool>(
-                  valueListenable: keepPlayingAfterDismiss,
-                  builder: (_, keepPlaying, __) {
-                    return GlassListTile(
-                      leading: const Icon(
-                        CupertinoIcons.play_arrow_solid,
-                        color: Color(0xFF34C759),
-                      ),
-                      title: Text(
-                        'Play After App Dismissed',
-                        style: TextStyle(color: titleColor),
-                      ),
-                      subtitle: Text(
-                        'Keep playback alive when swiped away from recent apps',
-                        style: TextStyle(color: subtitleColor, fontSize: 12),
-                      ),
-                      trailing: GlassSwitch(
-                        value: keepPlaying,
-                        onChanged: (val) {
-                          updateKeepPlayingAfterDismiss(val);
-                        },
-                      ),
-                    );
-                  },
+              header: Text(
+                'TRANSITIONS & EQUALIZER',
+                style: TextStyle(
+                  color: subtitleColor,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
                 ),
-
-                // Feature 2: Search Playback Queue Mode
-                ValueListenableBuilder<String>(
-                  valueListenable: searchQueueMode,
-                  builder: (_, mode, __) {
+              ),
+              children: [
+                ValueListenableBuilder<double>(
+                  valueListenable: crossfadeDurationSetting,
+                  builder: (_, crossfadeVal, __) {
                     return GlassListTile(
                       leading: const Icon(
-                        CupertinoIcons.list_number,
+                        CupertinoIcons.slider_horizontal_below_rectangle,
                         color: Color(0xFFFF2D55),
                       ),
-                      title: Text(
-                        'Search Playback Queue',
-                        style: TextStyle(color: titleColor),
+                      title: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Crossfade', style: TextStyle(color: titleColor)),
+                          Text(
+                            crossfadeVal == 0
+                                ? 'Off'
+                                : '${crossfadeVal.toStringAsFixed(1)}s',
+                            style: TextStyle(
+                              color: subtitleColor,
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
                       subtitle: Padding(
-                        padding: const EdgeInsets.only(top: 8.0),
-                        child: CupertinoSlidingSegmentedControl<String>(
-                          groupValue: mode,
-                          children: {
-                            'search_results': Text(
-                              'Search List',
-                              style: TextStyle(color: titleColor, fontSize: 12),
-                            ),
-                            'related_autoplay': Text(
-                              'Related Mix',
-                              style: TextStyle(color: titleColor, fontSize: 12),
-                            ),
-                            'ask_every_time': Text(
-                              'Ask Me',
-                              style: TextStyle(color: titleColor, fontSize: 12),
-                            ),
-                          },
-                          onValueChanged: (val) {
-                            if (val != null) {
-                              updateSearchQueueMode(val);
-                            }
+                        padding: const EdgeInsets.only(top: 6.0),
+                        child: GlassSlider(
+                          value: crossfadeVal.clamp(0.0, 12.0),
+                          min: 0.0,
+                          max: 12.0,
+                          onChanged: (newVal) {
+                            crossfadeDurationSetting.value = newVal;
+                            addOrUpdateData(
+                              'settings',
+                              'crossfadeDuration',
+                              newVal,
+                            );
                           },
                         ),
                       ),
                     );
                   },
                 ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            GlassGroupedSection(
-              surfaceStyle: GlassSurfaceStyle.solid,
-              header: const Text('SEAMLESS TRANSITIONS'),
-              children: [
                 ValueListenableBuilder<bool>(
                   valueListenable: gaplessPlaybackEnabled,
                   builder: (_, gapless, __) {
                     return GlassListTile(
                       leading: const Icon(
-                        CupertinoIcons.play_circle_fill,
-                        color: Color(0xFFFF9500),
+                        CupertinoIcons.infinite,
+                        color: Color(0xFF34C759),
                       ),
                       title: Text(
                         'Gapless Playback',
                         style: TextStyle(color: titleColor),
                       ),
                       subtitle: Text(
-                        'Pre-buffer next track for zero gap',
+                        'Seamless track transitions with zero silence',
                         style: TextStyle(color: subtitleColor, fontSize: 12),
                       ),
                       trailing: GlassSwitch(
@@ -776,33 +864,23 @@ class PlaybackSettingsPage extends StatelessWidget {
                     );
                   },
                 ),
-                ValueListenableBuilder<bool>(
-                  valueListenable: playNextSongAutomatically,
-                  builder: (_, autoPlay, __) {
-                    return GlassListTile(
-                      leading: const Icon(
-                        CupertinoIcons.infinite,
-                        color: Color(0xFFAF52DE),
-                      ),
-                      title: Text(
-                        'Infinite Autoplay',
-                        style: TextStyle(color: titleColor),
-                      ),
-                      subtitle: Text(
-                        'Continue similar music when queue ends',
-                        style: TextStyle(color: subtitleColor, fontSize: 12),
-                      ),
-                      trailing: GlassSwitch(
-                        value: autoPlay,
-                        onChanged: (val) {
-                          playNextSongAutomatically.value = val;
-                          addOrUpdateData(
-                            'settings',
-                            'playNextSongAutomatically',
-                            val,
-                          );
-                        },
-                      ),
+                GlassListTile(
+                  leading: const Icon(
+                    CupertinoIcons.equalizer,
+                    color: Color(0xFFAF52DE),
+                  ),
+                  title: Text(
+                    'Equalizer',
+                    style: TextStyle(color: titleColor),
+                  ),
+                  subtitle: Text(
+                    'Adjust bass, virtualizer, and frequency bands',
+                    style: TextStyle(color: subtitleColor, fontSize: 12),
+                  ),
+                  trailing: GlassListTile.chevron,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      CupertinoPageRoute(builder: (_) => const EqualizerPage()),
                     );
                   },
                 ),
@@ -829,11 +907,20 @@ class CanvasSettingsPage extends StatefulWidget {
 class _CanvasSettingsPageState extends State<CanvasSettingsPage> {
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final titleColor = isDark ? Colors.white : const Color(0xFF1C1C1E);
+    final subtitleColor = isDark ? Colors.white60 : const Color(0xFF636366);
+    final bgColor = isDark ? Colors.black : const Color(0xFFF2F2F7);
+
     return GlassScaffold(
       contentAwareBrightness: true,
+      background: Container(color: bgColor),
       appBar: GlassAppBar(
         leading: buildGlassBackButton(context),
-        title: const Text('FluentMusic Canvas', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+          'FluentMusic Canvas',
+          style: TextStyle(fontWeight: FontWeight.bold, color: titleColor),
+        ),
       ),
       body: ListView(
         physics: const BouncingScrollPhysics(),
@@ -841,15 +928,31 @@ class _CanvasSettingsPageState extends State<CanvasSettingsPage> {
         children: [
           GlassGroupedSection(
             surfaceStyle: GlassSurfaceStyle.solid,
-            header: const Text('STORAGE & CACHE'),
+            header: Text(
+              'STORAGE & CACHE',
+              style: TextStyle(
+                color: subtitleColor,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             children: [
               ValueListenableBuilder<bool>(
                 valueListenable: smartCacheEnabled,
                 builder: (_, smartCache, __) {
                   return GlassListTile(
-                    leading: const Icon(CupertinoIcons.sparkles, color: Color(0xFF5856D6)),
-                    title: const Text('Smart Lossless Cache', style: TextStyle(color: Colors.white)),
-                    subtitle: const Text('Intelligently caches high-fidelity songs for instant playback', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                    leading: const Icon(
+                      CupertinoIcons.sparkles,
+                      color: Color(0xFF5856D6),
+                    ),
+                    title: Text(
+                      'Smart Lossless Cache',
+                      style: TextStyle(color: titleColor),
+                    ),
+                    subtitle: Text(
+                      'Intelligently caches high-fidelity songs for instant playback',
+                      style: TextStyle(color: subtitleColor, fontSize: 12),
+                    ),
                     trailing: GlassSwitch(
                       value: smartCache,
                       onChanged: (val) {
@@ -861,9 +964,18 @@ class _CanvasSettingsPageState extends State<CanvasSettingsPage> {
                 },
               ),
               GlassListTile(
-                leading: const Icon(CupertinoIcons.trash, color: Color(0xFFFF3B30)),
-                title: const Text('Clear Audio Cache', style: TextStyle(color: Color(0xFFFF3B30))),
-                subtitle: const Text('Free up local storage without deleting favorites', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                leading: const Icon(
+                  CupertinoIcons.trash,
+                  color: Color(0xFFFF3B30),
+                ),
+                title: const Text(
+                  'Clear Audio Cache',
+                  style: TextStyle(color: Color(0xFFFF3B30)),
+                ),
+                subtitle: Text(
+                  'Free up local storage without deleting favorites',
+                  style: TextStyle(color: subtitleColor, fontSize: 12),
+                ),
                 onTap: () async {
                   showToast(context, 'Audio cache cleared successfully');
                 },
@@ -873,15 +985,31 @@ class _CanvasSettingsPageState extends State<CanvasSettingsPage> {
           const SizedBox(height: 20),
           GlassGroupedSection(
             surfaceStyle: GlassSurfaceStyle.solid,
-            header: const Text('NETWORK & DATA'),
+            header: Text(
+              'NETWORK & DATA',
+              style: TextStyle(
+                color: subtitleColor,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             children: [
               ValueListenableBuilder<bool>(
                 valueListenable: offlineMode,
                 builder: (_, isOffline, __) {
                   return GlassListTile(
-                    leading: const Icon(CupertinoIcons.airplane, color: Color(0xFFFF9500)),
-                    title: const Text('Offline Mode', style: TextStyle(color: Colors.white)),
-                    subtitle: const Text('Only play downloaded and cached media', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                    leading: const Icon(
+                      CupertinoIcons.airplane,
+                      color: Color(0xFFFF9500),
+                    ),
+                    title: Text(
+                      'Offline Mode',
+                      style: TextStyle(color: titleColor),
+                    ),
+                    subtitle: Text(
+                      'Only play downloaded and cached media',
+                      style: TextStyle(color: subtitleColor, fontSize: 12),
+                    ),
                     trailing: GlassSwitch(
                       value: isOffline,
                       onChanged: (val) {
@@ -909,11 +1037,20 @@ class LyricsSettingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final titleColor = isDark ? Colors.white : const Color(0xFF1C1C1E);
+    final subtitleColor = isDark ? Colors.white60 : const Color(0xFF636366);
+    final bgColor = isDark ? Colors.black : const Color(0xFFF2F2F7);
+
     return GlassScaffold(
       contentAwareBrightness: true,
+      background: Container(color: bgColor),
       appBar: GlassAppBar(
         leading: buildGlassBackButton(context),
-        title: const Text('Lyrics & Sync', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+          'Lyrics & Sync',
+          style: TextStyle(fontWeight: FontWeight.bold, color: titleColor),
+        ),
       ),
       body: ListView(
         physics: const BouncingScrollPhysics(),
@@ -921,20 +1058,40 @@ class LyricsSettingsPage extends StatelessWidget {
         children: [
           GlassGroupedSection(
             surfaceStyle: GlassSurfaceStyle.solid,
-            header: const Text('APPLE MUSIC KARAOKE SYNC'),
+            header: Text(
+              'APPLE MUSIC KARAOKE SYNC',
+              style: TextStyle(
+                color: subtitleColor,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             children: [
               ValueListenableBuilder<bool>(
                 valueListenable: appleMusicLyricsEnabled,
                 builder: (_, lyricsEnabled, __) {
                   return GlassListTile(
-                    leading: const Icon(CupertinoIcons.music_mic, color: Color(0xFFFF2D55)),
-                    title: const Text('Apple Music Glowing Lyrics', style: TextStyle(color: Colors.white)),
-                    subtitle: const Text('Full-screen dynamic glowing lyrics with word tracking', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                    leading: const Icon(
+                      CupertinoIcons.music_mic,
+                      color: Color(0xFFFF2D55),
+                    ),
+                    title: Text(
+                      'Apple Music Glowing Lyrics',
+                      style: TextStyle(color: titleColor),
+                    ),
+                    subtitle: Text(
+                      'Full-screen dynamic glowing lyrics with word tracking',
+                      style: TextStyle(color: subtitleColor, fontSize: 12),
+                    ),
                     trailing: GlassSwitch(
                       value: lyricsEnabled,
                       onChanged: (val) {
                         appleMusicLyricsEnabled.value = val;
-                        addOrUpdateData('settings', 'appleMusicLyricsEnabled', val);
+                        addOrUpdateData(
+                          'settings',
+                          'appleMusicLyricsEnabled',
+                          val,
+                        );
                       },
                     ),
                   );
@@ -944,14 +1101,27 @@ class LyricsSettingsPage extends StatelessWidget {
                 valueListenable: wordByWordLyricsEnabled,
                 builder: (_, wordSync, __) {
                   return GlassListTile(
-                    leading: const Icon(CupertinoIcons.text_quote, color: Color(0xFFAF52DE)),
-                    title: const Text('Word-to-Word Karaoke Tracking', style: TextStyle(color: Colors.white)),
-                    subtitle: const Text('Real-time syllable highlighting (YouLyPlus & BetterLyrics)', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                    leading: const Icon(
+                      CupertinoIcons.text_quote,
+                      color: Color(0xFFAF52DE),
+                    ),
+                    title: Text(
+                      'Word-to-Word Karaoke Tracking',
+                      style: TextStyle(color: titleColor),
+                    ),
+                    subtitle: Text(
+                      'Real-time syllable highlighting (YouLyPlus & BetterLyrics)',
+                      style: TextStyle(color: subtitleColor, fontSize: 12),
+                    ),
                     trailing: GlassSwitch(
                       value: wordSync,
                       onChanged: (val) {
                         wordByWordLyricsEnabled.value = val;
-                        addOrUpdateData('settings', 'wordByWordLyricsEnabled', val);
+                        addOrUpdateData(
+                          'settings',
+                          'wordByWordLyricsEnabled',
+                          val,
+                        );
                       },
                     ),
                   );
@@ -974,11 +1144,20 @@ class ContentSettingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final titleColor = isDark ? Colors.white : const Color(0xFF1C1C1E);
+    final subtitleColor = isDark ? Colors.white60 : const Color(0xFF636366);
+    final bgColor = isDark ? Colors.black : const Color(0xFFF2F2F7);
+
     return GlassScaffold(
       contentAwareBrightness: true,
+      background: Container(color: bgColor),
       appBar: GlassAppBar(
         leading: buildGlassBackButton(context),
-        title: const Text('Content & Region', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+          'Content & Region',
+          style: TextStyle(fontWeight: FontWeight.bold, color: titleColor),
+        ),
       ),
       body: ListView(
         physics: const BouncingScrollPhysics(),
@@ -986,12 +1165,28 @@ class ContentSettingsPage extends StatelessWidget {
         children: [
           GlassGroupedSection(
             surfaceStyle: GlassSurfaceStyle.solid,
-            header: const Text('LOCALIZATION'),
+            header: Text(
+              'LOCALIZATION',
+              style: TextStyle(
+                color: subtitleColor,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             children: [
               GlassListTile(
-                leading: const Icon(CupertinoIcons.globe, color: Color(0xFF007AFF)),
-                title: const Text('App Language', style: TextStyle(color: Colors.white)),
-                subtitle: Text(languageSetting.languageCode.toUpperCase(), style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                leading: const Icon(
+                  CupertinoIcons.globe,
+                  color: Color(0xFF007AFF),
+                ),
+                title: Text(
+                  'App Language',
+                  style: TextStyle(color: titleColor),
+                ),
+                subtitle: Text(
+                  languageSetting.languageCode.toUpperCase(),
+                  style: TextStyle(color: subtitleColor, fontSize: 12),
+                ),
                 trailing: GlassListTile.chevron,
                 onTap: () {
                   showToast(context, 'Language selector opened');
@@ -1002,15 +1197,31 @@ class ContentSettingsPage extends StatelessWidget {
           const SizedBox(height: 20),
           GlassGroupedSection(
             surfaceStyle: GlassSurfaceStyle.solid,
-            header: const Text('FILTERING'),
+            header: Text(
+              'FILTERING',
+              style: TextStyle(
+                color: subtitleColor,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             children: [
               ValueListenableBuilder<bool>(
                 valueListenable: sponsorBlockSupport,
                 builder: (_, sponsorBlock, __) {
                   return GlassListTile(
-                    leading: const Icon(CupertinoIcons.shield_fill, color: Color(0xFF30D158)),
-                    title: const Text('SponsorBlock Integration', style: TextStyle(color: Colors.white)),
-                    subtitle: const Text('Automatically skip non-music segments & intros', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                    leading: const Icon(
+                      CupertinoIcons.shield_fill,
+                      color: Color(0xFF30D158),
+                    ),
+                    title: Text(
+                      'SponsorBlock Integration',
+                      style: TextStyle(color: titleColor),
+                    ),
+                    subtitle: Text(
+                      'Automatically skip non-music segments & intros',
+                      style: TextStyle(color: subtitleColor, fontSize: 12),
+                    ),
                     trailing: GlassSwitch(
                       value: sponsorBlock,
                       onChanged: (val) {
@@ -1038,11 +1249,20 @@ class BehaviorSettingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final titleColor = isDark ? Colors.white : const Color(0xFF1C1C1E);
+    final subtitleColor = isDark ? Colors.white60 : const Color(0xFF636366);
+    final bgColor = isDark ? Colors.black : const Color(0xFFF2F2F7);
+
     return GlassScaffold(
       contentAwareBrightness: true,
+      background: Container(color: bgColor),
       appBar: GlassAppBar(
         leading: buildGlassBackButton(context),
-        title: const Text('Behavior & Privacy', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+          'Behavior & Privacy',
+          style: TextStyle(fontWeight: FontWeight.bold, color: titleColor),
+        ),
       ),
       body: ListView(
         physics: const BouncingScrollPhysics(),
@@ -1050,20 +1270,40 @@ class BehaviorSettingsPage extends StatelessWidget {
         children: [
           GlassGroupedSection(
             surfaceStyle: GlassSurfaceStyle.solid,
-            header: const Text('PLAYBACK CONTROLS'),
+            header: Text(
+              'PLAYBACK CONTROLS',
+              style: TextStyle(
+                color: subtitleColor,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             children: [
               ValueListenableBuilder<bool>(
                 valueListenable: autoResumePlaybackEnabled,
                 builder: (_, autoResume, __) {
                   return GlassListTile(
-                    leading: const Icon(CupertinoIcons.play_circle, color: Color(0xFFFF9500)),
-                    title: const Text('Auto-Resume on Launch', style: TextStyle(color: Colors.white)),
-                    subtitle: const Text('Resume last playing track when app opens', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                    leading: const Icon(
+                      CupertinoIcons.play_circle,
+                      color: Color(0xFFFF9500),
+                    ),
+                    title: Text(
+                      'Auto-Resume on Launch',
+                      style: TextStyle(color: titleColor),
+                    ),
+                    subtitle: Text(
+                      'Resume last playing track when app opens',
+                      style: TextStyle(color: subtitleColor, fontSize: 12),
+                    ),
                     trailing: GlassSwitch(
                       value: autoResume,
                       onChanged: (val) {
                         autoResumePlaybackEnabled.value = val;
-                        addOrUpdateData('settings', 'autoResumePlaybackEnabled', val);
+                        addOrUpdateData(
+                          'settings',
+                          'autoResumePlaybackEnabled',
+                          val,
+                        );
                       },
                     ),
                   );
@@ -1073,14 +1313,27 @@ class BehaviorSettingsPage extends StatelessWidget {
                 valueListenable: pauseOnHeadphoneDisconnect,
                 builder: (_, pauseOnDisconnect, __) {
                   return GlassListTile(
-                    leading: const Icon(CupertinoIcons.headphones, color: Color(0xFF007AFF)),
-                    title: const Text('Pause on Disconnect', style: TextStyle(color: Colors.white)),
-                    subtitle: const Text('Pause audio when headphones or Bluetooth unplug', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                    leading: const Icon(
+                      CupertinoIcons.headphones,
+                      color: Color(0xFF007AFF),
+                    ),
+                    title: Text(
+                      'Pause on Disconnect',
+                      style: TextStyle(color: titleColor),
+                    ),
+                    subtitle: Text(
+                      'Pause audio when headphones or Bluetooth unplug',
+                      style: TextStyle(color: subtitleColor, fontSize: 12),
+                    ),
                     trailing: GlassSwitch(
                       value: pauseOnDisconnect,
                       onChanged: (val) {
                         pauseOnHeadphoneDisconnect.value = val;
-                        addOrUpdateData('settings', 'pauseOnHeadphoneDisconnect', val);
+                        addOrUpdateData(
+                          'settings',
+                          'pauseOnHeadphoneDisconnect',
+                          val,
+                        );
                       },
                     ),
                   );
@@ -1091,20 +1344,40 @@ class BehaviorSettingsPage extends StatelessWidget {
           const SizedBox(height: 20),
           GlassGroupedSection(
             surfaceStyle: GlassSurfaceStyle.solid,
-            header: const Text('SEARCH PRIVACY'),
+            header: Text(
+              'SEARCH PRIVACY',
+              style: TextStyle(
+                color: subtitleColor,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             children: [
               ValueListenableBuilder<bool>(
                 valueListenable: saveSearchHistoryEnabled,
                 builder: (_, saveHistory, __) {
                   return GlassListTile(
-                    leading: const Icon(CupertinoIcons.search, color: Color(0xFFAF52DE)),
-                    title: const Text('Save Search History', style: TextStyle(color: Colors.white)),
-                    subtitle: const Text('Store recent searches on this device', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                    leading: const Icon(
+                      CupertinoIcons.search,
+                      color: Color(0xFFAF52DE),
+                    ),
+                    title: Text(
+                      'Save Search History',
+                      style: TextStyle(color: titleColor),
+                    ),
+                    subtitle: Text(
+                      'Store recent searches on this device',
+                      style: TextStyle(color: subtitleColor, fontSize: 12),
+                    ),
                     trailing: GlassSwitch(
                       value: saveHistory,
                       onChanged: (val) {
                         saveSearchHistoryEnabled.value = val;
-                        addOrUpdateData('settings', 'saveSearchHistoryEnabled', val);
+                        addOrUpdateData(
+                          'settings',
+                          'saveSearchHistoryEnabled',
+                          val,
+                        );
                       },
                     ),
                   );
@@ -1127,11 +1400,20 @@ class AndroidAutoSettingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final titleColor = isDark ? Colors.white : const Color(0xFF1C1C1E);
+    final subtitleColor = isDark ? Colors.white60 : const Color(0xFF636366);
+    final bgColor = isDark ? Colors.black : const Color(0xFFF2F2F7);
+
     return GlassScaffold(
       contentAwareBrightness: true,
+      background: Container(color: bgColor),
       appBar: GlassAppBar(
         leading: buildGlassBackButton(context),
-        title: const Text('Android Auto', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+          'Android Auto',
+          style: TextStyle(fontWeight: FontWeight.bold, color: titleColor),
+        ),
       ),
       body: ListView(
         physics: const BouncingScrollPhysics(),
@@ -1139,15 +1421,31 @@ class AndroidAutoSettingsPage extends StatelessWidget {
         children: [
           GlassGroupedSection(
             surfaceStyle: GlassSurfaceStyle.solid,
-            header: const Text('CAR DASHBOARD INTEGRATION'),
+            header: Text(
+              'CAR DASHBOARD INTEGRATION',
+              style: TextStyle(
+                color: subtitleColor,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             children: [
               ValueListenableBuilder<bool>(
                 valueListenable: androidAutoEnabled,
                 builder: (_, autoEnabled, __) {
                   return GlassListTile(
-                    leading: const Icon(CupertinoIcons.car_fill, color: Color(0xFF30D158)),
-                    title: const Text('Enable Android Auto', style: TextStyle(color: Colors.white)),
-                    subtitle: const Text('Expose media browser service to car head unit', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                    leading: const Icon(
+                      CupertinoIcons.car_fill,
+                      color: Color(0xFF30D158),
+                    ),
+                    title: Text(
+                      'Enable Android Auto',
+                      style: TextStyle(color: titleColor),
+                    ),
+                    subtitle: Text(
+                      'Expose media browser service to car head unit',
+                      style: TextStyle(color: subtitleColor, fontSize: 12),
+                    ),
                     trailing: GlassSwitch(
                       value: autoEnabled,
                       onChanged: (val) {

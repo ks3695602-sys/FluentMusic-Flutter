@@ -17,7 +17,9 @@
 
 import 'dart:async';
 
+import 'package:audio_service/audio_service.dart' show PlaybackState;
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/scheduler.dart' show Ticker;
 import 'package:flutter_lyric/flutter_lyric.dart' hide LyricLine;
 import 'package:musify/main.dart';
 import 'package:musify/models/position_data.dart';
@@ -34,10 +36,17 @@ class SyncedLyricsView extends StatefulWidget {
   State<SyncedLyricsView> createState() => _SyncedLyricsViewState();
 }
 
-class _SyncedLyricsViewState extends State<SyncedLyricsView> {
+class _SyncedLyricsViewState extends State<SyncedLyricsView>
+    with SingleTickerProviderStateMixin {
   late final LyricController _controller;
+  late final Ticker _ticker;
   StreamSubscription<PositionData>? _positionSubscription;
+  StreamSubscription<PlaybackState>? _playbackSubscription;
   Duration _offset = Duration.zero;
+
+  Duration _lastPosition = Duration.zero;
+  DateTime _lastPositionTime = DateTime.now();
+  bool _isPlaying = false;
 
   @override
   void initState() {
@@ -47,15 +56,61 @@ class _SyncedLyricsViewState extends State<SyncedLyricsView> {
     _controller = LyricController();
     _loadLyrics();
 
+    _ticker = createTicker(_onTick);
+
     _positionSubscription = audioHandler.positionDataStream.listen((data) {
       if (!mounted) return;
-      final effectivePos = data.position + _offset;
-      try {
-        _controller.setPosition(
-          effectivePos.isNegative ? Duration.zero : effectivePos,
-        );
-      } catch (_) {}
+      _lastPosition = data.position;
+      _lastPositionTime = DateTime.now();
+      _syncPosition();
     });
+
+    _playbackSubscription = audioHandler.playbackState.listen((state) {
+      if (!mounted) return;
+      final playing = state.playing;
+      if (_isPlaying != playing) {
+        _isPlaying = playing;
+        if (playing) {
+          _lastPositionTime = DateTime.now();
+          if (!_ticker.isTicking) _ticker.start();
+        } else {
+          if (_ticker.isTicking) _ticker.stop();
+        }
+      }
+    });
+
+    // Seed initial position and playback state
+    try {
+      final currentPos = audioHandler.currentPositionData.position;
+      _lastPosition = currentPos;
+      _lastPositionTime = DateTime.now();
+      _isPlaying = audioHandler.playbackState.value.playing;
+      _syncPosition();
+      if (_isPlaying) {
+        _ticker.start();
+      }
+    } catch (_) {}
+  }
+
+  void _onTick(Duration elapsed) {
+    if (!_isPlaying) return;
+    final now = DateTime.now();
+    final elapsedSinceLast = now.difference(_lastPositionTime);
+    final estimatedPos = _lastPosition + elapsedSinceLast + _offset;
+    try {
+      _controller.setPosition(
+        estimatedPos.isNegative ? Duration.zero : estimatedPos,
+      );
+    } catch (_) {}
+  }
+
+  void _syncPosition() {
+    final effectivePos = _lastPosition + _offset;
+    try {
+      _controller.setPosition(
+        effectivePos.isNegative ? Duration.zero : effectivePos,
+      );
+    } catch (_) {}
   }
 
   void _loadLyrics() {
@@ -74,6 +129,7 @@ class _SyncedLyricsViewState extends State<SyncedLyricsView> {
     setState(() {
       _offset = Duration(milliseconds: lyricsOffsetMs.value);
     });
+    _syncPosition();
   }
 
   @override
@@ -87,7 +143,9 @@ class _SyncedLyricsViewState extends State<SyncedLyricsView> {
   @override
   void dispose() {
     lyricsOffsetMs.removeListener(_onOffsetChanged);
+    _ticker.dispose();
     _positionSubscription?.cancel();
+    _playbackSubscription?.cancel();
     _controller.dispose();
     super.dispose();
   }

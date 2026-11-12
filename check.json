@@ -1,6 +1,6 @@
 {
-  "version": "1.3.7",
-  "buildNumber": "10",
-  "log": "FluentMusic v1.3.7 Studio Overhaul:\n- Studio-grade Apple Music Lyrics Engine powered by flutter_lyric (01/Float preset with distance optical blur and zero text jitter)\n- Impeller Vulkan engine force-enabled in AndroidManifest for real optical refraction and specular dispersion\n- Eliminated nested glass anti-pattern in MiniPlayer, restoring full Liquid Glass shaders and performance\n- Global Light Mode contrast overhaul: all headers, tiles, subtitles, cards and player controls dynamically adapt to dark/light brightness\n- Settings screen navigation overhaul: subpages push fullscreen with hidesBottomBarWhenPushed, eliminating duplicate back buttons and tab highlight desync\n- Removed buggy scroll listener that collapsed the bottom navigation bar into a gear button",
-  "downloadUrl": "https://github.com/ks3695602-sys/FluentMusic-Flutter/releases/download/v1.3.7/FluentMusic-universal-release.apk"
+  "version": "1.3.8",
+  "buildNumber": "11",
+  "log": "FluentMusic v1.3.8 Optics, High-Refresh Lyrics & Light Mode Fixes:\n- 60Hz/90Hz/120Hz Vsync Ticker interpolation engine for lyrics, bypassing the 250ms threshold to eliminate jitter and vocal lag\n- Progressive word-level karaoke interpolation for lines without word sync, ensuring smooth syllable gliding\n- Fixed search icon staying white in Light Mode across bottom navigation\n- Complete Light Mode contrast overhaul in Library and Settings subpages (PlaylistBar, quick links, and all 9 settings subpages)\n- Liquid Glass refraction sharpening: reduced default blur to 8px and expanded blur slider down to 2px so optical lens distortion is crisp and distinct\n- Added live Hardware Shader Pipeline diagnostic in Settings > Liquid Glass",
+  "downloadUrl": "https://github.com/ks3695602-sys/FluentMusic-Flutter/releases/download/v1.3.8/FluentMusic-universal-release.apk"
 }

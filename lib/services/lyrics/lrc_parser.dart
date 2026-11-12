@@ -132,5 +132,19 @@ List<LyricLine> parseLrc(String input) {
       final c = a.value.start.compareTo(b.value.start);
       return c != 0 ? c : a.key.compareTo(b.key);
     });
-  return indexed.map((e) => e.value).toList();
+  final sortedLines = indexed.map((e) => e.value).toList();
+  for (var i = 0; i < sortedLines.length; i++) {
+    if (sortedLines[i].end == null && i + 1 < sortedLines.length) {
+      final nextStart = sortedLines[i + 1].start;
+      if (nextStart > sortedLines[i].start) {
+        sortedLines[i] = LyricLine(
+          sortedLines[i].start,
+          sortedLines[i].text,
+          end: nextStart,
+          words: sortedLines[i].words,
+        );
+      }
+    }
+  }
+  return sortedLines;
 }

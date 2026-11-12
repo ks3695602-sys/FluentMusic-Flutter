@@ -188,8 +188,9 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
                                   widget.child.goBranch(0);
                                 }
                               },
-                              searchIconColor: CupertinoColors.white
-                                  .withValues(alpha: 0.9),
+                              searchIconColor: isLight
+                                  ? CupertinoColors.black.withValues(alpha: 0.85)
+                                  : CupertinoColors.white.withValues(alpha: 0.9),
                             ),
                           );
                         },
