@@ -90,19 +90,22 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
                 background: Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                       colors: isLight
                           ? const [
-                              Color(0xFFF7F7F9),
-                              Color(0xFFEBEBF0),
+                              Color(0xFFF0EBF8),
+                              Color(0xFFF7F7FA),
+                              Color(0xFFE8EEF5),
                               Color(0xFFFFFFFF),
                             ]
                           : const [
-                              Color(0xFF160E1A),
-                              Color(0xFF0A070D),
+                              Color(0xFF1F122B),
+                              Color(0xFF120D1A),
+                              Color(0xFF09070D),
                               Color(0xFF000000),
                             ],
+                      stops: const [0.0, 0.35, 0.70, 1.0],
                     ),
                   ),
                 ),

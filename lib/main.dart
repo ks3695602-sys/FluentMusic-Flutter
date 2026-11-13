@@ -350,6 +350,8 @@ void main() async {
         return LiquidGlassWidgets.wrap(
           brightnessResolver: Theme.maybeBrightnessOf,
           theme: glassTheme,
+          adaptiveQuality: true,
+          respectSystemAccessibility: true,
           child: const Musify(),
         );
       },

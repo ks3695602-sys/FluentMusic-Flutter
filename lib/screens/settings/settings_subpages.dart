@@ -47,6 +47,31 @@ Widget buildGlassBackButton(BuildContext context) {
   );
 }
 
+Widget buildSubpageBackground(bool isDark) {
+  return Container(
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: isDark
+            ? const [
+                Color(0xFF160E20),
+                Color(0xFF0F0B16),
+                Color(0xFF08060B),
+                Color(0xFF000000),
+              ]
+            : const [
+                Color(0xFFF2ECF9),
+                Color(0xFFF8F8FB),
+                Color(0xFFEBEFF5),
+                Color(0xFFF2F2F7),
+              ],
+        stops: const [0.0, 0.35, 0.70, 1.0],
+      ),
+    ),
+  );
+}
+
 // ---------------------------------------------------------------------------
 // 1. ACCOUNT SUBPAGE
 // ---------------------------------------------------------------------------
@@ -67,7 +92,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
 
     return GlassScaffold(
       contentAwareBrightness: true,
-      background: Container(color: bgColor),
+      background: buildSubpageBackground(isDark),
       appBar: GlassAppBar(
         leading: buildGlassBackButton(context),
         title: Text(
@@ -182,7 +207,7 @@ class ListeningStatsSettingsPage extends StatelessWidget {
 
     return GlassScaffold(
       contentAwareBrightness: true,
-      background: Container(color: bgColor),
+      background: buildSubpageBackground(isDark),
       appBar: GlassAppBar(
         leading: buildGlassBackButton(context),
         title: Text(
@@ -294,7 +319,7 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
 
     return GlassScaffold(
       contentAwareBrightness: true,
-      background: Container(color: bgColor),
+      background: buildSubpageBackground(isDark),
       appBar: GlassAppBar(
         leading: buildGlassBackButton(context),
         title: Text(
@@ -711,7 +736,7 @@ class PlaybackSettingsPage extends StatelessWidget {
 
     return GlassScaffold(
       contentAwareBrightness: true,
-      background: Container(color: bgColor),
+      background: buildSubpageBackground(isDark),
       appBar: GlassAppBar(
         leading: buildGlassBackButton(context),
         title: Text(
@@ -914,7 +939,7 @@ class _CanvasSettingsPageState extends State<CanvasSettingsPage> {
 
     return GlassScaffold(
       contentAwareBrightness: true,
-      background: Container(color: bgColor),
+      background: buildSubpageBackground(isDark),
       appBar: GlassAppBar(
         leading: buildGlassBackButton(context),
         title: Text(
@@ -1044,7 +1069,7 @@ class LyricsSettingsPage extends StatelessWidget {
 
     return GlassScaffold(
       contentAwareBrightness: true,
-      background: Container(color: bgColor),
+      background: buildSubpageBackground(isDark),
       appBar: GlassAppBar(
         leading: buildGlassBackButton(context),
         title: Text(
@@ -1151,7 +1176,7 @@ class ContentSettingsPage extends StatelessWidget {
 
     return GlassScaffold(
       contentAwareBrightness: true,
-      background: Container(color: bgColor),
+      background: buildSubpageBackground(isDark),
       appBar: GlassAppBar(
         leading: buildGlassBackButton(context),
         title: Text(
@@ -1256,7 +1281,7 @@ class BehaviorSettingsPage extends StatelessWidget {
 
     return GlassScaffold(
       contentAwareBrightness: true,
-      background: Container(color: bgColor),
+      background: buildSubpageBackground(isDark),
       appBar: GlassAppBar(
         leading: buildGlassBackButton(context),
         title: Text(
@@ -1407,7 +1432,7 @@ class AndroidAutoSettingsPage extends StatelessWidget {
 
     return GlassScaffold(
       contentAwareBrightness: true,
-      background: Container(color: bgColor),
+      background: buildSubpageBackground(isDark),
       appBar: GlassAppBar(
         leading: buildGlassBackButton(context),
         title: Text(

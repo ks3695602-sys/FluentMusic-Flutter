@@ -124,11 +124,11 @@ final liquidGlassQualitySetting = ValueNotifier<String>(
 );
 
 final liquidGlassBlurSetting = ValueNotifier<double>(
-  (Hive.box('settings').get('liquidGlassBlur', defaultValue: 8.0) as num).toDouble(),
+  (Hive.box('settings').get('liquidGlassBlur', defaultValue: 4.0) as num).toDouble(),
 );
 
 final liquidGlassThicknessSetting = ValueNotifier<double>(
-  (Hive.box('settings').get('liquidGlassThickness', defaultValue: 25.0) as num).toDouble(),
+  (Hive.box('settings').get('liquidGlassThickness', defaultValue: 40.0) as num).toDouble(),
 );
 
 final liquidGlassDockOpacitySetting = ValueNotifier<double>(
@@ -323,7 +323,11 @@ void reloadSettingsFromStorage() {
   );
   liquidGlassBlurSetting.value = (settings.get(
     'liquidGlassBlur',
-    defaultValue: 8.0,
+    defaultValue: 4.0,
+  ) as num).toDouble();
+  liquidGlassThicknessSetting.value = (settings.get(
+    'liquidGlassThickness',
+    defaultValue: 40.0,
   ) as num).toDouble();
   final restoredRepeatIndex = settings.get('repeatMode', defaultValue: 0);
   if (restoredRepeatIndex is int &&
