@@ -78,9 +78,6 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final titleColor = isDark ? CupertinoColors.white : const Color(0xFF1C1C1E);
-    final subtitleColor = isDark
-        ? CupertinoColors.white.withValues(alpha: 0.65)
-        : const Color(0xFF8E8E93);
     final iconBgColor = isDark
         ? CupertinoColors.white.withValues(alpha: 0.12)
         : const Color(0xFF000000).withValues(alpha: 0.08);

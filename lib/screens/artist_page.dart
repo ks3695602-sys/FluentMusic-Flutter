@@ -1,4 +1,4 @@
-﻿/*
+/*
  *     Copyright (C) 2026 Valeri Gokadze
  *
  *     Musify is free software: you can redistribute it and/or modify
@@ -24,7 +24,7 @@ import 'dart:async';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' hide ColorScheme;
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:musify/constants/app_constants.dart';
 import 'package:musify/extensions/l10n.dart';
@@ -433,7 +433,7 @@ class _ArtistPageState extends State<ArtistPage> {
       'ep' => 'EP',
       _ => context.l10n!.album,
     };
-    return year == null || year.isEmpty ? type : '$type • $year';
+    return year == null || year.isEmpty ? type : '$type � $year';
   }
 
   // Shares the complete catalog with "All songs" and keeps it after the first

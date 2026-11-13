@@ -18,7 +18,9 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show Colors, Theme, ThemeMode;
+import 'package:flutter/material.dart' show Colors, Theme;
+import 'package:material_ui/material_ui.dart' show ThemeMode;
+import 'package:musify/theme/app_themes.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:musify/constants/app_constants.dart';
@@ -502,7 +504,7 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
               // ACTIVE RENDER PATH & TIER DIAGNOSTIC TILE
               Builder(
                 builder: (tileContext) {
-                  final effectiveTier = GlassAdaptiveScope.maybeOf(tileContext)?.effectiveQuality ??
+                  final effectiveTier = GlassAdaptiveScopeData.maybeOf(tileContext)?.effectiveQuality ??
                       GlassQuality.premium;
                   final tierName = effectiveTier == GlassQuality.premium
                       ? 'Premium'
