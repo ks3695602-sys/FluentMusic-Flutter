@@ -171,12 +171,16 @@ class _SyncedLyricsViewState extends State<SyncedLyricsView>
     }
 
     if (!widget.lyrics.isSynced) {
+      final cleanPlain = (widget.lyrics.plain ?? '')
+          .replaceAll(RegExp(r'<[^>]+>'), '')
+          .replaceAll(RegExp(r'\[\d{1,3}:\d{1,2}(?:[.:]\d{1,3})?\]'), '')
+          .trim();
       return SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 40),
         child: Center(
           child: Text(
-            widget.lyrics.plain ?? '',
+            cleanPlain.isEmpty ? 'No Lyrics Available' : cleanPlain,
             style: const TextStyle(
               color: CupertinoColors.white,
               fontSize: 20,

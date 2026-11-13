@@ -843,9 +843,13 @@ int _lyricsRequestCounter = 0;
 
 /// Plain-text version of [result] as shown for unsynced lyrics.
 String formatPlainLyrics(Lyrics result) {
-  return '${result.text}\n\n© ${result.source}'
-      .replaceAll(RegExp(r'\n{4}'), '\n\n')
-      .replaceAll(RegExp(r'\n{2}'), '\n');
+  final cleanText = result.text
+      .replaceAll(RegExp(r'<[^>]+>'), '')
+      .replaceAll(RegExp(r'\[\d{1,3}:\d{1,2}(?:[.:]\d{1,3})?\]'), '')
+      .trim();
+  return '$cleanText\n\n© ${result.source}'
+      .replaceAll(RegExp(r'\n{4,}'), '\n\n')
+      .replaceAll(RegExp(r'\n{3}'), '\n\n');
 }
 
 /// Fetches lyrics for a song, keeping timestamps when the provider has them.

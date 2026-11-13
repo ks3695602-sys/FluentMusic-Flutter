@@ -69,7 +69,9 @@ List<LyricLine> parseLrc(String input) {
 
     final rawContent = raw.substring(matches.last.end);
     final text = rawContent
+        .replaceAll(RegExp(r'<[^>]+>'), '')
         .replaceAll(_wordTag, '')
+        .replaceAll(RegExp(r'\[\d{1,3}:\d{1,2}(?:[.:]\d{1,3})?\]'), '')
         .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
 
