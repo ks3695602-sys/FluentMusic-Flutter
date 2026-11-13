@@ -85,11 +85,11 @@ class _NowPlayingPageState extends State<NowPlayingPage> {
                 color: CupertinoColors.black,
                 child: artworkUrl != null && artworkUrl.isNotEmpty
                     ? ImageFiltered(
-                        imageFilter: ImageFilter.blur(sigmaX: 70, sigmaY: 70),
+                        imageFilter: ImageFilter.blur(sigmaX: 60, sigmaY: 60),
                         child: Transform.scale(
-                          scale: 1.4,
+                          scale: 1.35,
                           child: Opacity(
-                            opacity: 0.50,
+                            opacity: 0.55,
                             child: Image(
                               image: ArtworkProvider.get(artworkUrl),
                               fit: BoxFit.cover,
@@ -98,7 +98,19 @@ class _NowPlayingPageState extends State<NowPlayingPage> {
                           ),
                         ),
                       )
-                    : const SizedBox.shrink(),
+                    : Container(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              Color(0xFF2A1435),
+                              Color(0xFF140B1D),
+                              Color(0xFF000000),
+                            ],
+                          ),
+                        ),
+                      ),
               ),
             ),
             Positioned.fill(
@@ -108,9 +120,10 @@ class _NowPlayingPageState extends State<NowPlayingPage> {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      CupertinoColors.black.withValues(alpha: 0.35),
-                      CupertinoColors.black.withValues(alpha: 0.70),
+                      CupertinoColors.black.withValues(alpha: 0.25),
+                      CupertinoColors.black.withValues(alpha: 0.75),
                     ],
+                    stops: const [0.0, 1.0],
                   ),
                 ),
               ),

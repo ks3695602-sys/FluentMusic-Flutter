@@ -519,36 +519,21 @@ class PlayerControlButtons extends StatelessWidget {
     return ValueListenableBuilder<bool>(
       valueListenable: shuffleNotifier,
       builder: (_, value, __) {
-        return Container(
-          width: 38,
-          height: 38,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
+        return GlassIconButton(
+          icon: Icon(
+            CupertinoIcons.shuffle,
+            size: 18,
             color: value
-                ? CupertinoColors.white.withValues(alpha: 0.25)
-                : CupertinoColors.white.withValues(alpha: 0.08),
-            border: Border.all(
-              color: value
-                  ? const Color(0xFFFF2D55).withValues(alpha: 0.6)
-                  : CupertinoColors.white.withValues(alpha: 0.15),
-              width: 0.8,
-            ),
+                ? const Color(0xFFFF2D55)
+                : CupertinoColors.white.withValues(alpha: 0.75),
           ),
-          child: CupertinoButton(
-            padding: EdgeInsets.zero,
-            onPressed: () {
-              audioHandler.setShuffleMode(
-                value
-                    ? AudioServiceShuffleMode.none
-                    : AudioServiceShuffleMode.all,
-              );
-            },
-            child: Icon(
-              CupertinoIcons.shuffle,
-              size: 18,
-              color: value ? const Color(0xFFFF2D55) : CupertinoColors.white.withValues(alpha: 0.7),
-            ),
-          ),
+          onPressed: () {
+            audioHandler.setShuffleMode(
+              value
+                  ? AudioServiceShuffleMode.none
+                  : AudioServiceShuffleMode.all,
+            );
+          },
         );
       },
     );
@@ -570,47 +555,30 @@ class PlayerControlButtons extends StatelessWidget {
           builder: (_, repeatMode, __) {
             final isActive = repeatMode != AudioServiceRepeatMode.none;
 
-            return Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
+            return GlassIconButton(
+              icon: Icon(
+                repeatMode == AudioServiceRepeatMode.one
+                    ? CupertinoIcons.repeat_1
+                    : CupertinoIcons.repeat,
+                size: 18,
                 color: isActive
-                    ? CupertinoColors.white.withValues(alpha: 0.25)
-                    : CupertinoColors.white.withValues(alpha: 0.08),
-                border: Border.all(
-                  color: isActive
-                      ? const Color(0xFFFF2D55).withValues(alpha: 0.6)
-                      : CupertinoColors.white.withValues(alpha: 0.15),
-                  width: 0.8,
-                ),
+                    ? const Color(0xFFFF2D55)
+                    : CupertinoColors.white.withValues(alpha: 0.75),
               ),
-              child: CupertinoButton(
-                padding: EdgeInsets.zero,
-                onPressed: () {
-                  final AudioServiceRepeatMode newMode;
-                  if (repeatMode == AudioServiceRepeatMode.none) {
-                    newMode = queue.length <= 1
-                        ? AudioServiceRepeatMode.one
-                        : AudioServiceRepeatMode.all;
-                  } else if (repeatMode == AudioServiceRepeatMode.all) {
-                    newMode = AudioServiceRepeatMode.one;
-                  } else {
-                    newMode = AudioServiceRepeatMode.none;
-                  }
-                  repeatNotifier.value = newMode;
-                  audioHandler.setRepeatMode(newMode);
-                },
-                child: Icon(
-                  repeatMode == AudioServiceRepeatMode.one
-                      ? CupertinoIcons.repeat_1
-                      : CupertinoIcons.repeat,
-                  size: 18,
-                  color: isActive
-                      ? const Color(0xFFFF2D55)
-                      : CupertinoColors.white.withValues(alpha: 0.7),
-                ),
-              ),
+              onPressed: () {
+                final AudioServiceRepeatMode newMode;
+                if (repeatMode == AudioServiceRepeatMode.none) {
+                  newMode = queue.length <= 1
+                      ? AudioServiceRepeatMode.one
+                      : AudioServiceRepeatMode.all;
+                } else if (repeatMode == AudioServiceRepeatMode.all) {
+                  newMode = AudioServiceRepeatMode.one;
+                } else {
+                  newMode = AudioServiceRepeatMode.none;
+                }
+                repeatNotifier.value = newMode;
+                audioHandler.setRepeatMode(newMode);
+              },
             );
           },
         );
@@ -722,25 +690,15 @@ class _PlaybackControlButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return IconButton(
+    return GlassIconButton(
       icon: Icon(
         icon,
         color: isEnabled
             ? CupertinoColors.white
             : CupertinoColors.white.withValues(alpha: 0.3),
+        size: controlIconSize * 0.72,
       ),
-      tooltip: tooltip,
-      constraints: buttonConstraints,
-      iconSize: controlIconSize * 0.72,
-      onPressed: isEnabled ? onPressed : null,
-      splashColor: Colors.transparent,
-      highlightColor: Colors.transparent,
-      style: IconButton.styleFrom(
-        backgroundColor: Colors.transparent,
-        disabledBackgroundColor: Colors.transparent,
-        padding: buttonPadding,
-        minimumSize: Size(minButtonSize, minButtonSize),
-      ),
+      onPressed: isEnabled ? onPressed : () {},
     );
   }
 }

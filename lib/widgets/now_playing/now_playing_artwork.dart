@@ -60,10 +60,10 @@ class NowPlayingArtwork extends StatelessWidget {
         : screenWidth < 360
         ? screenWidth * 0.75
         : screenWidth < 600
-        ? screenWidth * 0.80
+        ? (screenWidth * 0.84).clamp(300.0, 340.0)
         : screenWidth * 0.65;
 
-    const borderRadius = 24.0;
+    const borderRadius = 28.0;
 
     return FlipCard(
       rotateSide: RotateSide.right,
@@ -75,9 +75,9 @@ class NowPlayingArtwork extends StatelessWidget {
           borderRadius: BorderRadius.circular(borderRadius),
           boxShadow: [
             BoxShadow(
-              color: colorScheme.shadow.withValues(alpha: 0.15),
-              blurRadius: 24,
-              offset: const Offset(0, 8),
+              color: CupertinoColors.black.withValues(alpha: 0.40),
+              blurRadius: 36,
+              offset: const Offset(0, 16),
               spreadRadius: 2,
             ),
           ],

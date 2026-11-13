@@ -20,6 +20,7 @@ import 'dart:io';
 import 'package:audio_service/audio_service.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' hide ColorScheme;
 import 'package:material_ui/material_ui.dart';
 import 'package:musify/extensions/l10n.dart';
 import 'package:musify/main.dart';
@@ -53,71 +54,50 @@ class BottomActionsRow extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          // 1. Lyrics quote bubble (Apple Music style with active pill)
+          // 1. Lyrics quote bubble (Apple Music style with active glass pill)
           ValueListenableBuilder<bool>(
             valueListenable: lyricsController.isFlipped,
             builder: (context, isLyricsFlipped, _) {
-              return CupertinoButton(
-                padding: EdgeInsets.zero,
+              return GlassIconButton(
+                icon: Icon(
+                  isLyricsFlipped
+                      ? CupertinoIcons.quote_bubble_fill
+                      : CupertinoIcons.quote_bubble,
+                  size: 20,
+                  color: isLyricsFlipped
+                      ? const Color(0xFFFF2D55)
+                      : CupertinoColors.white.withValues(alpha: 0.85),
+                ),
                 onPressed: () {
                   lyricsController.flipcard();
                 },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isLyricsFlipped
-                        ? CupertinoColors.white.withValues(alpha: 0.22)
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Icon(
-                    isLyricsFlipped
-                        ? CupertinoIcons.quote_bubble_fill
-                        : CupertinoIcons.quote_bubble,
-                    size: 24,
-                    color: isLyricsFlipped
-                        ? CupertinoColors.white
-                        : CupertinoColors.white.withValues(alpha: 0.65),
-                  ),
-                ),
               );
             },
           ),
 
           // 2. AirPlay / Audio Output Device
-          CupertinoButton(
-            padding: EdgeInsets.zero,
-            onPressed: () => _showAudioOutputSheet(context),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              child: Icon(
-                FluentIcons.speaker_2_24_regular,
-                size: 24,
-                color: CupertinoColors.white.withValues(alpha: 0.65),
-              ),
+          GlassIconButton(
+            icon: const Icon(
+              FluentIcons.speaker_2_24_regular,
+              size: 20,
+              color: CupertinoColors.white,
             ),
+            onPressed: () => _showAudioOutputSheet(context),
           ),
 
           // 3. Queue List Button
-          CupertinoButton(
-            padding: EdgeInsets.zero,
+          GlassIconButton(
+            icon: const Icon(
+              CupertinoIcons.list_bullet,
+              size: 20,
+              color: CupertinoColors.white,
+            ),
             onPressed: () {
               showCustomBottomSheet(
                 context,
                 const QueueWidget(isBottomSheet: true),
               );
             },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              child: Icon(
-                CupertinoIcons.list_bullet,
-                size: 24,
-                color: CupertinoColors.white.withValues(alpha: 0.65),
-              ),
-            ),
           ),
         ],
       ),
