@@ -136,15 +136,15 @@ void main() {
     });
 
     test(
-      'exports Musify identity, artwork, valid track ID and playback state',
+      'exports Fluent Music identity, artwork, valid track ID and playback state',
       () async {
         expect(
           (await remote.getProperty(root, 'DesktopEntry')).asString(),
-          'musify',
+          'fluentmusic',
         );
         expect(
           (await remote.getProperty(root, 'Identity')).asString(),
-          'Musify',
+          'Fluent Music',
         );
         expect((await property('PlaybackStatus')).asString(), 'Playing');
         final metadata = (await property('Metadata')).asStringVariantDict();
