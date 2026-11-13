@@ -293,9 +293,18 @@ void main() async {
   try {
     await LiquidGlassWidgets.initialize(
       warmUpMode: GlassWarmUpMode.always,
-    ).timeout(const Duration(seconds: 3));
-  } catch (e) {
-    debugPrint('LiquidGlassWidgets initialize warning: $e');
+    );
+    debugPrint('[LiquidGlass] Shader pipeline initialized successfully.');
+  } catch (e, stack) {
+    debugPrint('[LiquidGlass] Initialization failed: $e\n$stack');
+    FlutterError.reportError(
+      FlutterErrorDetails(
+        exception: e,
+        stack: stack,
+        library: 'liquid_glass_widgets',
+        context: ErrorDescription('while initializing LiquidGlassWidgets'),
+      ),
+    );
   }
 
   try {

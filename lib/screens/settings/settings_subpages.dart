@@ -477,7 +477,7 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
               ),
             ),
             children: [
-              // HARDWARE SHADER DIAGNOSTIC TILE
+              // ACTIVE RENDER PATH & TIER DIAGNOSTIC TILE
               GlassListTile(
                 leading: Icon(
                   CupertinoIcons.sparkles,
@@ -486,13 +486,13 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
                       : const Color(0xFFFF9500),
                 ),
                 title: Text(
-                  'Hardware Shader Pipeline',
+                  'Active Render Path & Tier',
                   style: TextStyle(color: titleColor),
                 ),
                 subtitle: Text(
                   ui.ImageFilter.isShaderFilterSupported
-                      ? 'Impeller Active (Real Optics & Dispersion)'
-                      : 'Fallback Engine Active (Gaussian Blur Filter)',
+                      ? 'Impeller Multi-Pass Shader (Real Refraction & Dispersion) • Tier: Premium'
+                      : 'Fallback Engine (Gaussian Blur Filter) • Tier: Minimal/Standard',
                   style: TextStyle(
                     color: ui.ImageFilter.isShaderFilterSupported
                         ? const Color(0xFF30D158)

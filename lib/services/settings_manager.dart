@@ -321,14 +321,15 @@ void reloadSettingsFromStorage() {
     'liquidGlassQuality',
     defaultValue: 'premium',
   );
-  liquidGlassBlurSetting.value = settings.get(
+  liquidGlassBlurSetting.value = (settings.get(
     'liquidGlassBlur',
-    defaultValue: 18.0,
-  );
+    defaultValue: 8.0,
+  ) as num).toDouble();
   final restoredRepeatIndex = settings.get('repeatMode', defaultValue: 0);
   if (restoredRepeatIndex is int &&
       restoredRepeatIndex >= 0 &&
       restoredRepeatIndex < AudioServiceRepeatMode.values.length) {
     repeatNotifier.value = AudioServiceRepeatMode.values[restoredRepeatIndex];
   }
+  updateLiquidGlassTheme();
 }
