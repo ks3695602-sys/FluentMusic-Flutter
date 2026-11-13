@@ -136,6 +136,7 @@ class Lyrics {
   final List<LyricLine>? synced;
 
   bool get isSynced => synced != null && synced!.isNotEmpty;
+  bool get hasWordSync => synced?.any((l) => l.hasWordSync) ?? false;
 
   /// Plain text, derived from [synced] when the provider sent no plain text.
   String get text {
@@ -186,6 +187,52 @@ class Lyrics {
           .replaceAll(RegExp(r'\s+'), ' ')
           .trim();
       buffer.writeln('[$m:$s.$ms]$cleanText');
+    }
+    return buffer.toString();
+  }
+
+  /// Formats the synced lyrics into a standard QRC string compatible with flutter_lyric
+  /// for word-by-word karaoke synchronization:
+  /// [lineStartMs,lineDurationMs]word1(startMs,durMs)word2(startMs,durMs)
+  String toQrc() {
+    final lines = synced;
+    if (lines == null || lines.isEmpty) return toLrc();
+    if (!hasWordSync) return toLrc();
+
+    final buffer = StringBuffer();
+    for (var i = 0; i < lines.length; i++) {
+      final line = lines[i];
+      final lineStartMs = line.start.inMilliseconds;
+      final lineEndMs = (line.end != null && line.end! > line.start)
+          ? line.end!.inMilliseconds
+          : (i + 1 < lines.length
+              ? lines[i + 1].start.inMilliseconds
+              : lineStartMs + 4000);
+      final lineDurMs = (lineEndMs - lineStartMs).clamp(200, 30000);
+
+      if (line.hasWordSync) {
+        buffer.write('[$lineStartMs,$lineDurMs]');
+        for (var j = 0; j < line.words.length; j++) {
+          final word = line.words[j];
+          final cleanWord = word.text
+              .replaceAll(RegExp(r'<[^>]+>'), '')
+              .replaceAll(RegExp(r'\[\d{1,3}:\d{1,2}(?:[.:]\d{1,3})?\]'), '')
+              .trim();
+          if (cleanWord.isEmpty) continue;
+          final wStart = word.start.inMilliseconds;
+          final wDur = (word.end.inMilliseconds - wStart).clamp(30, 10000);
+          final trailingSpace = (j < line.words.length - 1) ? ' ' : '';
+          buffer.write('$cleanWord$trailingSpace($wStart,$wDur)');
+        }
+        buffer.writeln();
+      } else {
+        final cleanText = line.text
+            .replaceAll(RegExp(r'<[^>]+>'), '')
+            .replaceAll(RegExp(r'\[\d{1,3}:\d{1,2}(?:[.:]\d{1,3})?\]'), '')
+            .replaceAll(RegExp(r'\s+'), ' ')
+            .trim();
+        buffer.writeln('[$lineStartMs,$lineDurMs]$cleanText($lineStartMs,$lineDurMs)');
+      }
     }
     return buffer.toString();
   }

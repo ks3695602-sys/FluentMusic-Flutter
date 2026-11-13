@@ -46,6 +46,7 @@ class _SyncedLyricsViewState extends State<SyncedLyricsView>
 
   Duration _lastPosition = Duration.zero;
   DateTime _lastPositionTime = DateTime.now();
+  Duration _lastDispatchedPos = Duration.zero;
   bool _isPlaying = false;
 
   @override
@@ -97,27 +98,35 @@ class _SyncedLyricsViewState extends State<SyncedLyricsView>
     final now = DateTime.now();
     final elapsedSinceLast = now.difference(_lastPositionTime);
     final estimatedPos = _lastPosition + elapsedSinceLast + _offset;
+    final targetPos = estimatedPos.isNegative ? Duration.zero : estimatedPos;
+
+    // Skip setPosition if delta is under 16ms to avoid thrashing flutter_lyric layout
+    if ((targetPos - _lastDispatchedPos).abs().inMilliseconds < 16) {
+      return;
+    }
+    _lastDispatchedPos = targetPos;
+
     try {
-      _controller.setPosition(
-        estimatedPos.isNegative ? Duration.zero : estimatedPos,
-      );
+      _controller.setPosition(targetPos);
     } catch (_) {}
   }
 
   void _syncPosition() {
     final effectivePos = _lastPosition + _offset;
+    final targetPos = effectivePos.isNegative ? Duration.zero : effectivePos;
+    _lastDispatchedPos = targetPos;
     try {
-      _controller.setPosition(
-        effectivePos.isNegative ? Duration.zero : effectivePos,
-      );
+      _controller.setPosition(targetPos);
     } catch (_) {}
   }
 
   void _loadLyrics() {
-    final lrc = widget.lyrics.toLrc();
-    if (lrc.isNotEmpty) {
+    final content = widget.lyrics.hasWordSync
+        ? widget.lyrics.toQrc()
+        : widget.lyrics.toLrc();
+    if (content.isNotEmpty) {
       try {
-        _controller.load(lrc);
+        _controller.load(content);
       } catch (e) {
         debugPrint('Lyric load error: $e');
       }

@@ -51,6 +51,15 @@ class RecommendedSongsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final playBtnColor = isDark ? CupertinoColors.white : const Color(0xFF1C1C1E);
+    final playBgColor = isDark
+        ? CupertinoColors.white.withValues(alpha: 0.12)
+        : const Color(0xFF000000).withValues(alpha: 0.08);
+    final playBorderColor = isDark
+        ? CupertinoColors.white.withValues(alpha: 0.18)
+        : const Color(0xFF000000).withValues(alpha: 0.12);
+
     return Column(
       children: [
         SectionHeader(
@@ -70,15 +79,15 @@ class RecommendedSongsSection extends StatelessWidget {
                     height: 32,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: CupertinoColors.white.withValues(alpha: 0.12),
+                      color: playBgColor,
                       border: Border.all(
-                        color: CupertinoColors.white.withValues(alpha: 0.18),
+                        color: playBorderColor,
                         width: 0.8,
                       ),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       CupertinoIcons.play_fill,
-                      color: CupertinoColors.white,
+                      color: playBtnColor,
                       size: 14,
                     ),
                   ),
@@ -91,7 +100,7 @@ class RecommendedSongsSection extends StatelessWidget {
           itemCount: songs.length,
           padding: EdgeInsets.zero,
           separatorBuilder: (_, __) =>
-              const Divider(color: Colors.white10, height: 1, indent: 64),
+              Divider(color: isDark ? Colors.white10 : Colors.black12, height: 1, indent: 64),
           itemBuilder: (context, index) {
             final song = songs[index];
             return RepaintBoundary(

@@ -142,58 +142,63 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
                           final isMiniPlayerVisible = snapshot.data ?? false;
                           final isSearching = widget.child.currentIndex == 1;
 
-                          return GlassTabBar.searchable(
-                            isSearchActive: isSearching,
-                            selectedIndex:
-                                _getCurrentIndex(items, isOfflineMode),
-                            onTabSelected: (index) {
-                              _onTabTapped(index, items);
-                            },
-                            tabs: items
-                                .map(
-                                  (item) => GlassTab(
-                                    icon: Icon(item.icon),
-                                    activeIcon: Icon(item.selectedIcon),
-                                    label: item.label,
+                          return GlassBackdropGroup(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (isMiniPlayerVisible)
+                                  const Padding(
+                                    padding: EdgeInsets.only(bottom: 4),
+                                    child: MiniPlayer(),
                                   ),
-                                )
-                                .toList(),
-                            barHeight: 64.0,
-                            searchBarHeight: 50.0,
-                            horizontalPadding: 16.0,
-                            verticalPadding: 12.0,
-                            spacing: 8.0,
-                            bottomAccessory: isMiniPlayerVisible
-                                ? const MiniPlayer()
-                                : null,
-                            bottomAccessoryHeight: 56.0,
-                            bottomAccessoryEnabled: isMiniPlayerVisible,
-                            bottomAccessoryPlacement:
-                                GlassTabBarAccessoryPlacement.expanded,
-                            selectedIconColor: const Color(0xFFFF2D55),
-                            unselectedIconColor: isLight
-                                ? CupertinoColors.black.withValues(alpha: 0.65)
-                                : CupertinoColors.white.withValues(alpha: 0.85),
-                            labelFontSize: 10,
-                            iconSize: 26,
-                            iconLabelSpacing: 0,
-                            quality: GlassQuality.premium,
-                            interactionBehavior: GlassInteractionBehavior.full,
-                            searchConfig: GlassSearchBarConfig(
-                              expandWhenActive: false,
-                              hintText: context.l10n?.search ?? 'Search',
-                              onSearchToggle: (active) {
-                                if (active && !isOfflineMode) {
-                                  closeCurrentBottomSheet();
-                                  widget.child.goBranch(1);
-                                } else if (!active &&
-                                    widget.child.currentIndex == 1) {
-                                  widget.child.goBranch(0);
-                                }
-                              },
-                              searchIconColor: isLight
-                                  ? CupertinoColors.black.withValues(alpha: 0.85)
-                                  : CupertinoColors.white.withValues(alpha: 0.9),
+                                GlassTabBar.searchable(
+                                  isSearchActive: isSearching,
+                                  selectedIndex:
+                                      _getCurrentIndex(items, isOfflineMode),
+                                  onTabSelected: (index) {
+                                    _onTabTapped(index, items);
+                                  },
+                                  tabs: items
+                                      .map(
+                                        (item) => GlassTab(
+                                          icon: Icon(item.icon),
+                                          activeIcon: Icon(item.selectedIcon),
+                                          label: item.label,
+                                        ),
+                                      )
+                                      .toList(),
+                                  barHeight: 64.0,
+                                  searchBarHeight: 50.0,
+                                  horizontalPadding: 16.0,
+                                  verticalPadding: 8.0,
+                                  spacing: 8.0,
+                                  selectedIconColor: const Color(0xFFFF2D55),
+                                  unselectedIconColor: isLight
+                                      ? CupertinoColors.black.withValues(alpha: 0.65)
+                                      : CupertinoColors.white.withValues(alpha: 0.85),
+                                  labelFontSize: 10,
+                                  iconSize: 26,
+                                  iconLabelSpacing: 0,
+                                  quality: GlassQuality.premium,
+                                  interactionBehavior: GlassInteractionBehavior.full,
+                                  searchConfig: GlassSearchBarConfig(
+                                    expandWhenActive: false,
+                                    hintText: context.l10n?.search ?? 'Search',
+                                    onSearchToggle: (active) {
+                                      if (active && !isOfflineMode) {
+                                        closeCurrentBottomSheet();
+                                        widget.child.goBranch(1);
+                                      } else if (!active &&
+                                          widget.child.currentIndex == 1) {
+                                        widget.child.goBranch(0);
+                                      }
+                                    },
+                                    searchIconColor: isLight
+                                        ? CupertinoColors.black.withValues(alpha: 0.85)
+                                        : CupertinoColors.white.withValues(alpha: 0.9),
+                                  ),
+                                ),
+                              ],
                             ),
                           );
                         },

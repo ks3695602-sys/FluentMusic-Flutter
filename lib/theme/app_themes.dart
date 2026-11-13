@@ -45,22 +45,28 @@ ThemeMode getThemeMode(int themeModeIndex) {
   return ThemeMode.system;
 }
 
+ColorScheme getThemeColorScheme(
+  ColorScheme? platformScheme,
+  Brightness targetBrightness,
+) {
+  if (useSystemColor.value && platformScheme != null) {
+    return platformScheme;
+  } else {
+    return ColorScheme.fromSeed(
+      seedColor: primaryColorSetting,
+      brightness: targetBrightness,
+    );
+  }
+}
+
 ColorScheme getAppColorScheme(
   ColorScheme? lightColorScheme,
   ColorScheme? darkColorScheme,
 ) {
-  final selectedScheme = (brightness == Brightness.light)
-      ? lightColorScheme
-      : darkColorScheme;
-
-  if (useSystemColor.value && selectedScheme != null) {
-    return selectedScheme;
-  } else {
-    return ColorScheme.fromSeed(
-      seedColor: primaryColorSetting,
-      brightness: brightness,
-    );
-  }
+  return getThemeColorScheme(
+    (brightness == Brightness.light) ? lightColorScheme : darkColorScheme,
+    brightness,
+  );
 }
 
 ThemeData getAppTheme(ColorScheme colorScheme) {

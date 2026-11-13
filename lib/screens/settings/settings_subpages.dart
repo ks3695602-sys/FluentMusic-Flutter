@@ -88,7 +88,6 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final titleColor = isDark ? Colors.white : const Color(0xFF1C1C1E);
     final subtitleColor = isDark ? Colors.white60 : const Color(0xFF636366);
-    final bgColor = isDark ? Colors.black : const Color(0xFFF2F2F7);
 
     return GlassScaffold(
       contentAwareBrightness: true,
@@ -203,7 +202,6 @@ class ListeningStatsSettingsPage extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final titleColor = isDark ? Colors.white : const Color(0xFF1C1C1E);
     final subtitleColor = isDark ? Colors.white60 : const Color(0xFF636366);
-    final bgColor = isDark ? Colors.black : const Color(0xFFF2F2F7);
 
     return GlassScaffold(
       contentAwareBrightness: true,
@@ -315,7 +313,6 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final titleColor = isDark ? Colors.white : const Color(0xFF1C1C1E);
     final subtitleColor = isDark ? Colors.white70 : const Color(0xFF636366);
-    final bgColor = isDark ? Colors.black : const Color(0xFFF2F2F7);
 
     return GlassScaffold(
       contentAwareBrightness: true,
@@ -503,29 +500,40 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
             ),
             children: [
               // ACTIVE RENDER PATH & TIER DIAGNOSTIC TILE
-              GlassListTile(
-                leading: Icon(
-                  CupertinoIcons.sparkles,
-                  color: ui.ImageFilter.isShaderFilterSupported
-                      ? const Color(0xFF30D158)
-                      : const Color(0xFFFF9500),
-                ),
-                title: Text(
-                  'Active Render Path & Tier',
-                  style: TextStyle(color: titleColor),
-                ),
-                subtitle: Text(
-                  ui.ImageFilter.isShaderFilterSupported
-                      ? 'Impeller Multi-Pass Shader (Real Refraction & Dispersion) • Tier: Premium'
-                      : 'Fallback Engine (Gaussian Blur Filter) • Tier: Minimal/Standard',
-                  style: TextStyle(
-                    color: ui.ImageFilter.isShaderFilterSupported
-                        ? const Color(0xFF30D158)
-                        : const Color(0xFFFF9500),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+              Builder(
+                builder: (tileContext) {
+                  final effectiveTier = GlassAdaptiveScope.maybeOf(tileContext)?.effectiveQuality ??
+                      GlassQuality.premium;
+                  final tierName = effectiveTier == GlassQuality.premium
+                      ? 'Premium'
+                      : (effectiveTier == GlassQuality.standard ? 'Standard' : 'Minimal');
+                  final isShader = ui.ImageFilter.isShaderFilterSupported;
+
+                  return GlassListTile(
+                    leading: Icon(
+                      CupertinoIcons.sparkles,
+                      color: isShader
+                          ? const Color(0xFF30D158)
+                          : const Color(0xFFFF9500),
+                    ),
+                    title: Text(
+                      'Active Render Path & Tier',
+                      style: TextStyle(color: titleColor),
+                    ),
+                    subtitle: Text(
+                      isShader
+                          ? 'Impeller Multi-Pass Shader (Real Refraction & Dispersion) • Tier: $tierName'
+                          : 'Fallback Engine (Gaussian Blur Filter) • Tier: $tierName',
+                      style: TextStyle(
+                        color: isShader
+                            ? const Color(0xFF30D158)
+                            : const Color(0xFFFF9500),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  );
+                },
               ),
 
               // QUALITY TIER
@@ -675,9 +683,9 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
           const SizedBox(height: 20),
 
           // 4. THEME & DISPLAY
-          GlassGroupedSection(
-            surfaceStyle: GlassSurfaceStyle.solid,
-            header: Text(
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 8, top: 20),
+            child: Text(
               'THEME & DISPLAY',
               style: TextStyle(
                 color: subtitleColor,
@@ -685,6 +693,57 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
                 fontWeight: FontWeight.bold,
               ),
             ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        CupertinoIcons.sun_max_fill,
+                        color: Color(0xFFFFCC00),
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        context.l10n?.themeMode ?? 'Theme Mode',
+                        style: TextStyle(
+                          color: titleColor,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                GlassSegmentedControl(
+                  segments: const [
+                    GlassSegment(label: 'System'),
+                    GlassSegment(label: 'Light'),
+                    GlassSegment(label: 'Dark'),
+                  ],
+                  selectedIndex: themeMode == ThemeMode.system
+                      ? 0
+                      : (themeMode == ThemeMode.light ? 1 : 2),
+                  onSegmentSelected: (index) {
+                    final mode = index == 0
+                        ? ThemeMode.system
+                        : (index == 1 ? ThemeMode.light : ThemeMode.dark);
+                    addOrUpdateData<int>('settings', 'themeIndex', mode.index);
+                    Musify.updateAppState(context, newThemeMode: mode);
+                    setState(() {});
+                  },
+                ),
+              ],
+            ),
+          ),
+          GlassGroupedSection(
+            surfaceStyle: GlassSurfaceStyle.solid,
             children: [
               ValueListenableBuilder<bool>(
                 valueListenable: usePureBlackColor,
@@ -732,7 +791,6 @@ class PlaybackSettingsPage extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final titleColor = isDark ? Colors.white : const Color(0xFF1C1C1E);
     final subtitleColor = isDark ? Colors.white70 : const Color(0xFF636366);
-    final bgColor = isDark ? Colors.black : const Color(0xFFF2F2F7);
 
     return GlassScaffold(
       contentAwareBrightness: true,
@@ -935,7 +993,6 @@ class _CanvasSettingsPageState extends State<CanvasSettingsPage> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final titleColor = isDark ? Colors.white : const Color(0xFF1C1C1E);
     final subtitleColor = isDark ? Colors.white60 : const Color(0xFF636366);
-    final bgColor = isDark ? Colors.black : const Color(0xFFF2F2F7);
 
     return GlassScaffold(
       contentAwareBrightness: true,
@@ -1065,7 +1122,6 @@ class LyricsSettingsPage extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final titleColor = isDark ? Colors.white : const Color(0xFF1C1C1E);
     final subtitleColor = isDark ? Colors.white60 : const Color(0xFF636366);
-    final bgColor = isDark ? Colors.black : const Color(0xFFF2F2F7);
 
     return GlassScaffold(
       contentAwareBrightness: true,
@@ -1172,7 +1228,6 @@ class ContentSettingsPage extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final titleColor = isDark ? Colors.white : const Color(0xFF1C1C1E);
     final subtitleColor = isDark ? Colors.white60 : const Color(0xFF636366);
-    final bgColor = isDark ? Colors.black : const Color(0xFFF2F2F7);
 
     return GlassScaffold(
       contentAwareBrightness: true,
@@ -1277,7 +1332,6 @@ class BehaviorSettingsPage extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final titleColor = isDark ? Colors.white : const Color(0xFF1C1C1E);
     final subtitleColor = isDark ? Colors.white60 : const Color(0xFF636366);
-    final bgColor = isDark ? Colors.black : const Color(0xFFF2F2F7);
 
     return GlassScaffold(
       contentAwareBrightness: true,
@@ -1428,7 +1482,6 @@ class AndroidAutoSettingsPage extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final titleColor = isDark ? Colors.white : const Color(0xFF1C1C1E);
     final subtitleColor = isDark ? Colors.white60 : const Color(0xFF636366);
-    final bgColor = isDark ? Colors.black : const Color(0xFFF2F2F7);
 
     return GlassScaffold(
       contentAwareBrightness: true,

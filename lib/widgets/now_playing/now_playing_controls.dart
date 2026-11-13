@@ -698,7 +698,7 @@ class _PlaybackControlButton extends StatelessWidget {
             : CupertinoColors.white.withValues(alpha: 0.3),
         size: controlIconSize * 0.72,
       ),
-      onPressed: isEnabled ? onPressed : () {},
+      onPressed: isEnabled ? onPressed : null,
     );
   }
 }

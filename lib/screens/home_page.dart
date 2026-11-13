@@ -93,45 +93,48 @@ class _HomePageState extends State<HomePage> {
       body: SafeArea(
         bottom: false,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: EdgeInsets.zero,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 12),
               // Apple Music Header: "Listen Now" + Profile / Settings Icon
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Listen Now',
-                    style: TextStyle(
-                      color: titleColor,
-                      fontSize: 32,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.6,
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Listen Now',
+                      style: TextStyle(
+                        color: titleColor,
+                        fontSize: 32,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.6,
+                      ),
                     ),
-                  ),
-                  GestureDetector(
-                    onTap: () => context.go('/settings'),
-                    child: Container(
-                      width: 38,
-                      height: 38,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: iconBgColor,
-                        border: Border.all(
-                          color: iconBorderColor,
-                          width: 1,
+                    GestureDetector(
+                      onTap: () => context.go('/settings'),
+                      child: Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: iconBgColor,
+                          border: Border.all(
+                            color: iconBorderColor,
+                            width: 1,
+                          ),
+                        ),
+                        child: Icon(
+                          CupertinoIcons.person_crop_circle_fill,
+                          color: titleColor,
+                          size: 24,
                         ),
                       ),
-                      child: Icon(
-                        CupertinoIcons.person_crop_circle_fill,
-                        color: titleColor,
-                        size: 24,
-                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
               const SizedBox(height: 14),
               ValueListenableBuilder<String?>(
@@ -148,13 +151,16 @@ class _HomePageState extends State<HomePage> {
                       ? FluentIcons.heart_24_filled
                       : FluentIcons.megaphone_24_filled;
 
-                  return AnnouncementBox(
-                    message: _message,
-                    url: _url,
-                    icon: _icon,
-                    onDismiss: () async {
-                      announcementURL.value = null;
-                    },
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: AnnouncementBox(
+                      message: _message,
+                      url: _url,
+                      icon: _icon,
+                      onDismiss: () async {
+                        announcementURL.value = null;
+                      },
+                    ),
                   );
                 },
               ),
@@ -191,14 +197,19 @@ class _HomePageState extends State<HomePage> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SectionHeader(
-              title: context.l10n?.recentlyPlayed ?? 'Recently Played',
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: SectionHeader(
+                title: context.l10n?.recentlyPlayed ?? 'Recently Played',
+              ),
             ),
             SizedBox(
               height: 200,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                clipBehavior: Clip.none,
                 itemCount: displaySongs.length,
                 separatorBuilder: (_, __) => const SizedBox(width: 14),
                 itemBuilder: (context, index) {
@@ -335,14 +346,19 @@ class _HomePageState extends State<HomePage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SectionHeader(
-          title: sectionTitle,
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: SectionHeader(
+            title: sectionTitle,
+          ),
         ),
         SizedBox(
           height: 200,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            clipBehavior: Clip.none,
             itemCount: itemsNumber,
             separatorBuilder: (_, __) => const SizedBox(width: 14),
             itemBuilder: (context, index) {
@@ -401,12 +417,15 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildRecommendedSongsSection() {
-    return AsyncLoader<List<dynamic>>(
-      future: _recommendedSongsFuture,
-      builder: (context, data) {
-        if (data.isEmpty) return const SizedBox.shrink();
-        return _buildRecommendedForYouSection(context, data);
-      },
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: AsyncLoader<List<dynamic>>(
+        future: _recommendedSongsFuture,
+        builder: (context, data) {
+          if (data.isEmpty) return const SizedBox.shrink();
+          return _buildRecommendedForYouSection(context, data);
+        },
+      ),
     );
   }
 
@@ -430,30 +449,33 @@ class _HomePageState extends State<HomePage> {
           currentMonthKey,
         );
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SectionHeader(
-              title: context.l10n!.timeMachine,
-            ),
-            ListeningRecapCard(
-              periodLabel: periodLabel,
-              minutes: displayMinutes,
-              songs: previewSongs,
-              onSongTap: (index) => _playRecapSongs(previewSongs, index),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 10, 8, 0),
-              child: SizedBox(
-                width: double.infinity,
-                child: FilledButton.tonalIcon(
-                  onPressed: () => context.push('/home/timeMachine'),
-                  icon: const Icon(FluentIcons.arrow_right_24_regular),
-                  label: Text(context.l10n!.listeningStats),
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SectionHeader(
+                title: context.l10n!.timeMachine,
+              ),
+              ListeningRecapCard(
+                periodLabel: periodLabel,
+                minutes: displayMinutes,
+                songs: previewSongs,
+                onSongTap: (index) => _playRecapSongs(previewSongs, index),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8, 10, 8, 0),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.tonalIcon(
+                    onPressed: () => context.push('/home/timeMachine'),
+                    icon: const Icon(FluentIcons.arrow_right_24_regular),
+                    label: Text(context.l10n!.listeningStats),
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         );
       },
     );

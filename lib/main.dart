@@ -129,17 +129,6 @@ class _MusifyState extends State<Musify> with WidgetsBindingObserver {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     }
 
-    final platformDispatcher = PlatformDispatcher.instance;
-
-    // This callback is called every time the brightness changes.
-    platformDispatcher.onPlatformBrightnessChanged = () {
-      if (themeMode == ThemeMode.system) {
-        setState(() {
-          brightness = platformDispatcher.platformBrightness;
-        });
-      }
-    };
-
     offlineMode.addListener(_onOfflineModeChanged);
 
     if (isMobilePlatform) {
@@ -226,7 +215,6 @@ class _MusifyState extends State<Musify> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     offlineMode.removeListener(_onOfflineModeChanged);
-    PlatformDispatcher.instance.onPlatformBrightnessChanged = null;
 
     unawaited(linuxMediaControls?.dispose());
     unawaited(windowsMediaControls?.dispose());
@@ -242,26 +230,44 @@ class _MusifyState extends State<Musify> with WidgetsBindingObserver {
   }
 
   @override
+  void didChangePlatformBrightness() {
+    super.didChangePlatformBrightness();
+    if (themeMode == ThemeMode.system) {
+      setState(() {
+        brightness = PlatformDispatcher.instance.platformBrightness;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return DynamicColorBuilder(
       builder: (lightColorScheme, darkColorScheme) {
-        final colorScheme = getAppColorScheme(
+        final lightScheme = getThemeColorScheme(
           lightColorScheme,
-          darkColorScheme,
+          Brightness.light,
         );
+        final darkScheme = getThemeColorScheme(
+          darkColorScheme,
+          Brightness.dark,
+        );
+
+        final isDark = themeMode == ThemeMode.system
+            ? (brightness == Brightness.dark)
+            : (themeMode == ThemeMode.dark);
 
         return AnnotatedRegion<SystemUiOverlayStyle>(
           value: SystemUiOverlayStyle(
             statusBarColor: Colors.transparent,
             systemNavigationBarColor: Colors.transparent,
             systemNavigationBarContrastEnforced: true,
-            statusBarBrightness: brightness == Brightness.dark
+            statusBarBrightness: isDark
                 ? Brightness.light
                 : Brightness.dark,
-            statusBarIconBrightness: brightness == Brightness.dark
+            statusBarIconBrightness: isDark
                 ? Brightness.light
                 : Brightness.dark,
-            systemNavigationBarIconBrightness: brightness == Brightness.dark
+            systemNavigationBarIconBrightness: isDark
                 ? Brightness.light
                 : Brightness.dark,
           ),
@@ -272,8 +278,8 @@ class _MusifyState extends State<Musify> with WidgetsBindingObserver {
               child: child!,
             ),
             themeMode: themeMode,
-            darkTheme: getAppTheme(colorScheme),
-            theme: getAppTheme(colorScheme),
+            theme: getAppTheme(lightScheme),
+            darkTheme: getAppTheme(darkScheme),
             localizationsDelegates: [
               AppLocalizations.delegate,
               ...GlobalMaterialLocalizations.delegates,
@@ -351,6 +357,10 @@ void main() async {
           brightnessResolver: Theme.maybeBrightnessOf,
           theme: glassTheme,
           adaptiveQuality: true,
+          adaptiveConfig: const GlassAdaptiveScopeConfig(
+            minQuality: GlassQuality.premium,
+            initialQuality: GlassQuality.premium,
+          ),
           respectSystemAccessibility: true,
           child: const Musify(),
         );

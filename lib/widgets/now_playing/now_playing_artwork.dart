@@ -48,7 +48,6 @@ class NowPlayingArtwork extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     final screenWidth = size.width;
     final screenHeight = size.height;
     final isLandscape = screenWidth > screenHeight;
@@ -60,7 +59,7 @@ class NowPlayingArtwork extends StatelessWidget {
         : screenWidth < 360
         ? screenWidth * 0.75
         : screenWidth < 600
-        ? (screenWidth * 0.84).clamp(300.0, 340.0)
+        ? (screenWidth * 0.84).clamp(300.0, 340.0).toDouble()
         : screenWidth * 0.65;
 
     const borderRadius = 28.0;

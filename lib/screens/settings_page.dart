@@ -49,13 +49,10 @@ class SettingsPage extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final titleColor = isDark ? Colors.white : const Color(0xFF1C1C1E);
     final subtitleColor = isDark ? Colors.white60 : const Color(0xFF8E8E93);
-    final bgColor = isDark ? Colors.black : const Color(0xFFF2F2F7);
 
     return GlassScaffold(
       contentAwareBrightness: true,
-      background: Container(
-        color: bgColor,
-      ),
+      background: buildSubpageBackground(isDark),
       appBar: canPop
           ? GlassAppBar(
               leading: buildGlassBackButton(context),
