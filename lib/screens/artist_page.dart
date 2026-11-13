@@ -1,4 +1,4 @@
-/*
+﻿/*
  *     Copyright (C) 2026 Valeri Gokadze
  *
  *     Musify is free software: you can redistribute it and/or modify
@@ -433,7 +433,7 @@ class _ArtistPageState extends State<ArtistPage> {
       'ep' => 'EP',
       _ => context.l10n!.album,
     };
-    return year == null || year.isEmpty ? type : '$type � $year';
+    return year == null || year.isEmpty ? type : '$type • $year';
   }
 
   // Shares the complete catalog with "All songs" and keeps it after the first

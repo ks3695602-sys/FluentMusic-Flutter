@@ -1,4 +1,4 @@
-/*
+﻿/*
  *     Copyright (C) 2026 Valeri Gokadze
  *
  *     Musify is free software: you can redistribute it and/or modify
