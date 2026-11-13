@@ -403,6 +403,7 @@ class PlayerControlButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final screenWidth = MediaQuery.sizeOf(context).width;
     final responsiveIconSize = screenWidth < 360 ? iconSize * 0.85 : iconSize;
     final responsiveMiniIconSize = screenWidth < 360
