@@ -47,6 +47,7 @@ import 'package:musify/services/settings_manager.dart';
 import 'package:musify/services/update_manager.dart';
 import 'package:musify/services/windows_media_controls.dart';
 import 'package:musify/theme/app_themes.dart';
+import 'package:musify/theme/glass_config_controller.dart';
 import 'package:musify/utilities/flutter_toast.dart';
 import 'package:musify/utilities/language_utils.dart';
 import 'package:musify/utilities/platform_utils.dart';
@@ -349,22 +350,28 @@ void main() async {
     }
   }
 
+  // Keep the global glass theme in sync with the Glass Lab tuner.
+  glassConfigController.addListener(updateLiquidGlassTheme);
+
   runApp(
-    ValueListenableBuilder<GlassThemeData>(
-      valueListenable: liquidGlassThemeNotifier,
-      builder: (context, glassTheme, _) {
-        return LiquidGlassWidgets.wrap(
-          brightnessResolver: Theme.maybeBrightnessOf,
-          theme: glassTheme,
-          adaptiveQuality: true,
-          adaptiveConfig: const GlassAdaptiveScopeConfig(
-            minQuality: GlassQuality.premium,
-            initialQuality: GlassQuality.premium,
-          ),
-          respectSystemAccessibility: true,
-          child: const Musify(),
-        );
-      },
+    GlassConfigScope(
+      controller: glassConfigController,
+      child: ValueListenableBuilder<GlassThemeData>(
+        valueListenable: liquidGlassThemeNotifier,
+        builder: (context, glassTheme, _) {
+          return LiquidGlassWidgets.wrap(
+            brightnessResolver: Theme.maybeBrightnessOf,
+            theme: glassTheme,
+            adaptiveQuality: true,
+            adaptiveConfig: const GlassAdaptiveScopeConfig(
+              minQuality: GlassQuality.premium,
+              initialQuality: GlassQuality.premium,
+            ),
+            respectSystemAccessibility: true,
+            child: const Musify(),
+          );
+        },
+      ),
     ),
   );
 }
@@ -379,6 +386,11 @@ Future<void> initialisation() async {
       Hive.openBox('userNoBackup'),
       Hive.openBox('cache'),
     ]);
+
+    // Hive is finally open: pick up the persisted Glass Lab values and push
+    // them into the global theme before the first frame is built.
+    glassConfigController.reloadFromStorage();
+    updateLiquidGlassTheme();
 
     if (isMobilePlatform) {
       audioHandler = await AudioService.init(

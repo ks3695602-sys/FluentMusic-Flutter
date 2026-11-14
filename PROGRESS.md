@@ -6,13 +6,12 @@
 ## 🚨 RESUME CARD (read this first if anything crashed)
 
 ```
-LAST UPDATED : 2026-11-14 18:40 IST
-LAST COMMIT  : P0+P1 turn 1 (docs/GLASS_API.md, glass_config, controller, analyze CI)
+LAST UPDATED : 2026-11-14 19:00 IST
+LAST COMMIT  : P0+P1.1 d0a6346 · P1.2 in working tree (Lab + backdrop + theme hook)
 BRANCH       : feat/v1.4.0-ios27-remake
 CURRENT PHASE: P1 — Glass engine + Lab
-CURRENT STEP : turn 1 done → model + controller + analyze-only CI
-NEXT ACTION  : turn 2 — glass_lab_page + glass_backdrop + hook config into theme
-               + delete old sliders in settings_subpages.dart
+CURRENT STEP : Glass Lab page, colorful backdrop, 8 sliders wired, old sliders deleted
+NEXT ACTION  : push + confirm analyze green, then P2 bottom bar accessory
 BLOCKED BY   : none
 ```
 
@@ -31,7 +30,7 @@ BLOCKED BY   : none
 | Phase | Name | Status | % |
 |---|---|---|---|
 | P0 | Ground truth | ✅ done | 100 |
-| P1 | Glass engine + Lab | 🟡 in progress | 30 |
+| P1 | Glass engine + Lab | 🟡 in progress | 80 |
 | P2 | Bottom bar + accessory | ⬜ | 0 |
 | P3 | Home redesign | ⬜ | 0 |
 | P4 | Settings remake | ⬜ | 0 |
@@ -52,16 +51,16 @@ Legend: ⬜ todo · 🟡 in progress · ✅ done · 🔴 blocked
 - [x] `GlassSearchableBottomBar` checked (removed; use `GlassTabBar.searchable`)
 - [x] `GEMINI.md` created
 - [x] `.github/workflows/analyze-only.yml` created
-- [ ] analyze-only CI green ← pending first run
+- [x] analyze-only CI green — run [43598444551](https://github.com/ks3695602-sys/FluentMusic-Flutter/actions/runs/43598444551) ✅
 
 ### P1 — Glass engine + Lab
 - [x] `lib/theme/glass_config.dart`
 - [x] `lib/theme/glass_config_controller.dart` (+ Hive + scope)
-- [ ] `lib/widgets/glass/glass_lab_page.dart`
-- [ ] `lib/widgets/glass/glass_backdrop.dart`
-- [ ] old sliders removed from `settings_subpages.dart`
-- [ ] premium tier locked
-- [ ] light mode contrast check
+- [x] `lib/widgets/glass/glass_lab_page.dart`
+- [x] `lib/widgets/glass/glass_backdrop.dart`
+- [x] old sliders removed from `settings_subpages.dart`
+- [x] premium tier locked
+- [x] light mode contrast check (solid sections + dark/light text tokens)
 
 ### P2 — Bottom bar
 - [ ] old Column removed
@@ -143,6 +142,7 @@ Legend: ⬜ todo · 🟡 in progress · ✅ done · 🔴 blocked
 
 | # | After | Commit | Pushed |
 |---|---|---|---|
+| 0 | P0 + P1.1 | `d0a6346` | ✅ |
 | 1 | P1 | — | ⬜ |
 | 2 | P3 | — | ⬜ |
 | 3 | P5 | — | ⬜ |
@@ -156,4 +156,15 @@ Legend: ⬜ todo · 🟡 in progress · ✅ done · 🔴 blocked
 ```
 [2026-11-14 18:05] Plan created. MASTERPLAN.md + PROGRESS.md written.
 [2026-11-14 18:05] Branch feat/v1.4.0-ios27-remake created. No code changes yet.
+[2026-11-14 18:07] Docs commit 94e52ea pushed (MASTERPLAN, PROGRESS, GEMINI).
+[2026-11-14 18:22] liquid_glass_widgets 1.17.3 source extracted; signatures verified.
+[2026-11-14 18:30] docs/GLASS_API.md written (real API, 8-slider mapping, traps).
+[2026-11-14 18:35] glass_config.dart + glass_config_controller.dart written.
+[2026-11-14 18:38] analyze-only.yml added (push feat/**, paths-filtered, no APK).
+[2026-11-14 18:40] Commit d0a6346 pushed (P0 + P1 turn 1).
+[2026-11-14 18:44] Analyze run 43598444551 = success ✅ (P0 gate green).
+[2026-11-14 18:52] glass_backdrop.dart (mesh gradient, cheap, no shaders).
+[2026-11-14 18:58] glass_lab_page.dart (8 sliders + live preview + reset/copy/paste).
+[2026-11-14 19:02] Config hooked into global GlassThemeData (tint/aberration/refraction) + GlassConfigScope in main.
+[2026-11-14 19:04] Old blur/thickness/quality/tint sliders deleted from Appearance subpage.
 ```

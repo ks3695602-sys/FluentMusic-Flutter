@@ -16,7 +16,6 @@
  */
 
 import 'dart:io';
-import 'dart:ui' as ui;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show Colors, Theme;
 import 'package:material_ui/material_ui.dart' show ThemeMode;
@@ -32,6 +31,7 @@ import 'package:musify/services/listening_stats_service.dart';
 import 'package:musify/services/settings_manager.dart';
 import 'package:musify/utilities/flutter_toast.dart';
 import 'package:musify/utilities/language_utils.dart';
+import 'package:musify/widgets/glass/glass_lab_page.dart';
 import 'package:musify/widgets/mini_player_bottom_space.dart';
 
 Widget buildGlassBackButton(BuildContext context) {
@@ -422,267 +422,44 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
             },
           ),
 
-          // 2. DEDICATED OPTICS SLIDER (Clear <-> Tinted)
-          ValueListenableBuilder<double>(
-            valueListenable: liquidGlassDockOpacitySetting,
-            builder: (context, tintVal, _) {
-              return Container(
-                margin: const EdgeInsets.only(bottom: 24),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? const Color(0xFF1C1C1E)
-                      : const Color(0xFFE5E5EA),
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          CupertinoIcons.drop,
-                          size: 22,
-                          color: isDark ? Colors.white : Colors.black87,
-                        ),
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            child: GlassSlider(
-                              value: tintVal.clamp(0.05, 0.50),
-                              min: 0.05,
-                              max: 0.50,
-                              onChanged: (newVal) {
-                                liquidGlassDockOpacitySetting.value = newVal;
-                                addOrUpdateData(
-                                  'settings',
-                                  'liquidGlassDockOpacity',
-                                  newVal,
-                                );
-                                updateLiquidGlassTheme();
-                              },
-                            ),
-                          ),
-                        ),
-                        Icon(
-                          CupertinoIcons.drop_fill,
-                          size: 22,
-                          color: isDark ? Colors.white : Colors.black87,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Clear is more transparent and tinted increases opacity, adding contrast to content and controls',
-                      style: TextStyle(
-                        color: isDark ? Colors.white60 : Colors.black54,
-                        fontSize: 13,
-                        height: 1.35,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-
-          // 3. LIQUID GLASS ENGINE CONTROLS
+          // 2. GLASS LAB ENTRY — every tuner slider lives on its own page now
           GlassGroupedSection(
             surfaceStyle: GlassSurfaceStyle.solid,
-            header: Text(
-              'LIQUID GLASS & GRAPHICS PIPELINE',
-              style: TextStyle(
-                color: subtitleColor,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
             children: [
-              // ACTIVE RENDER PATH & TIER DIAGNOSTIC TILE
-              Builder(
-                builder: (tileContext) {
-                  final effectiveTier = GlassAdaptiveScopeData.maybeOf(tileContext)?.effectiveQuality ??
-                      GlassQuality.premium;
-                  final tierName = effectiveTier == GlassQuality.premium
-                      ? 'Premium'
-                      : (effectiveTier == GlassQuality.standard ? 'Standard' : 'Minimal');
-                  final isShader = ui.ImageFilter.isShaderFilterSupported;
-
-                  return GlassListTile(
-                    leading: Icon(
-                      CupertinoIcons.sparkles,
-                      color: isShader
-                          ? const Color(0xFF30D158)
-                          : const Color(0xFFFF9500),
-                    ),
-                    title: Text(
-                      'Active Render Path & Tier',
-                      style: TextStyle(color: titleColor),
-                    ),
-                    subtitle: Text(
-                      isShader
-                          ? 'Impeller Multi-Pass Shader (Real Refraction & Dispersion) • Tier: $tierName'
-                          : 'Fallback Engine (Gaussian Blur Filter) • Tier: $tierName',
-                      style: TextStyle(
-                        color: isShader
-                            ? const Color(0xFF30D158)
-                            : const Color(0xFFFF9500),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  );
-                },
-              ),
-
-              // QUALITY TIER
-              ValueListenableBuilder<String>(
-                valueListenable: liquidGlassQualitySetting,
-                builder: (_, currentQuality, __) {
-                  return GlassListTile(
-                    leading: const Icon(
-                      CupertinoIcons.wand_rays,
-                      color: Color(0xFFAF52DE),
-                    ),
-                    title: Text(
-                      'Shader Quality Tier',
-                      style: TextStyle(color: titleColor),
-                    ),
-                    subtitle: Padding(
-                      padding: const EdgeInsets.only(top: 8.0),
-                      child: CupertinoSlidingSegmentedControl<String>(
-                        groupValue: currentQuality,
-                        children: {
-                          'premium': Text(
-                            'Premium',
-                            style: TextStyle(color: titleColor, fontSize: 12),
-                          ),
-                          'standard': Text(
-                            'Standard',
-                            style: TextStyle(color: titleColor, fontSize: 12),
-                          ),
-                          'minimal': Text(
-                            'Minimal',
-                            style: TextStyle(color: titleColor, fontSize: 12),
-                          ),
-                        },
-                        onValueChanged: (val) {
-                          if (val != null) {
-                            liquidGlassQualitySetting.value = val;
-                            addOrUpdateData(
-                              'settings',
-                              'liquidGlassQuality',
-                              val,
-                            );
-                            updateLiquidGlassTheme();
-                          }
-                        },
-                      ),
-                    ),
-                  );
-                },
-              ),
-
-              // BLUR INTENSITY SLIDER (Reduced default so refraction is sharp)
-              ValueListenableBuilder<double>(
-                valueListenable: liquidGlassBlurSetting,
-                builder: (_, blurVal, __) {
-                  return GlassListTile(
-                    leading: const Icon(
-                      CupertinoIcons.slider_horizontal_3,
-                      color: Color(0xFF007AFF),
-                    ),
-                    title: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Blur & Refraction',
-                          style: TextStyle(color: titleColor),
-                        ),
-                        Text(
-                          '${blurVal.toInt()}px',
-                          style: TextStyle(
-                            color: subtitleColor,
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    subtitle: Padding(
-                      padding: const EdgeInsets.only(top: 6.0),
-                      child: GlassSlider(
-                        value: blurVal.clamp(2.0, 40.0),
-                        min: 2.0,
-                        max: 40.0,
-                        onChanged: (newVal) {
-                          liquidGlassBlurSetting.value = newVal;
-                          addOrUpdateData(
-                            'settings',
-                            'liquidGlassBlur',
-                            newVal,
-                          );
-                          updateLiquidGlassTheme();
-                        },
-                      ),
-                    ),
-                  );
-                },
-              ),
-
-              // THICKNESS / DISPERSION SLIDER
-              ValueListenableBuilder<double>(
-                valueListenable: liquidGlassThicknessSetting,
-                builder: (_, thickVal, __) {
-                  return GlassListTile(
-                    leading: const Icon(
-                      CupertinoIcons.cube,
-                      color: Color(0xFFFF9500),
-                    ),
-                    title: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Glass Thickness',
-                          style: TextStyle(color: titleColor),
-                        ),
-                        Text(
-                          '${thickVal.toInt()}',
-                          style: TextStyle(
-                            color: subtitleColor,
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    subtitle: Padding(
-                      padding: const EdgeInsets.only(top: 6.0),
-                      child: GlassSlider(
-                        value: thickVal.clamp(10.0, 50.0),
-                        min: 10.0,
-                        max: 50.0,
-                        onChanged: (newVal) {
-                          liquidGlassThicknessSetting.value = newVal;
-                          addOrUpdateData(
-                            'settings',
-                            'liquidGlassThickness',
-                            newVal,
-                          );
-                          updateLiquidGlassTheme();
-                        },
-                      ),
-                    ),
-                  );
-                },
+              GlassListTile(
+                leading: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFAF52DE).withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    CupertinoIcons.sparkles,
+                    color: Color(0xFFAF52DE),
+                  ),
+                ),
+                title: Text(
+                  'Glass Lab',
+                  style: TextStyle(color: titleColor),
+                ),
+                subtitle: Text(
+                  '8 live sliders — pinch, expansion, dispersion, tint, refraction and radii',
+                  style: TextStyle(color: subtitleColor, fontSize: 12),
+                ),
+                trailing: Icon(
+                  CupertinoIcons.chevron_forward,
+                  color: subtitleColor,
+                  size: 16,
+                ),
+                onTap: () => Navigator.of(context).push(
+                  CupertinoPageRoute<void>(
+                    builder: (_) => const GlassLabPage(),
+                  ),
+                ),
               ),
             ],
           ),
-
-          const SizedBox(height: 20),
 
           // 4. THEME & DISPLAY
           Padding(

@@ -25,6 +25,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:musify/screens/playlist_page.dart';
 import 'package:musify/screens/user_songs_page.dart';
+import 'package:musify/theme/glass_config_controller.dart';
 import 'package:musify/utilities/language_utils.dart';
 
 // Preferences
@@ -131,10 +132,6 @@ final liquidGlassThicknessSetting = ValueNotifier<double>(
   (Hive.box('settings').get('liquidGlassThickness', defaultValue: 40.0) as num).toDouble(),
 );
 
-final liquidGlassDockOpacitySetting = ValueNotifier<double>(
-  (Hive.box('settings').get('liquidGlassDockOpacity', defaultValue: 0.20) as num).toDouble(),
-);
-
 final wordByWordLyricsEnabled = ValueNotifier<bool>(
   Hive.box('settings').get('wordByWordLyricsEnabled', defaultValue: true),
 );
@@ -205,10 +202,30 @@ GlassQuality parseGlassQuality(String q) {
 }
 
 GlassThemeData getEffectiveGlassTheme() {
-  return GlassThemeData.simple(
+  final config = glassConfigController.config;
+  // Tint is stored as white alpha so the same value works in light and dark.
+  final tintColor = Color.fromRGBO(255, 255, 255, config.tint);
+  final base = GlassThemeData.simple(
     blur: liquidGlassBlurSetting.value,
     thickness: liquidGlassThicknessSetting.value,
     quality: parseGlassQuality(liquidGlassQualitySetting.value),
+    chromaticAberration: config.chromaticAberration,
+    refractiveIndex: config.refraction,
+  );
+
+  GlassThemeVariant withTint(GlassThemeVariant variant) {
+    final settings = variant.settings ?? const GlassThemeSettings();
+    return variant.copyWith(
+      settings: settings.copyWith(glassColor: tintColor),
+    );
+  }
+
+  return GlassThemeData(
+    style: base.style,
+    light: withTint(base.light),
+    dark: withTint(base.dark),
+    interaction: base.interaction,
+    brightness: base.brightness,
   );
 }
 
@@ -335,5 +352,6 @@ void reloadSettingsFromStorage() {
       restoredRepeatIndex < AudioServiceRepeatMode.values.length) {
     repeatNotifier.value = AudioServiceRepeatMode.values[restoredRepeatIndex];
   }
+  glassConfigController.reloadFromStorage();
   updateLiquidGlassTheme();
 }
