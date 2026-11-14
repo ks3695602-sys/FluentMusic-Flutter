@@ -6,13 +6,13 @@
 ## 🚨 RESUME CARD (read this first if anything crashed)
 
 ```
-LAST UPDATED : 2026-11-14 22:18 IST
+LAST UPDATED : 2026-11-14 22:32 IST
 LAST COMMIT  : v1.4.0 release · 6c7f453 · CI/build run 43611566105 green ✅
 BRANCH       : feat/v1.4.0-ios27-remake
-CURRENT PHASE: P9 — release shipped; manual QA remains
-CURRENT STEP : release APK published (41,085,413 bytes), tag v1.4.0
-NEXT ACTION  : user device smoke test + optional real-key two-device Supabase sync test
-BLOCKED BY   : manual device and Supabase validation need user hardware/credentials
+CURRENT PHASE: Post-release — download size fix
+CURRENT STEP : adding a tag-based ARM64-only APK workflow; keep universal APK as compatibility fallback
+NEXT ACTION  : build and attach smaller ARM64 APK to v1.4.0 release; share direct phone link
+BLOCKED BY   : ARM64 asset awaits GitHub Actions build
 ```
 
 **How to resume**
@@ -117,12 +117,12 @@ Legend: ⬜ todo · 🟡 in progress · ✅ done · 🔴 blocked
 
 ### P9 — Ship
 - [x] analyze + tests green — 91 tests (branch run 43611273990 ✅)
-- [x] single release APK workflow (debug APK step removed)
-- [x] ONE universal release APK built and published — 41,085,413 bytes
-- [ ] device smoke checklist (manual, user)
+- [x] single universal release APK built and published — 41,085,413 bytes
 - [x] version 1.4.0+13 + `CHANGELOG.md`
 - [x] tag `v1.4.0` + GitHub release published
 - [x] build/release run [43611566105](https://github.com/ks3695602-sys/FluentMusic-Flutter/actions/runs/43611566105) ✅
+- [ ] smaller ARM64-only APK build and attach (in progress)
+- [ ] device smoke checklist (manual, user)
 
 ---
 
@@ -174,6 +174,7 @@ Legend: ⬜ todo · 🟡 in progress · ✅ done · 🔴 blocked
 ## Session log (append only)
 
 ```
+[2026-11-14 22:32] Download size follow-up: v1.4.0 universal APK is 41,085,413 bytes; added a tag-based ARM64-only release workflow to create a smaller APK without removing the compatibility build. Waiting for Actions.
 [2026-11-14 22:18] P9 shipped: tag v1.4.0; run 43611566105 built one 41,085,413-byte universal release APK and published GitHub release. Analyze/tests and Windows demo job green. Manual device + Supabase sync QA remains.
 [2026-11-14 22:03] P9 prep: CI run 43609328392 passed analyze + 91 tests; version 1.4.0+13, CHANGELOG, release-only APK workflow, lyric-test lint cleanup staged for commit. No APK built yet.
 [2026-11-14 18:05] Plan created. MASTERPLAN.md + PROGRESS.md written.
