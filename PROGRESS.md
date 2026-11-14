@@ -6,13 +6,13 @@
 ## 🚨 RESUME CARD (read this first if anything crashed)
 
 ```
-LAST UPDATED : 2026-11-14 20:35 IST
-LAST COMMIT  : P5 9b25374 pushed · analyze 43601927667 green ✅ · P6 in working tree
+LAST UPDATED : 2026-11-14 21:22 IST
+LAST COMMIT  : P7 8818f1f pushed · analyze 43605703977 green ✅ · P8 toast in working tree
 BRANCH       : feat/v1.4.0-ios27-remake
-CURRENT PHASE: P6 — Library features
-CURRENT STEP : add-songs glass sheet with search, empty-state action, artist grid
-NEXT ACTION  : commit/push P6, confirm analyze green, then P7 lyrics long-token
-BLOCKED BY   : none
+CURRENT PHASE: P8 — Favourite glass popup
+CURRENT STEP : glass_toast.dart built; need to wire favourite/playlist-add call sites
+NEXT ACTION  : wire showGlassToast into song/playlist like + playlist add, then commit/push
+BLOCKED BY   : local Flutter/Dart SDK unavailable; CI is the analyze gate
 ```
 
 **How to resume**
@@ -35,9 +35,9 @@ BLOCKED BY   : none
 | P3 | Home redesign | ✅ done | 100 |
 | P4 | Settings remake | ✅ done | 100 |
 | P5 | Account + sync | ✅ done | 95 |
-| P6 | Library features | 🟡 in progress | 75 |
-| P7 | Lyrics polish | ⬜ | 0 |
-| P8 | Favourite popup | ⬜ | 0 |
+| P6 | Library features | ✅ done | 100 |
+| P7 | Lyrics polish | ✅ done | 100 |
+| P8 | Favourite popup | 🟡 in progress | 35 |
 | P9 | QA + single APK | ⬜ | 0 |
 
 Legend: ⬜ todo · 🟡 in progress · ✅ done · 🔴 blocked
@@ -104,15 +104,16 @@ Legend: ⬜ todo · 🟡 in progress · ✅ done · 🔴 blocked
 - [x] liked-songs empty state → "Find songs" jumps to Search tab
 
 ### P7 — Lyrics
-- [ ] long-token wrap
-- [ ] active word scale
-- [ ] multi-line/RTL safe
-- [ ] tests green
+- [x] long-token wrap (zero-width break opportunities, grapheme-safe)
+- [x] active word/line scale (1.0 → 1.06 via flutter_lyric preset)
+- [x] multi-line/RTL safe (added wrapping only at grapheme boundaries)
+- [x] tests/analyze green (CI run 43605703977)
+- [x] LRC + QRC parser round-trip assertions added
 
 ### P8 — Popup
-- [ ] `glass_toast.dart`
-- [ ] favourite call sites
-- [ ] queue + dismiss
+- [x] `glass_toast.dart` (queued overlay, 2s, swipe dismiss, reduced motion)
+- [ ] favourite call sites (song like, playlist like, playlist add)
+- [ ] analyze green
 
 ### P9 — Ship
 - [ ] analyze green
@@ -126,6 +127,17 @@ Legend: ⬜ todo · 🟡 in progress · ✅ done · 🔴 blocked
 
 ## 5-minute update format
 
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⏱️ T+00:40 | PHASE P7 | 80% | vibe: 🎤
+✅ Done: grapheme-safe long-token wrapping, active lyric scale 1.06, LRC/QRC parser coverage
+🔨 Now: Analyze CI run 43605703977
+⏭️ Next: confirm green, then start P8 glass favourite toast
+🐛 Blocked: no local Flutter/Dart SDK; CI is the validation gate
+💾 Commit: 8818f1f (pushed)
+📄 Files touched: 4 code/test files
+😹 Joke: ab `oooooo` ko bhi line-break mil gaya, unlike my unread DMs
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ⏱️ T+00:35 | PHASE P1 | 62% | vibe: 🧊
@@ -150,8 +162,8 @@ Legend: ⬜ todo · 🟡 in progress · ✅ done · 🔴 blocked
 | 2 | P3 | `7f1fd07` | ✅ |
 | 3 | P4 | `71bf16f` | ✅ |
 | 4 | P5 | `38ea5e0` + `9b25374` | ✅ |
-| 5 | P6 | — | ⬜ |
-| 6 | P7 | — | ⬜ |
+| 5 | P6 | `2c4781d` | ✅ |
+| 6 | P7 | `8818f1f` | ✅ |
 | 7 | P9 | — | ⬜ |
 
 ---
@@ -189,4 +201,9 @@ Legend: ⬜ todo · 🟡 in progress · ✅ done · 🔴 blocked
 [2026-11-14 20:24] P6: AddSongsSheet glass modal (debounced search, instant add, done count) wired to user playlists.
 [2026-11-14 20:30] P6: empty playlist action, liked-songs Find songs, circular expanding LibraryArtistsGrid.
 [2026-11-14 20:34] P6: playlist refreshes from storage after sheet closes; folder playlists included.
+[2026-11-14 21:05] P7: grapheme-safe zero-width wrapping in synced/plain LRC/QRC; active lyric line preset scale 1.06; Arabic + emoji wrapping and parser round-trip tests added.
+[2026-11-14 21:05] P7 commit 8818f1f pushed; Analyze run 43605703977 in progress. Local Flutter/Dart SDK unavailable.
+[2026-11-14 21:18] P7 gate green ✅ (analyze 43605703977). Checkpoint 6 closed.
+[2026-11-14 21:22] P8: `glass_toast.dart` added — queued root-overlay toast, 2s, swipe-to-dismiss, reduced-motion aware, dock-aware offset.
+[2026-11-14 21:24] Progress ping: P7 done, P8 35%, no APK built (reserved for P9).
 ```

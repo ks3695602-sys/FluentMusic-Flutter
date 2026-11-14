@@ -37,6 +37,7 @@ import 'package:musify/services/settings_manager.dart';
 import 'package:musify/utilities/app_utils.dart';
 import 'package:musify/utilities/flutter_toast.dart';
 import 'package:musify/services/playlist_download_service.dart';
+import 'package:musify/widgets/glass/glass_toast.dart';
 import 'package:musify/widgets/now_playing/bottom_actions_row.dart';
 import 'package:musify/widgets/now_playing/marquee_text_widget.dart';
 import 'package:musify/widgets/playback_icon_button.dart';
@@ -140,8 +141,23 @@ class NowPlayingControls extends StatelessWidget {
                         minSize: 38,
                         onPressed: () async {
                           HapticFeedback.lightImpact();
+                          final nextLiked = !isLiked;
                           final songMap = mediaItemToMap(metadata);
-                          await updateSongLikeStatus(audioId, !isLiked, songData: songMap);
+                          await updateSongLikeStatus(
+                            audioId,
+                            nextLiked,
+                            songData: songMap,
+                          );
+                          if (!context.mounted) return;
+                          showGlassToast(
+                            context,
+                            nextLiked
+                                ? context.l10n!.addedToLikedSongs
+                                : context.l10n!.removedFromLikedSongs,
+                            icon: nextLiked
+                                ? CupertinoIcons.heart_fill
+                                : CupertinoIcons.heart,
+                          );
                         },
                         child: Icon(
                           isLiked ? CupertinoIcons.star_fill : CupertinoIcons.star,
