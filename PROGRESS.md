@@ -6,12 +6,12 @@
 ## 🚨 RESUME CARD (read this first if anything crashed)
 
 ```
-LAST UPDATED : 2026-11-14 19:20 IST
-LAST COMMIT  : P2 5db482e pushed · analyze 43600458379 green ✅ · P3 in working tree
+LAST UPDATED : 2026-11-14 19:45 IST
+LAST COMMIT  : P3 7f1fd07 pushed · analyze 43600876797 green ✅ · P4 in working tree
 BRANCH       : feat/v1.4.0-ios27-remake
-CURRENT PHASE: P3 — Home redesign
-CURRENT STEP : CustomScrollView + collapsing header + Quick Picks/Artists/Genres
-NEXT ACTION  : commit/push P3, confirm analyze green, then P4 settings remake
+CURRENT PHASE: P4 — Settings remake
+CURRENT STEP : 9 separate coloured glass tiles, header + bottom spacer done
+NEXT ACTION  : commit/push P4, confirm analyze green, then P5 account + sync
 BLOCKED BY   : none
 ```
 
@@ -32,8 +32,8 @@ BLOCKED BY   : none
 | P0 | Ground truth | ✅ done | 100 |
 | P1 | Glass engine + Lab | ✅ done | 100 |
 | P2 | Bottom bar + accessory | ✅ done | 100 |
-| P3 | Home redesign | 🟡 in progress | 90 |
-| P4 | Settings remake | ⬜ | 0 |
+| P3 | Home redesign | ✅ done | 100 |
+| P4 | Settings remake | 🟡 in progress | 90 |
 | P5 | Account + sync | ⬜ | 0 |
 | P6 | Library features | ⬜ | 0 |
 | P7 | Lyrics polish | ⬜ | 0 |
@@ -80,11 +80,11 @@ Legend: ⬜ todo · 🟡 in progress · ✅ done · 🔴 blocked
 - [x] Songs before Artists
 
 ### P4 — Settings
-- [ ] 7 section cards
-- [ ] colored icon badges
-- [ ] glass subpages
-- [ ] account page black-box fixed
-- [ ] bottom fade pattern
+- [x] 9 section cards (one coloured glass tile each)
+- [x] colored icon badges
+- [x] glass subpages (GlassScaffold + mesh background)
+- [ ] account page black-box fixed (lands with P5 account page)
+- [x] bottom fade pattern (shell extends body)
 
 ### P5 — Account + sync
 - [ ] `account_service.dart`
@@ -173,4 +173,6 @@ Legend: ⬜ todo · 🟡 in progress · ✅ done · 🔴 blocked
 [2026-11-14 19:24] P2 commit 5db482e pushed; analyze run 43600458379 green ✅.
 [2026-11-14 19:32] P3: home rewritten to slivers, collapsing Listen Now header, spring scroll, 150px dock inset.
 [2026-11-14 19:36] P3: Quick Picks rail, circular Artists rail (songs first), genre chips → inline search bridge.
+[2026-11-14 19:40] P3 commit 7f1fd07 pushed; analyze run 43600876797 green ✅.
+[2026-11-14 19:46] P4: settings rebuilt as 9 separate tinted glass tiles (image 10 pattern), 1.4.0 header, dock spacer.
 ```
