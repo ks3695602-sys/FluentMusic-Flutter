@@ -46,6 +46,7 @@ import 'package:musify/utilities/sort_utils.dart';
 import 'package:musify/widgets/edit_playlist_dialog.dart';
 import 'package:musify/widgets/mini_player_bottom_space.dart';
 import 'package:musify/widgets/playlist_hero_artwork.dart';
+import 'package:musify/widgets/playlist_page/add_songs_sheet.dart';
 import 'package:musify/widgets/playlist_page/add_to_playlist_button.dart';
 import 'package:musify/widgets/playlist_page/download_button.dart';
 import 'package:musify/widgets/playlist_page/empty_playlist_state.dart';
@@ -281,6 +282,12 @@ class _PlaylistPageState extends State<PlaylistPage> {
                   else
                     EmptyPlaylistState(
                       message: context.l10n!.noSongsInPlaylist,
+                      actionLabel: _playlist['source'] == 'user-created'
+                          ? 'Add songs'
+                          : null,
+                      onAction: _playlist['source'] == 'user-created'
+                          ? _openAddSongsSheet
+                          : null,
                     ),
                   _buildRecommendedSongsSliver(),
                   const SliverMiniPlayerBottomSpace(),
@@ -397,14 +404,17 @@ class _PlaylistPageState extends State<PlaylistPage> {
               );
             },
             onAdd: () {
-              if (!offlineMode.value) {
-                final songs = _playlist['list'] as List? ?? [];
-                if (songs.isNotEmpty) {
-                  showAddToPlaylistDialog(
-                    context,
-                    songs: songs,
-                  );
-                }
+              if (offlineMode.value) return;
+              if (isUserCreated) {
+                _openAddSongsSheet();
+                return;
+              }
+              final songs = _playlist['list'] as List? ?? [];
+              if (songs.isNotEmpty) {
+                showAddToPlaylistDialog(
+                  context,
+                  songs: songs,
+                );
               }
             },
           ),
@@ -420,6 +430,41 @@ class _PlaylistPageState extends State<PlaylistPage> {
         const SizedBox(height: 16),
       ],
     );
+  }
+
+  /// Opens the search-and-add sheet for this user-created playlist and pulls
+  /// the freshly stored song list back into the page when it closes.
+  Future<void> _openAddSongsSheet() async {
+    final playlistId = _playlist?['ytid']?.toString() ?? '';
+    if (playlistId.isEmpty) return;
+
+    final existingSongIds = <String>{
+      for (final song in (_playlist['list'] as List? ?? const <dynamic>[]))
+        if (song is Map && song['ytid'] != null) song['ytid'].toString(),
+    };
+
+    final added = await showAddSongsSheet(
+      context,
+      playlistId: playlistId,
+      playlistTitle: _playlistTitle,
+      existingSongIds: existingSongIds,
+    );
+
+    if (!mounted || added <= 0) return;
+    _refreshCustomPlaylistFromStorage();
+  }
+
+  void _refreshCustomPlaylistFromStorage() {
+    final id = _playlist?['ytid']?.toString();
+    if (id == null || id.isEmpty) return;
+
+    final index = getUserCustomPlaylists().indexWhere(
+      (playlist) => playlist['ytid']?.toString() == id,
+    );
+    if (index == -1) return;
+
+    setState(() => _adoptPlaylist(getUserCustomPlaylists()[index]));
+    _maybeLoadRecommendations();
   }
 
   void _handleShare() async {

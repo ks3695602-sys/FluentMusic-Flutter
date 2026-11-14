@@ -6,12 +6,12 @@
 ## 🚨 RESUME CARD (read this first if anything crashed)
 
 ```
-LAST UPDATED : 2026-11-14 20:05 IST
-LAST COMMIT  : P4 71bf16f pushed · analyze 43601145551 green ✅ · P5 in working tree
+LAST UPDATED : 2026-11-14 20:35 IST
+LAST COMMIT  : P5 9b25374 pushed · analyze 43601927667 green ✅ · P6 in working tree
 BRANCH       : feat/v1.4.0-ios27-remake
-CURRENT PHASE: P5 — Account + sync
-CURRENT STEP : account/sync services + glass account page wired, docs/SYNC.md written
-NEXT ACTION  : commit/push P5, confirm analyze green, then P6 library features
+CURRENT PHASE: P6 — Library features
+CURRENT STEP : add-songs glass sheet with search, empty-state action, artist grid
+NEXT ACTION  : commit/push P6, confirm analyze green, then P7 lyrics long-token
 BLOCKED BY   : none
 ```
 
@@ -34,8 +34,8 @@ BLOCKED BY   : none
 | P2 | Bottom bar + accessory | ✅ done | 100 |
 | P3 | Home redesign | ✅ done | 100 |
 | P4 | Settings remake | ✅ done | 100 |
-| P5 | Account + sync | 🟡 in progress | 85 |
-| P6 | Library features | ⬜ | 0 |
+| P5 | Account + sync | ✅ done | 95 |
+| P6 | Library features | 🟡 in progress | 75 |
 | P7 | Lyrics polish | ⬜ | 0 |
 | P8 | Favourite popup | ⬜ | 0 |
 | P9 | QA + single APK | ⬜ | 0 |
@@ -96,11 +96,12 @@ Legend: ⬜ todo · 🟡 in progress · ✅ done · 🔴 blocked
 - [ ] 2-device sync test (manual, needs real Supabase keys)
 
 ### P6 — Library
-- [ ] add songs
-- [ ] search in add-song
-- [ ] delete song
-- [ ] playlist create
-- [ ] artist section improved
+- [x] add songs (`AddSongsSheet` glass modal, live search, instant +)
+- [x] search in add-song (debounced YouTube Music search, keyboard-safe)
+- [x] delete song (playlist remove + undo, liked-songs heart toggle)
+- [x] playlist create (library add button + create dialog already wired)
+- [x] artist section improved (circular expanding grid, tap → artist page)
+- [x] liked-songs empty state → "Find songs" jumps to Search tab
 
 ### P7 — Lyrics
 - [ ] long-token wrap
@@ -148,9 +149,10 @@ Legend: ⬜ todo · 🟡 in progress · ✅ done · 🔴 blocked
 | 1 | P1 (Lab + theme) | `ce12313` + `6d3a023` | ✅ |
 | 2 | P3 | `7f1fd07` | ✅ |
 | 3 | P4 | `71bf16f` | ✅ |
-| 4 | P5 | — | ⬜ |
-| 5 | P7 | — | ⬜ |
-| 6 | P9 | — | ⬜ |
+| 4 | P5 | `38ea5e0` + `9b25374` | ✅ |
+| 5 | P6 | — | ⬜ |
+| 6 | P7 | — | ⬜ |
+| 7 | P9 | — | ⬜ |
 
 ---
 
@@ -182,4 +184,9 @@ Legend: ⬜ todo · 🟡 in progress · ✅ done · 🔴 blocked
 [2026-11-14 19:58] P5: account_service (Supabase REST + local profile), sync_service (union merge, JSON export/import).
 [2026-11-14 20:02] P5: glass account page, old stub removed, startup restore + auto-sync wired in main.dart.
 [2026-11-14 20:04] P5: docs/SYNC.md with SQL/RLS, build keys, honest limits, 2-device script.
+[2026-11-14 20:12] P5 analyze red: CupertinoIcons.cloud_off + missing logger import. Fixed.
+[2026-11-14 20:16] P5 fix 9b25374 pushed; analyze run 43601927667 green ✅.
+[2026-11-14 20:24] P6: AddSongsSheet glass modal (debounced search, instant add, done count) wired to user playlists.
+[2026-11-14 20:30] P6: empty playlist action, liked-songs Find songs, circular expanding LibraryArtistsGrid.
+[2026-11-14 20:34] P6: playlist refreshes from storage after sheet closes; folder playlists included.
 ```

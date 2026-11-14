@@ -28,13 +28,20 @@ class EmptyPlaylistState extends StatelessWidget {
     super.key,
     this.icon = FluentIcons.text_bullet_list_24_filled,
     required this.message,
+    this.actionLabel,
+    this.onAction,
   });
 
   final IconData icon;
   final String message;
+  final String? actionLabel;
+  final VoidCallback? onAction;
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final hasAction = actionLabel != null && onAction != null;
+
     return SliverFillRemaining(
       hasScrollBody: false,
       child: Center(
@@ -46,17 +53,56 @@ class EmptyPlaylistState extends StatelessWidget {
               Icon(
                 icon,
                 size: 64,
-                color: Theme.of(context).colorScheme.onSurface.withAlpha(120),
+                color: colorScheme.onSurface.withAlpha(120),
               ),
               const SizedBox(height: 16),
               Text(
                 message,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  color: colorScheme.onSurfaceVariant,
                   fontSize: 16,
                 ),
               ),
+              if (hasAction) ...[
+                const SizedBox(height: 20),
+                GestureDetector(
+                  onTap: onAction,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 22,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: colorScheme.primary.withValues(alpha: 0.16),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: colorScheme.primary.withValues(alpha: 0.45),
+                        width: 0.9,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          FluentIcons.add_24_regular,
+                          size: 17,
+                          color: colorScheme.primary,
+                        ),
+                        const SizedBox(width: 7),
+                        Text(
+                          actionLabel!,
+                          style: TextStyle(
+                            color: colorScheme.primary,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),

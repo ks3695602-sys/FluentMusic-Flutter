@@ -23,6 +23,7 @@ import 'dart:async';
 
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:musify/constants/app_constants.dart';
 import 'package:musify/extensions/l10n.dart';
@@ -39,6 +40,7 @@ import 'package:musify/utilities/offline_playlist_dialogs.dart';
 import 'package:musify/utilities/playlist_dialogs.dart';
 import 'package:musify/utilities/playlist_utils.dart';
 import 'package:musify/widgets/confirmation_dialog.dart';
+import 'package:musify/widgets/library/library_artists_grid.dart';
 import 'package:musify/widgets/mini_player_bottom_space.dart';
 import 'package:musify/widgets/playlist_bar.dart';
 import 'package:musify/widgets/section_header.dart';
@@ -486,12 +488,19 @@ class _LibraryPageState extends State<LibraryPage> {
     if (likedArtists.isEmpty) return [];
     return [
       SliverToBoxAdapter(
-        child: SectionHeader(
-          title: context.l10n!.artist,
-          icon: FluentIcons.person_24_filled,
+        child: LibraryArtistsGrid(
+          artists: likedArtists,
+          onArtistTap: (artist) {
+            final id = (artist['ytid'] ?? artist['id'] ?? '').toString();
+            if (id.isEmpty) return;
+            context.push(
+              NavigationManager.artistPath(context, id),
+              extra: artist,
+            );
+          },
         ),
       ),
-      _buildSliverPlaylistList(likedArtists),
+      const SliverToBoxAdapter(child: SizedBox(height: 10)),
     ];
   }
 
