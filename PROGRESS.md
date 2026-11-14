@@ -6,13 +6,13 @@
 ## 🚨 RESUME CARD (read this first if anything crashed)
 
 ```
-LAST UPDATED : 2026-11-14 21:22 IST
-LAST COMMIT  : P7 8818f1f pushed · analyze 43605703977 green ✅ · P8 toast in working tree
+LAST UPDATED : 2026-11-14 21:42 IST
+LAST COMMIT  : P8 bde1182 pushed · analyze 43609090261 green ✅
 BRANCH       : feat/v1.4.0-ios27-remake
-CURRENT PHASE: P8 — Favourite glass popup
-CURRENT STEP : glass_toast.dart built; need to wire favourite/playlist-add call sites
-NEXT ACTION  : wire showGlassToast into song/playlist like + playlist add, then commit/push
-BLOCKED BY   : local Flutter/Dart SDK unavailable; CI is the analyze gate
+CURRENT PHASE: P9 — QA + single APK + release
+CURRENT STEP : add `flutter test` to the branch gate, then version 1.4.0+13
+NEXT ACTION  : push test gate, verify green, bump version + CHANGELOG, build ONE release APK
+BLOCKED BY   : local Flutter/Dart SDK unavailable; CI is the analyze/test/build gate
 ```
 
 **How to resume**
@@ -37,8 +37,8 @@ BLOCKED BY   : local Flutter/Dart SDK unavailable; CI is the analyze gate
 | P5 | Account + sync | ✅ done | 95 |
 | P6 | Library features | ✅ done | 100 |
 | P7 | Lyrics polish | ✅ done | 100 |
-| P8 | Favourite popup | 🟡 in progress | 35 |
-| P9 | QA + single APK | ⬜ | 0 |
+| P8 | Favourite popup | ✅ done | 100 |
+| P9 | QA + single APK | 🟡 in progress | 15 |
 
 Legend: ⬜ todo · 🟡 in progress · ✅ done · 🔴 blocked
 
@@ -112,14 +112,14 @@ Legend: ⬜ todo · 🟡 in progress · ✅ done · 🔴 blocked
 
 ### P8 — Popup
 - [x] `glass_toast.dart` (queued overlay, 2s, swipe dismiss, reduced motion)
-- [ ] favourite call sites (song like, playlist like, playlist add)
-- [ ] analyze green
+- [x] favourite call sites (song like/unlike, now-playing heart, playlist add)
+- [x] analyze green — run 43609090261 ✅
 
 ### P9 — Ship
-- [ ] analyze green
-- [ ] tests green
-- [ ] ONE release APK built
-- [ ] device checklist
+- [ ] analyze green (branch gate will re-run)
+- [ ] tests green (`flutter test` added to gate)
+- [ ] ONE release APK built (remove debug build from workflow)
+- [ ] device checklist (manual, user)
 - [ ] version 1.4.0+13
 - [ ] tag v1.4.0 + release
 
@@ -164,6 +164,7 @@ Legend: ⬜ todo · 🟡 in progress · ✅ done · 🔴 blocked
 | 4 | P5 | `38ea5e0` + `9b25374` | ✅ |
 | 5 | P6 | `2c4781d` | ✅ |
 | 6 | P7 | `8818f1f` | ✅ |
+| 6b | P8 | `bde1182` | ✅ |
 | 7 | P9 | — | ⬜ |
 
 ---
