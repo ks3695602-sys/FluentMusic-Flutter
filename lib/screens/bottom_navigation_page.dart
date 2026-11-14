@@ -29,7 +29,9 @@ import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:musify/constants/app_constants.dart';
 import 'package:musify/extensions/l10n.dart';
 import 'package:musify/main.dart';
+import 'package:musify/services/search_bridge.dart';
 import 'package:musify/services/settings_manager.dart';
+import 'package:musify/theme/glass_config_controller.dart';
 import 'package:musify/utilities/flutter_bottom_sheet.dart'
     show closeCurrentBottomSheet;
 import 'package:musify/widgets/mini_player.dart';
@@ -53,6 +55,16 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
   /// Track the previously selected shell branch to detect reselects.
   int? _previousShellIndex;
 
+  /// Inline search state driven by [GlassTabBar.searchable].
+  bool _isSearchActive = false;
+  final TextEditingController _inlineSearchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _inlineSearchController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -61,6 +73,9 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
         if (didPop) return;
 
         final currentIndex = widget.child.currentIndex;
+        if (_isSearchActive) {
+          setState(() => _isSearchActive = false);
+        }
         if (currentIndex != 0) {
           widget.child.goBranch(0);
         } else {
@@ -84,6 +99,7 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
               final items = _getNavigationItems(isOfflineMode);
 
               final isLight = Theme.of(context).brightness == Brightness.light;
+              final glassConfig = GlassConfigScope.of(context).config;
 
               return GlassScaffold(
                 contentAwareBrightness: true,
@@ -140,65 +156,92 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
                         stream: _miniPlayerVisibilityStream,
                         builder: (context, snapshot) {
                           final isMiniPlayerVisible = snapshot.data ?? false;
-                          final isSearching = widget.child.currentIndex == 1;
+                          final searchExpanded = _isSearchActive;
 
-                          return GlassBackdropGroup(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (isMiniPlayerVisible)
-                                  const Padding(
-                                    padding: EdgeInsets.only(bottom: 4),
-                                    child: MiniPlayer(),
+                          return GlassTabBar.searchable(
+                            isSearchActive: searchExpanded,
+                            selectedIndex:
+                                _getCurrentIndex(items, isOfflineMode),
+                            onTabSelected: (index) {
+                              if (_isSearchActive) {
+                                setState(() => _isSearchActive = false);
+                              }
+                              _onTabTapped(index, items);
+                            },
+                            tabs: items
+                                .map(
+                                  (item) => GlassTab(
+                                    icon: Icon(item.icon),
+                                    activeIcon: Icon(item.selectedIcon),
+                                    label: item.label,
                                   ),
-                                GlassTabBar.searchable(
-                                  isSearchActive: isSearching,
-                                  selectedIndex:
-                                      _getCurrentIndex(items, isOfflineMode),
-                                  onTabSelected: (index) {
-                                    _onTabTapped(index, items);
-                                  },
-                                  tabs: items
-                                      .map(
-                                        (item) => GlassTab(
-                                          icon: Icon(item.icon),
-                                          activeIcon: Icon(item.selectedIcon),
-                                          label: item.label,
-                                        ),
-                                      )
-                                      .toList(),
-                                  barHeight: 64.0,
-                                  searchBarHeight: 50.0,
-                                  horizontalPadding: 16.0,
-                                  verticalPadding: 8.0,
-                                  spacing: 8.0,
-                                  selectedIconColor: const Color(0xFFFF2D55),
-                                  unselectedIconColor: isLight
-                                      ? CupertinoColors.black.withValues(alpha: 0.65)
-                                      : CupertinoColors.white.withValues(alpha: 0.85),
-                                  labelFontSize: 10,
-                                  iconSize: 26,
-                                  iconLabelSpacing: 0,
-                                  quality: GlassQuality.premium,
-                                  interactionBehavior: GlassInteractionBehavior.full,
-                                  searchConfig: GlassSearchBarConfig(
-                                    expandWhenActive: false,
-                                    hintText: context.l10n?.search ?? 'Search',
-                                    onSearchToggle: (active) {
-                                      if (active && !isOfflineMode) {
-                                        closeCurrentBottomSheet();
-                                        widget.child.goBranch(1);
-                                      } else if (!active &&
-                                          widget.child.currentIndex == 1) {
-                                        widget.child.goBranch(0);
-                                      }
-                                    },
-                                    searchIconColor: isLight
-                                        ? CupertinoColors.black.withValues(alpha: 0.85)
-                                        : CupertinoColors.white.withValues(alpha: 0.9),
-                                  ),
-                                ),
-                              ],
+                                )
+                                .toList(),
+                            barHeight: 64.0,
+                            searchBarHeight: 50.0,
+                            horizontalPadding: 16.0,
+                            verticalPadding: 8.0,
+                            spacing: 8.0,
+                            selectedIconColor: const Color(0xFFFF2D55),
+                            unselectedIconColor: isLight
+                                ? CupertinoColors.black
+                                    .withValues(alpha: 0.65)
+                                : CupertinoColors.white
+                                    .withValues(alpha: 0.85),
+                            labelFontSize: 10,
+                            iconSize: 26,
+                            iconLabelSpacing: 0,
+                            quality: GlassQuality.premium,
+                            interactionBehavior:
+                                GlassInteractionBehavior.full,
+                            pressScale: 0.96,
+                            adaptiveBrightness: true,
+                            barBorderRadius: glassConfig.barRadius ??
+                                GlassDefaults.capsuleRadius,
+                            indicatorBorderRadius:
+                                glassConfig.indicatorRadius,
+                            indicatorPinchStrength:
+                                glassConfig.pinchStrength,
+                            indicatorExpansion: EdgeInsets.symmetric(
+                              horizontal: glassConfig.expansionH,
+                              vertical: glassConfig.expansionV,
+                            ),
+                            // The mini-player lives *inside* the bar's accessory
+                            // slot. No external GlassBackdropGroup: one glass
+                            // layer = no dull composite, no dock overlap.
+                            bottomAccessory:
+                                isMiniPlayerVisible && !searchExpanded
+                                    ? const MiniPlayer()
+                                    : null,
+                            bottomAccessoryHeight:
+                                MiniPlayer.playerHeight + 8,
+                            bottomAccessorySpacing: 4,
+                            bottomAccessoryPlacement:
+                                GlassTabBarAccessoryPlacement.expanded,
+                            searchConfig: GlassSearchBarConfig(
+                              controller: _inlineSearchController,
+                              expandWhenActive: true,
+                              showPill: !isOfflineMode,
+                              hintText: context.l10n?.search ?? 'Search',
+                              textInputAction: TextInputAction.search,
+                              onSubmitted: _submitInlineSearch,
+                              onSearchToggle: (active) {
+                                if (active && isOfflineMode) return;
+                                setState(() => _isSearchActive = active);
+                                if (active) {
+                                  closeCurrentBottomSheet();
+                                  if (widget.child.currentIndex != 1) {
+                                    widget.child.goBranch(1);
+                                  }
+                                } else if (widget.child.currentIndex == 1) {
+                                  widget.child.goBranch(0);
+                                }
+                              },
+                              searchIconColor: isLight
+                                  ? CupertinoColors.black
+                                      .withValues(alpha: 0.85)
+                                  : CupertinoColors.white
+                                      .withValues(alpha: 0.9),
                             ),
                           );
                         },
@@ -220,6 +263,13 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
         label: context.l10n?.home ?? 'Home',
         shellIndex: 0,
       ),
+      if (!isOfflineMode)
+        _NavigationItem(
+          icon: CupertinoIcons.search,
+          selectedIcon: CupertinoIcons.search,
+          label: context.l10n?.search ?? 'Search',
+          shellIndex: 1,
+        ),
       _NavigationItem(
         icon: CupertinoIcons.music_albums,
         selectedIcon: CupertinoIcons.music_albums_fill,
@@ -237,8 +287,25 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
     return items;
   }
 
+  /// Sends the inline bar query to [SearchPage] and makes sure its branch is
+  /// visible. The bridge keeps the query queued if the branch is cold.
+  void _submitInlineSearch(String value) {
+    final query = value.trim();
+    if (query.isEmpty) return;
+    InlineSearchBridge.submit(query);
+    FocusScope.of(context).unfocus();
+    if (widget.child.currentIndex != 1) {
+      widget.child.goBranch(1);
+    }
+  }
+
   void _handleOfflineModeChange(bool isOfflineMode) {
     if (!mounted) return;
+
+    // Offline mode has no search branch, so collapse the inline field first.
+    if (isOfflineMode && _isSearchActive) {
+      setState(() => _isSearchActive = false);
+    }
 
     final currentRoute = GoRouterState.of(context).matchedLocation;
 

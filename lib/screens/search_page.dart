@@ -36,6 +36,7 @@ import 'package:musify/services/common_services.dart';
 import 'package:musify/services/data_manager.dart';
 import 'package:musify/services/playlists_manager.dart';
 import 'package:musify/services/router_service.dart';
+import 'package:musify/services/search_bridge.dart';
 import 'package:musify/services/settings_manager.dart';
 import 'package:musify/utilities/app_utils.dart';
 import 'package:musify/utilities/flutter_toast.dart';
@@ -81,6 +82,25 @@ class _SearchPageState extends State<SearchPage> {
   int _latestSuggestionRequest = 0;
   int _latestSearchRequest = 0;
 
+  @override
+  void initState() {
+    super.initState();
+    InlineSearchBridge.request.addListener(_handleInlineSearch);
+    // Consume a query that was typed in the bar while this branch was cold.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final pending = InlineSearchBridge.takePending();
+      if (pending != null && mounted) {
+        _submitSearch(pending);
+      }
+    });
+  }
+
+  void _handleInlineSearch() {
+    final pending = InlineSearchBridge.takePending();
+    if (pending == null || !mounted) return;
+    _submitSearch(pending);
+  }
+
   Future<void> _submitSearch([String? query]) async {
     if (query != null) {
       _searchBar.text = query;
@@ -100,6 +120,7 @@ class _SearchPageState extends State<SearchPage> {
 
   @override
   void dispose() {
+    InlineSearchBridge.request.removeListener(_handleInlineSearch);
     _searchBar.dispose();
     _inputNode.dispose();
     _fetchingSongs.dispose();

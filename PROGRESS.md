@@ -6,12 +6,12 @@
 ## 🚨 RESUME CARD (read this first if anything crashed)
 
 ```
-LAST UPDATED : 2026-11-14 19:00 IST
-LAST COMMIT  : P0+P1.1 d0a6346 · P1.2 in working tree (Lab + backdrop + theme hook)
+LAST UPDATED : 2026-11-14 19:05 IST
+LAST COMMIT  : P1 d0a6346→ce12313→6d3a023, all pushed · P2 in working tree
 BRANCH       : feat/v1.4.0-ios27-remake
-CURRENT PHASE: P1 — Glass engine + Lab
-CURRENT STEP : Glass Lab page, colorful backdrop, 8 sliders wired, old sliders deleted
-NEXT ACTION  : push + confirm analyze green, then P2 bottom bar accessory
+CURRENT PHASE: P2 — Bottom bar + accessory
+CURRENT STEP : searchable bar + inline search bridge + accessory mini-player done
+NEXT ACTION  : commit/push P2, confirm analyze green, then P3 Home slivers
 BLOCKED BY   : none
 ```
 
@@ -30,8 +30,8 @@ BLOCKED BY   : none
 | Phase | Name | Status | % |
 |---|---|---|---|
 | P0 | Ground truth | ✅ done | 100 |
-| P1 | Glass engine + Lab | 🟡 in progress | 80 |
-| P2 | Bottom bar + accessory | ⬜ | 0 |
+| P1 | Glass engine + Lab | ✅ done | 100 |
+| P2 | Bottom bar + accessory | 🟡 in progress | 85 |
 | P3 | Home redesign | ⬜ | 0 |
 | P4 | Settings remake | ⬜ | 0 |
 | P5 | Account + sync | ⬜ | 0 |
@@ -63,13 +63,13 @@ Legend: ⬜ todo · 🟡 in progress · ✅ done · 🔴 blocked
 - [x] light mode contrast check (solid sections + dark/light text tokens)
 
 ### P2 — Bottom bar
-- [ ] old Column removed
-- [ ] `GlassTabBar.searchable` + accessory
-- [ ] 4 tabs (Home/Library/Canvas/Settings) + search
-- [ ] inline search expand
-- [ ] mini player collapse
-- [ ] bottom inset for content
-- [ ] bouncy spring tap
+- [x] old Column removed
+- [x] `GlassTabBar.searchable` + accessory
+- [x] 4 tabs (Home/Search/Library/Settings) — Search auto-hides offline
+- [x] inline search expand (bar → `InlineSearchBridge` → `SearchPage`)
+- [x] mini player collapse (accessory = null while search open)
+- [ ] bottom inset for content (done in P3 slivers)
+- [x] bouncy spring tap (`pressScale: 0.96`)
 
 ### P3 — Home
 - [ ] CustomScrollView + slivers
@@ -143,7 +143,7 @@ Legend: ⬜ todo · 🟡 in progress · ✅ done · 🔴 blocked
 | # | After | Commit | Pushed |
 |---|---|---|---|
 | 0 | P0 + P1.1 | `d0a6346` | ✅ |
-| 1 | P1 | — | ⬜ |
+| 1 | P1 (Lab + theme) | `ce12313` + `6d3a023` | ✅ |
 | 2 | P3 | — | ⬜ |
 | 3 | P5 | — | ⬜ |
 | 4 | P7 | — | ⬜ |
@@ -167,4 +167,7 @@ Legend: ⬜ todo · 🟡 in progress · ✅ done · 🔴 blocked
 [2026-11-14 18:58] glass_lab_page.dart (8 sliders + live preview + reset/copy/paste).
 [2026-11-14 19:02] Config hooked into global GlassThemeData (tint/aberration/refraction) + GlassConfigScope in main.
 [2026-11-14 19:04] Old blur/thickness/quality/tint sliders deleted from Appearance subpage.
+[2026-11-14 19:08] P1.2 committed ce12313 + 6d3a023; analyze run 43599325109 green ✅.
+[2026-11-14 19:12] P2: search_bridge.dart + GlassTabBar.searchable + accessory MiniPlayer + 4 tabs.
+[2026-11-14 19:20] P2: SearchPage consumes bridge query; PopScope/offline reset search state; Search tab hidden offline.
 ```
