@@ -331,7 +331,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   Icon(
-                    CupertinoIcons.cloud_off,
+                    CupertinoIcons.cloud,
                     size: 20,
                     color: isDark ? Colors.white54 : const Color(0xFF8E8E93),
                   ),

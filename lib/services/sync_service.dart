@@ -22,9 +22,9 @@ import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:http/http.dart' as http;
+import 'package:musify/main.dart' show logger;
 import 'package:musify/services/account_service.dart';
 import 'package:musify/services/common_services.dart';
-import 'package:musify/services/logger_service.dart';
 import 'package:musify/services/playlists_manager.dart';
 
 /// Result of a sync/export/import operation.

@@ -21,7 +21,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:http/http.dart' as http;
-import 'package:musify/services/logger_service.dart';
+import 'package:musify/main.dart' show logger;
 
 /// Optional Supabase configuration.
 ///
