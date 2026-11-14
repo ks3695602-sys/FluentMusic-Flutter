@@ -1,11 +1,6 @@
 name: Build FluentMusic ARM64 APK
 
 on:
-  push:
-    branches:
-      - feat/v1.4.0-ios27-remake
-    paths:
-      - .github/workflows/build-arm64-apk.yml
   workflow_dispatch:
     inputs:
       release_tag:
