@@ -82,7 +82,9 @@ class _GlassBackdropState extends State<GlassBackdrop>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final brightness =
+        MediaQuery.maybeOf(context)?.platformBrightness ?? Brightness.light;
+    final isDark = brightness == Brightness.dark;
     final reduceMotion =
         MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     final seed = widget.seedColor ?? const Color(0xFFFA2D48);
