@@ -6,13 +6,13 @@
 ## 🚨 RESUME CARD (read this first if anything crashed)
 
 ```
-LAST UPDATED : 2026-11-14 22:03 IST
-LAST COMMIT  : P9 metadata pending · previous CI run 43609328392 green (analyze + 91 tests) ✅
+LAST UPDATED : 2026-11-14 22:18 IST
+LAST COMMIT  : v1.4.0 release · 6c7f453 · CI/build run 43611566105 green ✅
 BRANCH       : feat/v1.4.0-ios27-remake
-CURRENT PHASE: P9 — QA + single APK + release
-CURRENT STEP : version 1.4.0+13, changelog, release-only APK workflow and test lint cleanup ready
-NEXT ACTION  : commit/push, verify latest CI, trigger the ONE tagged release build, publish APK
-BLOCKED BY   : local Flutter/Dart SDK unavailable; device + two-device sync QA need user hardware/keys
+CURRENT PHASE: P9 — release shipped; manual QA remains
+CURRENT STEP : release APK published (41,085,413 bytes), tag v1.4.0
+NEXT ACTION  : user device smoke test + optional real-key two-device Supabase sync test
+BLOCKED BY   : manual device and Supabase validation need user hardware/credentials
 ```
 
 **How to resume**
@@ -38,7 +38,7 @@ BLOCKED BY   : local Flutter/Dart SDK unavailable; device + two-device sync QA n
 | P6 | Library features | ✅ done | 100 |
 | P7 | Lyrics polish | ✅ done | 100 |
 | P8 | Favourite popup | ✅ done | 100 |
-| P9 | QA + single APK | 🟡 in progress | 65 |
+| P9 | QA + single APK | ✅ release shipped; manual QA pending | 90 |
 
 Legend: ⬜ todo · 🟡 in progress · ✅ done · 🔴 blocked
 
@@ -116,13 +116,13 @@ Legend: ⬜ todo · 🟡 in progress · ✅ done · 🔴 blocked
 - [x] analyze green — run 43609090261 ✅
 
 ### P9 — Ship
-- [x] analyze green (branch gate run 43609328392 ✅; lyrics test info lints cleaned after run)
-- [x] tests green — 91 tests (`flutter test --reporter expanded`, run 43609328392 ✅)
-- [x] release-only APK workflow (debug APK step removed)
-- [ ] ONE release APK built
-- [ ] device checklist (manual, user)
+- [x] analyze + tests green — 91 tests (branch run 43611273990 ✅)
+- [x] single release APK workflow (debug APK step removed)
+- [x] ONE universal release APK built and published — 41,085,413 bytes
+- [ ] device smoke checklist (manual, user)
 - [x] version 1.4.0+13 + `CHANGELOG.md`
-- [ ] tag v1.4.0 + release
+- [x] tag `v1.4.0` + GitHub release published
+- [x] build/release run [43611566105](https://github.com/ks3695602-sys/FluentMusic-Flutter/actions/runs/43611566105) ✅
 
 ---
 
@@ -166,14 +166,15 @@ Legend: ⬜ todo · 🟡 in progress · ✅ done · 🔴 blocked
 | 5 | P6 | `2c4781d` | ✅ |
 | 6 | P7 | `8818f1f` | ✅ |
 | 6b | P8 | `bde1182` | ✅ |
-| 7 | P9 metadata + QA gate | — | 🟡 working tree |
-| 8 | P9 release APK + tag | — | ⬜ |
+| 7 | P9 metadata + QA gate | `6c7f453` | ✅ |
+| 8 | P9 release APK + tag | `v1.4.0` | ✅ run 43611566105 |
 
 ---
 
 ## Session log (append only)
 
 ```
+[2026-11-14 22:18] P9 shipped: tag v1.4.0; run 43611566105 built one 41,085,413-byte universal release APK and published GitHub release. Analyze/tests and Windows demo job green. Manual device + Supabase sync QA remains.
 [2026-11-14 22:03] P9 prep: CI run 43609328392 passed analyze + 91 tests; version 1.4.0+13, CHANGELOG, release-only APK workflow, lyric-test lint cleanup staged for commit. No APK built yet.
 [2026-11-14 18:05] Plan created. MASTERPLAN.md + PROGRESS.md written.
 [2026-11-14 18:05] Branch feat/v1.4.0-ios27-remake created. No code changes yet.
