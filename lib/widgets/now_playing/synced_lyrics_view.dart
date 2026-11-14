@@ -38,8 +38,11 @@ class SyncedLyricsView extends StatefulWidget {
 
 class _SyncedLyricsViewState extends State<SyncedLyricsView>
     with SingleTickerProviderStateMixin {
+  static const _maxTokenGraphemes = 5;
+
   late final LyricController _controller;
   late final Ticker _ticker;
+  late final LyricPreset _lyricPreset;
   StreamSubscription<PositionData>? _positionSubscription;
   StreamSubscription<PlaybackState>? _playbackSubscription;
   Duration _offset = Duration.zero;
@@ -54,6 +57,12 @@ class _SyncedLyricsViewState extends State<SyncedLyricsView>
     super.initState();
     _offset = Duration(milliseconds: lyricsOffsetMs.value);
     lyricsOffsetMs.addListener(_onOffsetChanged);
+    final applePreset = LyricPresets.appleMusic;
+    _lyricPreset = applePreset.copyWith(
+      activeTextStyle: applePreset.activeTextStyle.copyWith(
+        fontSize: (applePreset.textStyle.fontSize ?? 32) * 1.06,
+      ),
+    );
     _controller = LyricController();
     _loadLyrics();
 
@@ -122,8 +131,8 @@ class _SyncedLyricsViewState extends State<SyncedLyricsView>
 
   void _loadLyrics() {
     final content = widget.lyrics.hasWordSync
-        ? widget.lyrics.toQrc()
-        : widget.lyrics.toLrc();
+        ? widget.lyrics.toQrc(maxUnbrokenGraphemes: _maxTokenGraphemes)
+        : widget.lyrics.toLrc(maxUnbrokenGraphemes: _maxTokenGraphemes);
     if (content.isNotEmpty) {
       try {
         _controller.load(content);
@@ -180,10 +189,13 @@ class _SyncedLyricsViewState extends State<SyncedLyricsView>
     }
 
     if (!widget.lyrics.isSynced) {
-      final cleanPlain = (widget.lyrics.plain ?? '')
-          .replaceAll(RegExp(r'<[^>]+>'), '')
-          .replaceAll(RegExp(r'\[\d{1,3}:\d{1,2}(?:[.:]\d{1,3})?\]'), '')
-          .trim();
+      final cleanPlain = wrapLongLyricTokens(
+        (widget.lyrics.plain ?? '')
+            .replaceAll(RegExp(r'<[^>]+>'), '')
+            .replaceAll(RegExp(r'\[\d{1,3}:\d{1,2}(?:[.:]\d{1,3})?\]'), '')
+            .trim(),
+        maxGraphemes: _maxTokenGraphemes,
+      );
       return SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 40),
@@ -206,7 +218,7 @@ class _SyncedLyricsViewState extends State<SyncedLyricsView>
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: LyricView(
         controller: _controller,
-        preset: LyricPresets.appleMusic,
+        preset: _lyricPreset,
         onLineTap: (line) {
           final target = line.seekPosition - _offset;
           audioHandler.seek(target.isNegative ? Duration.zero : target);

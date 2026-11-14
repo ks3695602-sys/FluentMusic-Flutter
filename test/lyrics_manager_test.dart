@@ -22,9 +22,11 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_lyric/flutter_lyric.dart' show LyricParser;
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:musify/services/lyrics/lrc_parser.dart';
+import 'package:musify/services/lyrics/lyrics_models.dart';
 import 'package:musify/services/lyrics/lyrics_query.dart';
 import 'package:musify/services/lyrics_manager.dart';
 
@@ -76,6 +78,61 @@ void main() {
       final lyrics = Lyrics(source: 't', synced: parseLrc('[00:01.00]a'));
       expect(lyrics.text, 'a');
       expect(lyrics.isSynced, isTrue);
+    });
+
+    test('wraps long tokens without splitting grapheme clusters', () {
+      expect(wrapLongLyricTokens('ooooo'), 'ooooo');
+      expect(wrapLongLyricTokens('oooooo'), 'ooooo\u200Bo');
+      expect(
+        wrapLongLyricTokens('oooooooooooooo'),
+        'ooooo\u200Booooo\u200Boooo',
+      );
+      expect(
+        wrapLongLyricTokens('🧑‍🎤🧑‍🎤🧑‍🎤', maxGraphemes: 2),
+        '🧑‍🎤🧑‍🎤\u200B🧑‍🎤',
+      );
+      expect(wrapLongLyricTokens('two words'), 'two words');
+      const arabic = 'مرحبابالعالم';
+      final wrappedArabic = wrapLongLyricTokens(arabic, maxGraphemes: 4);
+      expect(wrappedArabic.replaceAll('\u200B', ''), arabic);
+      expect(wrappedArabic, contains('\u200B'));
+      expect(
+        () => wrapLongLyricTokens('text', maxGraphemes: 0),
+        throwsArgumentError,
+      );
+    });
+
+    test('adds break opportunities in LRC and QRC output', () {
+      final lyrics = Lyrics(
+        source: 't',
+        synced: [
+          LyricLine(const Duration(seconds: 1), 'oooooooooooooooo'),
+          LyricLine(
+            const Duration(seconds: 5),
+            'oooooooooooooooo',
+            words: [
+              LyricWord(
+                text: 'oooooooooooooooo',
+                start: const Duration(seconds: 5),
+                end: const Duration(seconds: 8),
+              ),
+            ],
+          ),
+        ],
+      );
+      final lrc = lyrics.toLrc();
+      expect(lrc.split('\n').first, contains('\u200B'));
+      expect(
+        parseLrc(lrc).first.text.replaceAll('\u200B', ''),
+        'oooooooooooooooo',
+      );
+      final qrc = lyrics.toQrc();
+      expect(qrc, contains('\u200B'));
+      final roundTripQrc = LyricParser.autoDetect(qrc);
+      expect(
+        roundTripQrc.lines.last.text.replaceAll('\u200B', ''),
+        'oooooooooooooooo',
+      );
     });
   });
 

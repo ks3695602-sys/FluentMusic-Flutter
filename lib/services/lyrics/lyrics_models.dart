@@ -19,6 +19,8 @@
  *     please visit: https://github.com/gokadzev/Musify
  */
 
+import 'package:characters/characters.dart';
+
 /// A song a lyrics lookup is performed for.
 class TrackInfo {
   const TrackInfo({
@@ -123,6 +125,74 @@ class LyricLine {
   String toString() => '[$start] $text';
 }
 
+/// Inserts zero-width break opportunities without changing visible lyrics.
+/// Counts grapheme clusters so emoji, combining marks and RTL text stay intact.
+const int _defaultMaxUnbrokenLyricGraphemes = 5;
+const String _lyricZeroWidthBreak = '\u200B';
+final RegExp _lyricTokenPattern = RegExp(r'\S+');
+final RegExp _lyricMarkupPattern = RegExp(r'<[^>]+>');
+final RegExp _lyricTimestampPattern =
+    RegExp(r'\[\d{1,3}:\d{1,2}(?:[.:]\d{1,3})?\]');
+
+String _cleanLyricForDisplay(String text, {bool collapseWhitespace = false}) {
+  var clean = text
+      .replaceAll(_lyricMarkupPattern, '')
+      .replaceAll(_lyricTimestampPattern, '');
+  if (collapseWhitespace) clean = clean.replaceAll(RegExp(r'\s+'), ' ');
+  return clean.trim();
+}
+
+List<int> _longTokenBreakOffsets(String text, int maxGraphemes) {
+  final offsets = <int>[];
+  for (final match in _lyricTokenPattern.allMatches(text)) {
+    final tokenClusters = match.group(0)!.characters.toList();
+    var tokenGraphemes = 0;
+    var utf16Offset = match.start;
+    for (var i = 0; i < tokenClusters.length; i++) {
+      final cluster = tokenClusters[i];
+      utf16Offset += cluster.length;
+      if (cluster == _lyricZeroWidthBreak) {
+        tokenGraphemes = 0;
+        continue;
+      }
+      tokenGraphemes++;
+      if (tokenGraphemes == maxGraphemes &&
+          i + 1 < tokenClusters.length &&
+          tokenClusters[i + 1] != _lyricZeroWidthBreak) {
+        offsets.add(utf16Offset);
+        tokenGraphemes = 0;
+      }
+    }
+  }
+  return offsets;
+}
+
+String wrapLongLyricTokens(
+  String text, {
+  int maxGraphemes = _defaultMaxUnbrokenLyricGraphemes,
+}) {
+  if (maxGraphemes < 1) {
+    throw ArgumentError.value(
+      maxGraphemes,
+      'maxGraphemes',
+      'must be positive',
+    );
+  }
+  final offsets = _longTokenBreakOffsets(text, maxGraphemes);
+  if (offsets.isEmpty) return text;
+
+  final buffer = StringBuffer();
+  var previousOffset = 0;
+  for (final offset in offsets) {
+    buffer
+      ..write(text.substring(previousOffset, offset))
+      ..write(_lyricZeroWidthBreak);
+    previousOffset = offset;
+  }
+  buffer.write(text.substring(previousOffset));
+  return buffer.toString();
+}
+
 /// Lyrics returned by a provider.
 ///
 /// [plain] is always usable text. [synced] is only set by providers that
@@ -167,37 +237,60 @@ class Lyrics {
     return result;
   }
 
-  /// Formats the synced lyrics into a standard LRC string compatible with flutter_lyric
-  String toLrc() {
+  /// Formats lyrics for flutter_lyric and adds zero-width breaks to long tokens.
+  String toLrc({
+    int maxUnbrokenGraphemes = _defaultMaxUnbrokenLyricGraphemes,
+  }) {
+    if (maxUnbrokenGraphemes < 1) {
+      throw ArgumentError.value(
+        maxUnbrokenGraphemes,
+        'maxUnbrokenGraphemes',
+        'must be positive',
+      );
+    }
     final lines = synced;
     if (lines == null || lines.isEmpty) {
       if (plain == null || plain!.isEmpty) return '';
-      return plain!
-          .replaceAll(RegExp(r'<[^>]+>'), '')
-          .replaceAll(RegExp(r'\[\d{1,3}:\d{1,2}(?:[.:]\d{1,3})?\]'), '');
+      return wrapLongLyricTokens(
+        _cleanLyricForDisplay(plain!),
+        maxGraphemes: maxUnbrokenGraphemes,
+      );
     }
     final buffer = StringBuffer();
     for (final line in lines) {
       final m = line.start.inMinutes.toString().padLeft(2, '0');
       final s = (line.start.inSeconds % 60).toString().padLeft(2, '0');
-      final ms = ((line.start.inMilliseconds % 1000) ~/ 10).toString().padLeft(2, '0');
-      final cleanText = line.text
-          .replaceAll(RegExp(r'<[^>]+>'), '')
-          .replaceAll(RegExp(r'\[\d{1,3}:\d{1,2}(?:[.:]\d{1,3})?\]'), '')
-          .replaceAll(RegExp(r'\s+'), ' ')
-          .trim();
+      final ms = ((line.start.inMilliseconds % 1000) ~/ 10)
+          .toString()
+          .padLeft(2, '0');
+      final cleanText = wrapLongLyricTokens(
+        _cleanLyricForDisplay(line.text, collapseWhitespace: true),
+        maxGraphemes: maxUnbrokenGraphemes,
+      );
       buffer.writeln('[$m:$s.$ms]$cleanText');
     }
     return buffer.toString();
   }
 
-  /// Formats the synced lyrics into a standard QRC string compatible with flutter_lyric
-  /// for word-by-word karaoke synchronization:
-  /// [lineStartMs,lineDurationMs]word1(startMs,durMs)word2(startMs,durMs)
-  String toQrc() {
+  /// Formats lyrics for flutter_lyric's QRC parser with optional word timing.
+  /// Long tokens receive zero-width break opportunities for safe wrapping.
+  String toQrc({
+    int maxUnbrokenGraphemes = _defaultMaxUnbrokenLyricGraphemes,
+  }) {
+    if (maxUnbrokenGraphemes < 1) {
+      throw ArgumentError.value(
+        maxUnbrokenGraphemes,
+        'maxUnbrokenGraphemes',
+        'must be positive',
+      );
+    }
     final lines = synced;
-    if (lines == null || lines.isEmpty) return toLrc();
-    if (!hasWordSync) return toLrc();
+    if (lines == null || lines.isEmpty) {
+      return toLrc(maxUnbrokenGraphemes: maxUnbrokenGraphemes);
+    }
+    if (!hasWordSync) {
+      return toLrc(maxUnbrokenGraphemes: maxUnbrokenGraphemes);
+    }
 
     final buffer = StringBuffer();
     for (var i = 0; i < lines.length; i++) {
@@ -214,10 +307,10 @@ class Lyrics {
         buffer.write('[$lineStartMs,$lineDurMs]');
         for (var j = 0; j < line.words.length; j++) {
           final word = line.words[j];
-          final cleanWord = word.text
-              .replaceAll(RegExp(r'<[^>]+>'), '')
-              .replaceAll(RegExp(r'\[\d{1,3}:\d{1,2}(?:[.:]\d{1,3})?\]'), '')
-              .trim();
+          final cleanWord = wrapLongLyricTokens(
+            _cleanLyricForDisplay(word.text),
+            maxGraphemes: maxUnbrokenGraphemes,
+          );
           if (cleanWord.isEmpty) continue;
           final wStart = word.start.inMilliseconds;
           final wDur = (word.end.inMilliseconds - wStart).clamp(30, 10000);
@@ -226,12 +319,13 @@ class Lyrics {
         }
         buffer.writeln();
       } else {
-        final cleanText = line.text
-            .replaceAll(RegExp(r'<[^>]+>'), '')
-            .replaceAll(RegExp(r'\[\d{1,3}:\d{1,2}(?:[.:]\d{1,3})?\]'), '')
-            .replaceAll(RegExp(r'\s+'), ' ')
-            .trim();
-        buffer.writeln('[$lineStartMs,$lineDurMs]$cleanText($lineStartMs,$lineDurMs)');
+        final cleanText = wrapLongLyricTokens(
+          _cleanLyricForDisplay(line.text, collapseWhitespace: true),
+          maxGraphemes: maxUnbrokenGraphemes,
+        );
+        buffer.writeln(
+          '[$lineStartMs,$lineDurMs]$cleanText($lineStartMs,$lineDurMs)',
+        );
       }
     }
     return buffer.toString();
