@@ -6,12 +6,13 @@
 ## 🚨 RESUME CARD (read this first if anything crashed)
 
 ```
-LAST UPDATED : 2026-11-14 18:05 IST
-LAST COMMIT  : (none yet — plan docs only)
+LAST UPDATED : 2026-11-14 18:40 IST
+LAST COMMIT  : P0+P1 turn 1 (docs/GLASS_API.md, glass_config, controller, analyze CI)
 BRANCH       : feat/v1.4.0-ios27-remake
-CURRENT PHASE: P0 — Ground Truth
-CURRENT STEP : waiting for first Gemini turn
-NEXT ACTION  : create docs/GLASS_API.md + GEMINI.md + analyze-only.yml
+CURRENT PHASE: P1 — Glass engine + Lab
+CURRENT STEP : turn 1 done → model + controller + analyze-only CI
+NEXT ACTION  : turn 2 — glass_lab_page + glass_backdrop + hook config into theme
+               + delete old sliders in settings_subpages.dart
 BLOCKED BY   : none
 ```
 
@@ -29,8 +30,8 @@ BLOCKED BY   : none
 
 | Phase | Name | Status | % |
 |---|---|---|---|
-| P0 | Ground truth | ⬜ not started | 0 |
-| P1 | Glass engine + Lab | ⬜ | 0 |
+| P0 | Ground truth | ✅ done | 100 |
+| P1 | Glass engine + Lab | 🟡 in progress | 30 |
 | P2 | Bottom bar + accessory | ⬜ | 0 |
 | P3 | Home redesign | ⬜ | 0 |
 | P4 | Settings remake | ⬜ | 0 |
@@ -47,15 +48,15 @@ Legend: ⬜ todo · 🟡 in progress · ✅ done · 🔴 blocked
 ## Checklists
 
 ### P0 — Ground truth
-- [ ] `docs/GLASS_API.md` created with real signatures
-- [ ] `GlassSearchableBottomBar` checked (package export vs example-local)
-- [ ] `GEMINI.md` created
-- [ ] `.github/workflows/analyze-only.yml` created
-- [ ] analyze-only CI green
+- [x] `docs/GLASS_API.md` created with real signatures
+- [x] `GlassSearchableBottomBar` checked (removed; use `GlassTabBar.searchable`)
+- [x] `GEMINI.md` created
+- [x] `.github/workflows/analyze-only.yml` created
+- [ ] analyze-only CI green ← pending first run
 
 ### P1 — Glass engine + Lab
-- [ ] `lib/theme/glass_config.dart`
-- [ ] `lib/theme/glass_config_controller.dart` (+ Hive + scope)
+- [x] `lib/theme/glass_config.dart`
+- [x] `lib/theme/glass_config_controller.dart` (+ Hive + scope)
 - [ ] `lib/widgets/glass/glass_lab_page.dart`
 - [ ] `lib/widgets/glass/glass_backdrop.dart`
 - [ ] old sliders removed from `settings_subpages.dart`
