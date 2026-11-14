@@ -33,6 +33,7 @@ import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:musify/extensions/l10n.dart';
 import 'package:musify/localization/app_localizations.dart';
+import 'package:musify/services/account_service.dart';
 import 'package:musify/services/audio_service.dart';
 import 'package:musify/services/data_manager.dart';
 import 'package:musify/services/desktop_media_artwork.dart';
@@ -44,6 +45,7 @@ import 'package:musify/services/playlist_sharing.dart';
 import 'package:musify/services/playlists_manager.dart';
 import 'package:musify/services/router_service.dart';
 import 'package:musify/services/settings_manager.dart';
+import 'package:musify/services/sync_service.dart';
 import 'package:musify/services/update_manager.dart';
 import 'package:musify/services/windows_media_controls.dart';
 import 'package:musify/theme/app_themes.dart';
@@ -391,6 +393,16 @@ Future<void> initialisation() async {
     // them into the global theme before the first frame is built.
     glassConfigController.reloadFromStorage();
     updateLiquidGlassTheme();
+
+    // Restore the optional account session. Missing or corrupt data simply
+    // means "guest mode", which is always fully usable.
+    accountService.restoreFromStorage();
+
+    // Local-first sync: media starts instantly, and if the user has a cloud
+    // account the library reconciles quietly after the first frame.
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      unawaited(syncService.autoSyncOnLaunch());
+    });
 
     if (isMobilePlatform) {
       audioHandler = await AudioService.init(

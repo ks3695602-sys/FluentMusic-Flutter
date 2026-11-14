@@ -6,12 +6,12 @@
 ## 🚨 RESUME CARD (read this first if anything crashed)
 
 ```
-LAST UPDATED : 2026-11-14 19:45 IST
-LAST COMMIT  : P3 7f1fd07 pushed · analyze 43600876797 green ✅ · P4 in working tree
+LAST UPDATED : 2026-11-14 20:05 IST
+LAST COMMIT  : P4 71bf16f pushed · analyze 43601145551 green ✅ · P5 in working tree
 BRANCH       : feat/v1.4.0-ios27-remake
-CURRENT PHASE: P4 — Settings remake
-CURRENT STEP : 9 separate coloured glass tiles, header + bottom spacer done
-NEXT ACTION  : commit/push P4, confirm analyze green, then P5 account + sync
+CURRENT PHASE: P5 — Account + sync
+CURRENT STEP : account/sync services + glass account page wired, docs/SYNC.md written
+NEXT ACTION  : commit/push P5, confirm analyze green, then P6 library features
 BLOCKED BY   : none
 ```
 
@@ -33,8 +33,8 @@ BLOCKED BY   : none
 | P1 | Glass engine + Lab | ✅ done | 100 |
 | P2 | Bottom bar + accessory | ✅ done | 100 |
 | P3 | Home redesign | ✅ done | 100 |
-| P4 | Settings remake | 🟡 in progress | 90 |
-| P5 | Account + sync | ⬜ | 0 |
+| P4 | Settings remake | ✅ done | 100 |
+| P5 | Account + sync | 🟡 in progress | 85 |
 | P6 | Library features | ⬜ | 0 |
 | P7 | Lyrics polish | ⬜ | 0 |
 | P8 | Favourite popup | ⬜ | 0 |
@@ -83,15 +83,17 @@ Legend: ⬜ todo · 🟡 in progress · ✅ done · 🔴 blocked
 - [x] 9 section cards (one coloured glass tile each)
 - [x] colored icon badges
 - [x] glass subpages (GlassScaffold + mesh background)
-- [ ] account page black-box fixed (lands with P5 account page)
+- [x] account page black-box fixed (new glass `account_page.dart`)
 - [x] bottom fade pattern (shell extends body)
 
 ### P5 — Account + sync
-- [ ] `account_service.dart`
-- [ ] `account_page.dart` (skip works)
-- [ ] `sync_service.dart` (envelope + outbox)
-- [ ] Supabase keys wired (optional)
-- [ ] 2-device sync test (if keys)
+- [x] `account_service.dart` (optional Supabase REST, local profile, token refresh)
+- [x] `account_page.dart` (skip works, export/import, backup/restore)
+- [x] `sync_service.dart` (JSON snapshot, union merge, export/import, auto-sync)
+- [x] Supabase keys wired via `--dart-define` (optional at build time)
+- [x] startup restore + post-frame auto-sync in `main.dart`
+- [x] old account stub removed; `docs/SYNC.md` has SQL/RLS + 2-device script
+- [ ] 2-device sync test (manual, needs real Supabase keys)
 
 ### P6 — Library
 - [ ] add songs
@@ -144,10 +146,11 @@ Legend: ⬜ todo · 🟡 in progress · ✅ done · 🔴 blocked
 |---|---|---|---|
 | 0 | P0 + P1.1 | `d0a6346` | ✅ |
 | 1 | P1 (Lab + theme) | `ce12313` + `6d3a023` | ✅ |
-| 2 | P3 | — | ⬜ |
-| 3 | P5 | — | ⬜ |
-| 4 | P7 | — | ⬜ |
-| 5 | P9 | — | ⬜ |
+| 2 | P3 | `7f1fd07` | ✅ |
+| 3 | P4 | `71bf16f` | ✅ |
+| 4 | P5 | — | ⬜ |
+| 5 | P7 | — | ⬜ |
+| 6 | P9 | — | ⬜ |
 
 ---
 
@@ -175,4 +178,8 @@ Legend: ⬜ todo · 🟡 in progress · ✅ done · 🔴 blocked
 [2026-11-14 19:36] P3: Quick Picks rail, circular Artists rail (songs first), genre chips → inline search bridge.
 [2026-11-14 19:40] P3 commit 7f1fd07 pushed; analyze run 43600876797 green ✅.
 [2026-11-14 19:46] P4: settings rebuilt as 9 separate tinted glass tiles (image 10 pattern), 1.4.0 header, dock spacer.
+[2026-11-14 19:52] P4 commit 71bf16f pushed; analyze run 43601145551 green ✅.
+[2026-11-14 19:58] P5: account_service (Supabase REST + local profile), sync_service (union merge, JSON export/import).
+[2026-11-14 20:02] P5: glass account page, old stub removed, startup restore + auto-sync wired in main.dart.
+[2026-11-14 20:04] P5: docs/SYNC.md with SQL/RLS, build keys, honest limits, 2-device script.
 ```

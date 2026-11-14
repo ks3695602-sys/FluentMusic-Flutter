@@ -16,9 +16,10 @@
  */
 
 import 'package:flutter/cupertino.dart';
-import 'package:material_ui/material_ui.dart' show Colors, Theme, Material, InkWell;
+import 'package:flutter/material.dart' show Colors, Theme, Material, InkWell;
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:musify/extensions/l10n.dart';
+import 'package:musify/screens/settings/account_page.dart';
 import 'package:musify/screens/settings/settings_subpages.dart';
 import 'package:musify/widgets/mini_player_bottom_space.dart';
 
