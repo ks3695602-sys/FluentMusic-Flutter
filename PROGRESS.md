@@ -6,12 +6,12 @@
 ## 🚨 RESUME CARD (read this first if anything crashed)
 
 ```
-LAST UPDATED : 2026-11-14 19:05 IST
-LAST COMMIT  : P1 d0a6346→ce12313→6d3a023, all pushed · P2 in working tree
+LAST UPDATED : 2026-11-14 19:20 IST
+LAST COMMIT  : P2 5db482e pushed · analyze 43600458379 green ✅ · P3 in working tree
 BRANCH       : feat/v1.4.0-ios27-remake
-CURRENT PHASE: P2 — Bottom bar + accessory
-CURRENT STEP : searchable bar + inline search bridge + accessory mini-player done
-NEXT ACTION  : commit/push P2, confirm analyze green, then P3 Home slivers
+CURRENT PHASE: P3 — Home redesign
+CURRENT STEP : CustomScrollView + collapsing header + Quick Picks/Artists/Genres
+NEXT ACTION  : commit/push P3, confirm analyze green, then P4 settings remake
 BLOCKED BY   : none
 ```
 
@@ -31,8 +31,8 @@ BLOCKED BY   : none
 |---|---|---|---|
 | P0 | Ground truth | ✅ done | 100 |
 | P1 | Glass engine + Lab | ✅ done | 100 |
-| P2 | Bottom bar + accessory | 🟡 in progress | 85 |
-| P3 | Home redesign | ⬜ | 0 |
+| P2 | Bottom bar + accessory | ✅ done | 100 |
+| P3 | Home redesign | 🟡 in progress | 90 |
 | P4 | Settings remake | ⬜ | 0 |
 | P5 | Account + sync | ⬜ | 0 |
 | P6 | Library features | ⬜ | 0 |
@@ -72,12 +72,12 @@ Legend: ⬜ todo · 🟡 in progress · ✅ done · 🔴 blocked
 - [x] bouncy spring tap (`pressScale: 0.96`)
 
 ### P3 — Home
-- [ ] CustomScrollView + slivers
-- [ ] large title collapse
-- [ ] long sections list
-- [ ] spring physics
-- [ ] content under bar
-- [ ] Songs before Artists
+- [x] CustomScrollView + slivers
+- [x] large title collapse (`SliverPersistentHeader` + blur)
+- [x] long sections list (Recents → Quick Picks → Playlists → Recommended → Artists → Recap → Genres)
+- [x] spring physics (`BouncingScrollPhysics` + `AlwaysScrollable`)
+- [x] content under bar (`SliverMiniPlayerBottomSpace`)
+- [x] Songs before Artists
 
 ### P4 — Settings
 - [ ] 7 section cards
@@ -170,4 +170,7 @@ Legend: ⬜ todo · 🟡 in progress · ✅ done · 🔴 blocked
 [2026-11-14 19:08] P1.2 committed ce12313 + 6d3a023; analyze run 43599325109 green ✅.
 [2026-11-14 19:12] P2: search_bridge.dart + GlassTabBar.searchable + accessory MiniPlayer + 4 tabs.
 [2026-11-14 19:20] P2: SearchPage consumes bridge query; PopScope/offline reset search state; Search tab hidden offline.
+[2026-11-14 19:24] P2 commit 5db482e pushed; analyze run 43600458379 green ✅.
+[2026-11-14 19:32] P3: home rewritten to slivers, collapsing Listen Now header, spring scroll, 150px dock inset.
+[2026-11-14 19:36] P3: Quick Picks rail, circular Artists rail (songs first), genre chips → inline search bridge.
 ```

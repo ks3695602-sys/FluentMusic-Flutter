@@ -19,6 +19,8 @@
  *     please visit: https://github.com/gokadzev/Musify
  */
 
+import 'dart:ui' as ui;
+
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/cupertino.dart';
@@ -29,12 +31,17 @@ import 'package:musify/main.dart';
 import 'package:musify/services/common_services.dart';
 import 'package:musify/services/listening_stats_service.dart';
 import 'package:musify/services/playlists_manager.dart';
+import 'package:musify/services/search_bridge.dart';
 import 'package:musify/services/settings_manager.dart';
 import 'package:musify/utilities/app_utils.dart';
 import 'package:musify/utilities/async_loader.dart';
 import 'package:musify/utilities/listening_stats_utils.dart';
 import 'package:musify/widgets/announcement_box.dart';
+import 'package:musify/widgets/home/home_artists_rail.dart';
+import 'package:musify/widgets/home/home_genres.dart';
+import 'package:musify/widgets/home/home_quick_picks.dart';
 import 'package:musify/widgets/listening_recap_card.dart';
+import 'package:musify/widgets/mini_player_bottom_space.dart';
 import 'package:musify/widgets/playlist_artwork.dart';
 import 'package:musify/widgets/playlist_cube.dart';
 import 'package:musify/widgets/recommended_songs_section.dart';
@@ -77,7 +84,6 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final titleColor = isDark ? CupertinoColors.white : const Color(0xFF1C1C1E);
     final iconBgColor = isDark
         ? CupertinoColors.white.withValues(alpha: 0.12)
         : const Color(0xFF000000).withValues(alpha: 0.08);
@@ -89,52 +95,24 @@ class _HomePageState extends State<HomePage> {
       backgroundColor: Colors.transparent,
       body: SafeArea(
         bottom: false,
-        child: SingleChildScrollView(
-          padding: EdgeInsets.zero,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 12),
-              // Apple Music Header: "Listen Now" + Profile / Settings Icon
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Listen Now',
-                      style: TextStyle(
-                        color: titleColor,
-                        fontSize: 32,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.6,
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () => context.go('/settings'),
-                      child: Container(
-                        width: 38,
-                        height: 38,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: iconBgColor,
-                          border: Border.all(
-                            color: iconBorderColor,
-                            width: 1,
-                          ),
-                        ),
-                        child: Icon(
-                          CupertinoIcons.person_crop_circle_fill,
-                          color: titleColor,
-                          size: 24,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+        child: CustomScrollView(
+          // iOS-style rubber banding: the same spring feel as Apple Music.
+          physics: const BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics(),
+          ),
+          slivers: <Widget>[
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: _HomeHeaderDelegate(
+                isDark: isDark,
+                iconBgColor: iconBgColor,
+                iconBorderColor: iconBorderColor,
+                onProfileTap: () => context.go('/settings'),
               ),
-              const SizedBox(height: 14),
-              ValueListenableBuilder<String?>(
+            ),
+            // Announcement (only when a remote message exists)
+            SliverToBoxAdapter(
+              child: ValueListenableBuilder<String?>(
                 valueListenable: announcementURL,
                 builder: (_, _url, __) {
                   if (_url == null) return const SizedBox.shrink();
@@ -149,7 +127,7 @@ class _HomePageState extends State<HomePage> {
                       : FluentIcons.megaphone_24_filled;
 
                   return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                     child: AnnouncementBox(
                       message: _message,
                       url: _url,
@@ -161,19 +139,22 @@ class _HomePageState extends State<HomePage> {
                   );
                 },
               ),
-              // 1. Recently Played (if any)
-              _buildRecentlyPlayedSection(),
-              // 2. Suggested Playlists
-              _buildSuggestedPlaylists(),
-              // 3. User Liked Playlists (if any)
-              _buildSuggestedPlaylists(showOnlyLiked: true),
-              // 4. Recommended Songs / Quick Picks
-              _buildRecommendedSongsSection(),
-              // 5. Time Machine Recap (if enabled)
-              _buildCurrentMonthRecapSection(),
-              const SizedBox(height: 120),
-            ],
-          ),
+            ),
+            // Songs first: recents → quick picks → playlists → recommended.
+            SliverToBoxAdapter(child: _buildRecentlyPlayedSection()),
+            SliverToBoxAdapter(child: _buildQuickPicksSection()),
+            SliverToBoxAdapter(child: _buildSuggestedPlaylists()),
+            SliverToBoxAdapter(
+              child: _buildSuggestedPlaylists(showOnlyLiked: true),
+            ),
+            SliverToBoxAdapter(child: _buildRecommendedSongsSection()),
+            // Artists come after every song rail.
+            SliverToBoxAdapter(child: _buildArtistsSection()),
+            SliverToBoxAdapter(child: _buildCurrentMonthRecapSection()),
+            SliverToBoxAdapter(child: _buildGenresSection()),
+            // Keeps the last row comfortably above the glass dock.
+            const SliverMiniPlayerBottomSpace(),
+          ],
         ),
       ),
     );
@@ -413,14 +394,74 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  static const int _quickPickCount = 6;
+
+  Widget _buildQuickPicksSection() {
+    return AsyncLoader<List<dynamic>>(
+      future: _recommendedSongsFuture,
+      builder: (context, data) {
+        if (data.isEmpty) return const SizedBox.shrink();
+        final picks = data.take(_quickPickCount).toList();
+        return HomeQuickPicks(
+          songs: picks,
+          onSongTap: (index) => _playQuickPick(data, index),
+        );
+      },
+    );
+  }
+
+  Future<void> _playQuickPick(List<dynamic> songs, int index) async {
+    if (songs.isEmpty) return;
+    await audioHandler.playPlaylistSong(
+      playlist: {'title': 'Quick Picks', 'list': songs},
+      songIndex: index,
+    );
+  }
+
+  Widget _buildArtistsSection() {
+    return ValueListenableBuilder<List<Map>>(
+      valueListenable: userLikedPlaylists,
+      builder: (context, _, __) {
+        final artists = getLikedArtistItems().take(12).toList();
+        if (artists.isEmpty) return const SizedBox.shrink();
+        return HomeArtistsRail(
+          artists: artists,
+          onArtistTap: (index) => _openArtist(artists[index]),
+        );
+      },
+    );
+  }
+
+  void _openArtist(Map artist) {
+    final id = (artist['ytid'] ?? artist['id'] ?? '').toString();
+    if (id.isEmpty) return;
+    context.push('/home/artist/${Uri.encodeComponent(id)}', extra: artist);
+  }
+
+  Widget _buildGenresSection() {
+    return HomeGenres(
+      onGenreTap: (genre) {
+        // Queue the query for the search branch, then switch to it. The bridge
+        // survives a cold SearchPage, so the results still appear.
+        InlineSearchBridge.submit(genre);
+        context.go('/search');
+      },
+    );
+  }
+
   Widget _buildRecommendedSongsSection() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: AsyncLoader<List<dynamic>>(
         future: _recommendedSongsFuture,
         builder: (context, data) {
-          if (data.isEmpty) return const SizedBox.shrink();
-          return _buildRecommendedForYouSection(context, data);
+          final songs = data.skip(_quickPickCount).toList();
+          if (songs.isEmpty) return const SizedBox.shrink();
+          return RecommendedSongsSection(
+            title: context.l10n!.recommendedForYou,
+            songs: songs,
+            listKeyPrefix: 'home_recommended',
+          );
         },
       ),
     );
@@ -488,15 +529,108 @@ class _HomePageState extends State<HomePage> {
       songIndex: index,
     );
   }
+}
 
-  Widget _buildRecommendedForYouSection(
+/// Large "Listen Now" title that collapses into a compact blurred bar.
+///
+/// The blur layer only exists once the header is actually collapsing, so the
+/// page pays zero backdrop cost at rest.
+class _HomeHeaderDelegate extends SliverPersistentHeaderDelegate {
+  const _HomeHeaderDelegate({
+    required this.isDark,
+    required this.iconBgColor,
+    required this.iconBorderColor,
+    required this.onProfileTap,
+  });
+
+  final bool isDark;
+  final Color iconBgColor;
+  final Color iconBorderColor;
+  final VoidCallback onProfileTap;
+
+  static const double _maxExtent = 108;
+  static const double _minExtent = 56;
+
+  @override
+  double get maxExtent => _maxExtent;
+
+  @override
+  double get minExtent => _minExtent;
+
+  @override
+  Widget build(
     BuildContext context,
-    List<dynamic> data,
+    double shrinkOffset,
+    bool overlapsContent,
   ) {
-    return RecommendedSongsSection(
-      title: context.l10n!.recommendedForYou,
-      songs: data,
-      listKeyPrefix: 'home_recommended',
+    final t = (shrinkOffset / (_maxExtent - _minExtent)).clamp(0.0, 1.0);
+    final titleColor = isDark ? CupertinoColors.white : const Color(0xFF1C1C1E);
+    final surface = isDark ? const Color(0xFF120D1A) : const Color(0xFFF7F7FA);
+    final titleSize = ui.lerpDouble(32, 19, t)!;
+    final titleWeight = t > 0.55 ? FontWeight.w700 : FontWeight.w800;
+
+    final content = Container(
+      color: surface.withValues(alpha: 0.84 * t),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Stack(
+        children: <Widget>[
+          Align(
+            alignment: Alignment.bottomLeft,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 14),
+              child: Text(
+                'Listen Now',
+                style: TextStyle(
+                  color: titleColor,
+                  fontSize: titleSize,
+                  fontWeight: titleWeight,
+                  letterSpacing: -0.6,
+                ),
+              ),
+            ),
+          ),
+          Align(
+            alignment: Alignment.bottomRight,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: GestureDetector(
+                onTap: onProfileTap,
+                child: Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: iconBgColor,
+                    border: Border.all(color: iconBorderColor, width: 1),
+                  ),
+                  child: Icon(
+                    CupertinoIcons.person_crop_circle_fill,
+                    color: titleColor,
+                    size: 24,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
+
+    if (t <= 0.01) return content;
+
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ui.ImageFilter.blur(sigmaX: 18 * t, sigmaY: 18 * t),
+        child: content,
+      ),
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _HomeHeaderDelegate oldDelegate) {
+    return oldDelegate.isDark != isDark ||
+        oldDelegate.iconBgColor != iconBgColor ||
+        oldDelegate.iconBorderColor != iconBorderColor ||
+        oldDelegate.onProfileTap != onProfileTap;
   }
 }
