@@ -6,13 +6,13 @@
 ## 🚨 RESUME CARD (read this first if anything crashed)
 
 ```
-LAST UPDATED : 2026-11-14 21:42 IST
-LAST COMMIT  : P8 bde1182 pushed · analyze 43609090261 green ✅
+LAST UPDATED : 2026-11-14 22:03 IST
+LAST COMMIT  : P9 metadata pending · previous CI run 43609328392 green (analyze + 91 tests) ✅
 BRANCH       : feat/v1.4.0-ios27-remake
 CURRENT PHASE: P9 — QA + single APK + release
-CURRENT STEP : add `flutter test` to the branch gate, then version 1.4.0+13
-NEXT ACTION  : push test gate, verify green, bump version + CHANGELOG, build ONE release APK
-BLOCKED BY   : local Flutter/Dart SDK unavailable; CI is the analyze/test/build gate
+CURRENT STEP : version 1.4.0+13, changelog, release-only APK workflow and test lint cleanup ready
+NEXT ACTION  : commit/push, verify latest CI, trigger the ONE tagged release build, publish APK
+BLOCKED BY   : local Flutter/Dart SDK unavailable; device + two-device sync QA need user hardware/keys
 ```
 
 **How to resume**
@@ -38,7 +38,7 @@ BLOCKED BY   : local Flutter/Dart SDK unavailable; CI is the analyze/test/build 
 | P6 | Library features | ✅ done | 100 |
 | P7 | Lyrics polish | ✅ done | 100 |
 | P8 | Favourite popup | ✅ done | 100 |
-| P9 | QA + single APK | 🟡 in progress | 15 |
+| P9 | QA + single APK | 🟡 in progress | 65 |
 
 Legend: ⬜ todo · 🟡 in progress · ✅ done · 🔴 blocked
 
@@ -116,11 +116,12 @@ Legend: ⬜ todo · 🟡 in progress · ✅ done · 🔴 blocked
 - [x] analyze green — run 43609090261 ✅
 
 ### P9 — Ship
-- [ ] analyze green (branch gate will re-run)
-- [ ] tests green (`flutter test` added to gate)
-- [ ] ONE release APK built (remove debug build from workflow)
+- [x] analyze green (branch gate run 43609328392 ✅; lyrics test info lints cleaned after run)
+- [x] tests green — 91 tests (`flutter test --reporter expanded`, run 43609328392 ✅)
+- [x] release-only APK workflow (debug APK step removed)
+- [ ] ONE release APK built
 - [ ] device checklist (manual, user)
-- [ ] version 1.4.0+13
+- [x] version 1.4.0+13 + `CHANGELOG.md`
 - [ ] tag v1.4.0 + release
 
 ---
@@ -165,13 +166,15 @@ Legend: ⬜ todo · 🟡 in progress · ✅ done · 🔴 blocked
 | 5 | P6 | `2c4781d` | ✅ |
 | 6 | P7 | `8818f1f` | ✅ |
 | 6b | P8 | `bde1182` | ✅ |
-| 7 | P9 | — | ⬜ |
+| 7 | P9 metadata + QA gate | — | 🟡 working tree |
+| 8 | P9 release APK + tag | — | ⬜ |
 
 ---
 
 ## Session log (append only)
 
 ```
+[2026-11-14 22:03] P9 prep: CI run 43609328392 passed analyze + 91 tests; version 1.4.0+13, CHANGELOG, release-only APK workflow, lyric-test lint cleanup staged for commit. No APK built yet.
 [2026-11-14 18:05] Plan created. MASTERPLAN.md + PROGRESS.md written.
 [2026-11-14 18:05] Branch feat/v1.4.0-ios27-remake created. No code changes yet.
 [2026-11-14 18:07] Docs commit 94e52ea pushed (MASTERPLAN, PROGRESS, GEMINI).

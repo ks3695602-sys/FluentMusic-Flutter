@@ -21,12 +21,11 @@
 
 import 'dart:convert';
 
-import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_lyric/flutter_lyric.dart' show LyricParser;
+import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:musify/services/lyrics/lrc_parser.dart';
-import 'package:musify/services/lyrics/lyrics_models.dart';
 import 'package:musify/services/lyrics/lyrics_query.dart';
 import 'package:musify/services/lyrics_manager.dart';
 
@@ -106,15 +105,15 @@ void main() {
       final lyrics = Lyrics(
         source: 't',
         synced: [
-          LyricLine(const Duration(seconds: 1), 'oooooooooooooooo'),
+          const LyricLine(Duration(seconds: 1), 'oooooooooooooooo'),
           LyricLine(
-            const Duration(seconds: 5),
+            Duration(seconds: 5),
             'oooooooooooooooo',
             words: [
               LyricWord(
                 text: 'oooooooooooooooo',
-                start: const Duration(seconds: 5),
-                end: const Duration(seconds: 8),
+                start: Duration(seconds: 5),
+                end: Duration(seconds: 8),
               ),
             ],
           ),
