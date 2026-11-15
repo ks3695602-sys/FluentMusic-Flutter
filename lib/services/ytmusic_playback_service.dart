@@ -34,14 +34,29 @@ import 'package:musify/services/ytmusic_auth_service.dart';
 /// the default, not an error path.
 class YtMusicPlaybackService {
   YtMusicPlaybackService({InnerTubeClient? client, YtMusicAuthService? authService})
-    : _client = client ?? InnerTubeClient(),
-      _authService = authService ?? ytMusicAuthService;
+    : _client = client ?? InnerTubeClient(timeout: const Duration(seconds: 6)),
+      _authService = authService ?? ytMusicAuthService {
+    // A new toggle or a fresh session deserves a fresh attempt.
+    ytMusicSignedInPlayback.addListener(_resetFailures);
+    _authService.addListener(_resetFailures);
+  }
 
   final InnerTubeClient _client;
   final YtMusicAuthService _authService;
 
+  /// After two failures in a row the experiment is parked for this session,
+  /// so every following song goes straight to the anonymous resolver instead
+  /// of paying the network round-trip again.
+  int _consecutiveFailures = 0;
+  static const int _maxConsecutiveFailures = 2;
+
+  void _resetFailures() => _consecutiveFailures = 0;
+
   /// True when the experimental path is enabled *and* usable right now.
-  bool get isAvailable => ytMusicSignedInPlayback.value && _authService.isConnected;
+  bool get isAvailable =>
+      ytMusicSignedInPlayback.value &&
+      _authService.isConnected &&
+      _consecutiveFailures < _maxConsecutiveFailures;
 
   /// Resolves a signed-in audio URL, or `null` to let the caller fall back.
   ///
@@ -70,32 +85,44 @@ class YtMusicPlaybackService {
         authenticated: true,
       );
 
-      final streamingData = response['streamingData'];
-      if (streamingData is! Map) return null;
-      final formats = streamingData['adaptiveFormats'];
-      if (formats is! List || formats.isEmpty) return null;
-
-      final candidates = <_AudioCandidate>[];
-      for (final raw in formats) {
-        if (raw is! Map) continue;
-        final mime = raw['mimeType']?.toString() ?? '';
-        if (!mime.startsWith('audio/')) continue;
-        final url = raw['url']?.toString();
-        // Cipher-only entries are skipped on purpose: deciphering needs the
-        // player JS, which is out of scope for this opt-in experiment.
-        if (url == null || url.isEmpty) continue;
-        final bitrate = (raw['bitrate'] as num?)?.toInt() ?? 0;
-        candidates.add(_AudioCandidate(url: url, bitrate: bitrate));
+      final url = _extractAudioUrl(response);
+      if (url == null) {
+        _consecutiveFailures++;
+        return null;
       }
-      if (candidates.isEmpty) return null;
-
-      candidates.sort((a, b) => b.bitrate.compareTo(a.bitrate));
-      return _pickForQuality(candidates).url;
+      _consecutiveFailures = 0;
+      return url;
     } catch (error) {
-      // Expected on most accounts (poToken / bot guard). Keep it quiet.
+      // Expected on most accounts (poToken / bot guard). Keep it quiet and
+      // park the experiment after a couple of attempts.
+      _consecutiveFailures++;
       debugPrint('YtMusicPlaybackService: falling back (${error.runtimeType})');
       return null;
     }
+  }
+
+  String? _extractAudioUrl(Map<String, dynamic> response) {
+    final streamingData = response['streamingData'];
+    if (streamingData is! Map) return null;
+    final formats = streamingData['adaptiveFormats'];
+    if (formats is! List || formats.isEmpty) return null;
+
+    final candidates = <_AudioCandidate>[];
+    for (final raw in formats) {
+      if (raw is! Map) continue;
+      final mime = raw['mimeType']?.toString() ?? '';
+      if (!mime.startsWith('audio/')) continue;
+      final url = raw['url']?.toString();
+      // Cipher-only entries are skipped on purpose: deciphering needs the
+      // player JS, which is out of scope for this opt-in experiment.
+      if (url == null || url.isEmpty) continue;
+      final bitrate = (raw['bitrate'] as num?)?.toInt() ?? 0;
+      candidates.add(_AudioCandidate(url: url, bitrate: bitrate));
+    }
+    if (candidates.isEmpty) return null;
+
+    candidates.sort((a, b) => b.bitrate.compareTo(a.bitrate));
+    return _pickForQuality(candidates).url;
   }
 
   _AudioCandidate _pickForQuality(List<_AudioCandidate> sorted) {
