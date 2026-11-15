@@ -26,6 +26,7 @@ import 'package:musify/services/playlists_manager.dart';
 import 'package:musify/services/sync_service.dart';
 import 'package:musify/utilities/flutter_toast.dart';
 import 'package:musify/widgets/mini_player_bottom_space.dart';
+import 'package:musify/widgets/settings/ytmusic_account_card.dart';
 
 /// Optional account screen.
 ///
@@ -113,6 +114,8 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
         children: <Widget>[
           _buildHero(context, session),
+          const SizedBox(height: 18),
+          const YtMusicAccountCard(),
           const SizedBox(height: 18),
           if (session == null) ..._buildSignedOut(isDark),
           if (session != null) ..._buildSignedIn(context, session, isDark),
