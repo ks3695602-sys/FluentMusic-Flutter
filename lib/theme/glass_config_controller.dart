@@ -78,8 +78,16 @@ class GlassConfigController extends ChangeNotifier {
 
   void setTint(double value) => update(_config.copyWith(tint: value));
 
+  /// Distortion amount (`LiquidGlassSettings.refractiveIndex`).
   void setRefraction(double value) =>
       update(_config.copyWith(refraction: value));
+
+  /// Alias used by the Lab label "Distortion amount".
+  void setDistortionAmount(double value) => setRefraction(value);
+
+  /// Refraction height (`LiquidGlassSettings.thickness`).
+  void setThickness(double value) =>
+      update(_config.copyWith(thickness: value));
 
   /// Pass `null` to restore the package capsule radius.
   void setBarRadius(double? value) =>

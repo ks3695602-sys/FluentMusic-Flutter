@@ -44,6 +44,7 @@ class GlassConfig {
     this.chromaticAberration = 0.15,
     this.tint = 0.00,
     this.refraction = 1.15,
+    this.thickness = 30.0,
     this.barRadius,
     this.indicatorRadius,
   });
@@ -63,6 +64,8 @@ class GlassConfig {
   static const double tintMax = 1.0;
   static const double refractionMin = 1.0;
   static const double refractionMax = 1.5;
+  static const double thicknessMin = 0.0;
+  static const double thicknessMax = 60.0;
   static const double radiusMin = 0.0;
   static const double radiusMax = 60.0;
 
@@ -82,8 +85,13 @@ class GlassConfig {
   /// 0 = perfectly clear, 1 = fully tinted.
   final double tint;
 
-  /// Refractive index (`LiquidGlassSettings.refractiveIndex`).
+  /// Refractive index (`LiquidGlassSettings.refractiveIndex`), i.e. how much
+  /// the glass bends the content behind it.
   final double refraction;
+
+  /// Refraction height in logical pixels (`LiquidGlassSettings.thickness`).
+  /// Higher values make the lens feel deeper.
+  final double thickness;
 
   /// Bar corner radius. `null` = package capsule.
   final double? barRadius;
@@ -104,6 +112,7 @@ class GlassConfig {
     double? chromaticAberration,
     double? tint,
     double? refraction,
+    double? thickness,
     Object? barRadius = _unset,
     Object? indicatorRadius = _unset,
   }) {
@@ -114,6 +123,7 @@ class GlassConfig {
       chromaticAberration: chromaticAberration ?? this.chromaticAberration,
       tint: tint ?? this.tint,
       refraction: refraction ?? this.refraction,
+      thickness: thickness ?? this.thickness,
       barRadius: identical(barRadius, _unset)
           ? this.barRadius
           : barRadius as double?,
@@ -159,6 +169,12 @@ class GlassConfig {
         refractionMax,
         defaults.refraction,
       ),
+      thickness: _clamp(
+        thickness,
+        thicknessMin,
+        thicknessMax,
+        defaults.thickness,
+      ),
       barRadius: barRadius == null
           ? null
           : _clamp(barRadius!, radiusMin, radiusMax, 0),
@@ -177,6 +193,7 @@ class GlassConfig {
       'chromaticAberration': chromaticAberration,
       'tint': tint,
       'refraction': refraction,
+      'thickness': thickness,
       'barRadius': barRadius,
       'indicatorRadius': indicatorRadius,
     };
@@ -197,6 +214,7 @@ class GlassConfig {
       ),
       tint: _readDouble(json['tint'], defaults.tint),
       refraction: _readDouble(json['refraction'], defaults.refraction),
+      thickness: _readDouble(json['thickness'], defaults.thickness),
       barRadius: _readNullableDouble(json['barRadius']),
       indicatorRadius: _readNullableDouble(json['indicatorRadius']),
     ).clamped();
@@ -256,6 +274,7 @@ class GlassConfig {
             other.chromaticAberration == chromaticAberration &&
             other.tint == tint &&
             other.refraction == refraction &&
+            other.thickness == thickness &&
             other.barRadius == barRadius &&
             other.indicatorRadius == indicatorRadius;
   }
@@ -268,6 +287,7 @@ class GlassConfig {
         chromaticAberration,
         tint,
         refraction,
+        thickness,
         barRadius,
         indicatorRadius,
       );
@@ -276,7 +296,8 @@ class GlassConfig {
   String toString() {
     return 'GlassConfig(pinch: $pinchStrength, expansion: '
         '$expansionH x $expansionV, aberration: $chromaticAberration, '
-        'tint: $tint, refraction: $refraction, barRadius: $barRadius, '
+        'tint: $tint, refraction: $refraction, thickness: $thickness, '
+        'barRadius: $barRadius, '
         'indicatorRadius: $indicatorRadius)';
   }
 }

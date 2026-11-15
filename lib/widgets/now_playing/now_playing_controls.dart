@@ -139,15 +139,92 @@ class NowPlayingControls extends StatelessWidget {
                     iconSize: 24,
                     minSize: 38,
                   ),
-                  CupertinoButton(
-                    padding: EdgeInsets.zero,
-                    minSize: 38,
-                    onPressed: () => _showAppleOptionsMenu(context, metadata),
-                    child: Icon(
+                  GlassPullDownButton(
+                    icon: Icon(
                       CupertinoIcons.ellipsis,
-                      color: CupertinoColors.white.withValues(alpha: 0.85),
-                      size: 24,
+                      color: CupertinoColors.white.withValues(alpha: 0.9),
+                      size: 20,
                     ),
+                    semanticLabel: 'More options',
+                    buttonWidth: 38,
+                    buttonHeight: 38,
+                    menuWidth: 248,
+                    items: [
+                      GlassMenuItem(
+                        title: 'Add to Playlist',
+                        subtitle: 'Choose or create a playlist',
+                        icon: const Icon(
+                          CupertinoIcons.plus_rectangle_on_rectangle,
+                        ),
+                        onTap: () => showAddToPlaylistDialog(
+                          context,
+                          songs: [mediaItemToMap(metadata)],
+                        ),
+                      ),
+                      GlassMenuItem(
+                        title: isSongAlreadyOffline(
+                          metadata.extras?['ytid']?.toString(),
+                        )
+                            ? 'Remove Download'
+                            : 'Download for Offline',
+                        subtitle: isSongAlreadyOffline(
+                          metadata.extras?['ytid']?.toString(),
+                        )
+                            ? 'Free up local storage'
+                            : 'Keep this song available offline',
+                        icon: Icon(
+                          isSongAlreadyOffline(
+                                metadata.extras?['ytid']?.toString(),
+                              )
+                              ? CupertinoIcons.check_mark_circled_solid
+                              : CupertinoIcons.arrow_down_circle,
+                        ),
+                        onTap: () async {
+                          final audioId =
+                              metadata.extras?['ytid']?.toString();
+                          if (audioId == null) return;
+                          if (isSongAlreadyOffline(audioId)) {
+                            await OfflinePlaylistService()
+                                .removeSongFromOfflineAndResync(audioId);
+                            if (context.mounted) {
+                              showToast(
+                                context,
+                                'Removed from offline storage',
+                              );
+                            }
+                          } else {
+                            final success = await makeSongOffline(
+                              mediaItemToMap(metadata),
+                            );
+                            if (context.mounted && success) {
+                              showToast(
+                                context,
+                                'Downloaded for offline playback',
+                              );
+                            }
+                          }
+                        },
+                      ),
+                      GlassMenuItem(
+                        title: 'Sleep Timer',
+                        subtitle: 'Stop playback after a delay',
+                        icon: const Icon(CupertinoIcons.timer),
+                        onTap: () => showSleepTimerDialog(context),
+                      ),
+                      if (_canOpenArtist(metadata))
+                        GlassMenuItem(
+                          title: 'Go to Artist',
+                          icon: const Icon(
+                            CupertinoIcons.person_crop_circle,
+                          ),
+                          onTap: () => _openArtistPage(context, metadata),
+                        ),
+                      GlassMenuItem(
+                        title: 'Copy Title & Artist',
+                        icon: const Icon(CupertinoIcons.doc_on_doc),
+                        onTap: () => _copyNowPlayingSong(context, metadata),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -225,114 +302,6 @@ class NowPlayingControls extends StatelessWidget {
           ],
         );
       },
-    );
-  }
-
-  void _showAppleOptionsMenu(BuildContext context, MediaItem metadata) {
-    showCupertinoModalPopup(
-      context: context,
-      builder: (ctx) => CupertinoActionSheet(
-        title: Text(metadata.title, style: const TextStyle(fontWeight: FontWeight.bold)),
-        message: Text(metadata.artist ?? ''),
-        actions: [
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.pop(ctx);
-              showAddToPlaylistDialog(context, songs: [mediaItemToMap(metadata)]);
-            },
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(CupertinoIcons.plus_rectangle_on_rectangle),
-                SizedBox(width: 8),
-                Text('Add to Playlist'),
-              ],
-            ),
-          ),
-          CupertinoActionSheetAction(
-            onPressed: () async {
-              Navigator.pop(ctx);
-              final audioId = metadata.extras?['ytid']?.toString();
-              if (audioId == null) return;
-              if (isSongAlreadyOffline(audioId)) {
-                await OfflinePlaylistService().removeSongFromOfflineAndResync(audioId);
-                if (context.mounted) {
-                  showToast(context, 'Removed from offline storage');
-                }
-              } else {
-                final success = await makeSongOffline(mediaItemToMap(metadata));
-                if (context.mounted && success) {
-                  showToast(context, 'Downloaded for offline playback');
-                }
-              }
-            },
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  isSongAlreadyOffline(metadata.extras?['ytid']?.toString())
-                      ? CupertinoIcons.check_mark_circled_solid
-                      : CupertinoIcons.arrow_down_circle,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  isSongAlreadyOffline(metadata.extras?['ytid']?.toString())
-                      ? 'Downloaded (Tap to Remove)'
-                      : 'Download for Offline',
-                ),
-              ],
-            ),
-          ),
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.pop(ctx);
-              showSleepTimerDialog(context);
-            },
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(CupertinoIcons.timer),
-                SizedBox(width: 8),
-                Text('Sleep Timer'),
-              ],
-            ),
-          ),
-          if (_canOpenArtist(metadata))
-            CupertinoActionSheetAction(
-              onPressed: () {
-                Navigator.pop(ctx);
-                _openArtistPage(context, metadata);
-              },
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(CupertinoIcons.person_crop_circle),
-                  SizedBox(width: 8),
-                  Text('Go to Artist'),
-                ],
-              ),
-            ),
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.pop(ctx);
-              _copyNowPlayingSong(context, metadata);
-            },
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(CupertinoIcons.doc_on_doc),
-                SizedBox(width: 8),
-                Text('Copy Title & Artist'),
-              ],
-            ),
-          ),
-        ],
-        cancelButton: CupertinoActionSheetAction(
-          isDefaultAction: true,
-          onPressed: () => Navigator.pop(ctx),
-          child: const Text('Cancel'),
-        ),
-      ),
     );
   }
 

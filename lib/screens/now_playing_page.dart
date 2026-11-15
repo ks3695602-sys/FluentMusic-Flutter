@@ -19,6 +19,7 @@
  *     please visit: https://github.com/gokadzev/Musify
  */
 
+import 'dart:async';
 import 'dart:ui';
 import 'package:audio_service/audio_service.dart';
 import 'package:musify/utilities/artwork_provider.dart';
@@ -36,6 +37,7 @@ import 'package:musify/utilities/flutter_toast.dart';
 import 'package:musify/utilities/mediaitem.dart';
 import 'package:musify/utilities/playlist_dialogs.dart';
 import 'package:musify/widgets/flip_card.dart';
+import 'package:musify/widgets/glass/glass_control_panel.dart';
 import 'package:musify/widgets/now_playing/bottom_actions_row.dart';
 import 'package:musify/widgets/now_playing/now_playing_artwork.dart';
 import 'package:musify/widgets/now_playing/now_playing_controls.dart';
@@ -446,129 +448,76 @@ class _MobileLayout extends StatelessWidget {
   }
 
   Widget _buildMoreButton(BuildContext context, MediaItem metadata) {
-    return CupertinoButton(
-      padding: EdgeInsets.zero,
-      onPressed: () => _showMoreSheet(context, metadata),
-      child: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          color: CupertinoColors.white.withValues(alpha: 0.12),
-          shape: BoxShape.circle,
-        ),
-        child: const Icon(
-          CupertinoIcons.ellipsis,
-          size: 18,
-          color: CupertinoColors.white,
-        ),
-      ),
-    );
-  }
+    final audioId = metadata.extras?['ytid']?.toString();
+    final isOffline = isSongAlreadyOffline(audioId);
 
-  void _showMoreSheet(BuildContext context, MediaItem metadata) {
-    showCupertinoModalPopup(
-      context: context,
-      builder: (ctx) => CupertinoActionSheet(
-        title: Text(metadata.title, style: const TextStyle(fontWeight: FontWeight.bold)),
-        message: Text(metadata.artist ?? ''),
-        actions: [
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.pop(ctx);
-              showAddToPlaylistDialog(context, songs: [mediaItemToMap(metadata)]);
-            },
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(CupertinoIcons.plus_rectangle_on_rectangle),
-                SizedBox(width: 8),
-                Text('Add to Playlist'),
-              ],
-            ),
-          ),
-          CupertinoActionSheetAction(
-            onPressed: () async {
-              Navigator.pop(ctx);
-              final audioId = metadata.extras?['ytid']?.toString();
-              if (audioId == null) return;
-              if (isSongAlreadyOffline(audioId)) {
-                await OfflinePlaylistService().removeSongFromOfflineAndResync(audioId);
-                if (context.mounted) {
-                  showToast(context, 'Removed from offline storage');
-                }
-              } else {
-                final success = await makeSongOffline(mediaItemToMap(metadata));
-                if (context.mounted && success) {
-                  showToast(context, 'Downloaded for offline playback');
-                }
-              }
-            },
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  isSongAlreadyOffline(metadata.extras?['ytid']?.toString())
-                      ? CupertinoIcons.check_mark_circled_solid
-                      : CupertinoIcons.arrow_down_circle,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  isSongAlreadyOffline(metadata.extras?['ytid']?.toString())
-                      ? 'Downloaded (Tap to Remove)'
-                      : 'Download for Offline',
-                ),
-              ],
-            ),
-          ),
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.pop(ctx);
-              showSleepTimerDialog(context);
-            },
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(CupertinoIcons.timer),
-                SizedBox(width: 8),
-                Text('Sleep Timer'),
-              ],
-            ),
-          ),
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.pop(ctx);
-              _showLyricsOffsetSheet(context);
-            },
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(CupertinoIcons.slider_horizontal_3),
-                SizedBox(width: 8),
-                Text('Lyrics Timing Sync Offset'),
-              ],
-            ),
-          ),
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.pop(ctx);
-              _showPlaybackSpeedSheet(context);
-            },
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(CupertinoIcons.speedometer),
-                SizedBox(width: 8),
-                Text('Playback Speed & Pitch'),
-              ],
-            ),
-          ),
-        ],
-        cancelButton: CupertinoActionSheetAction(
-          isDefaultAction: true,
-          onPressed: () => Navigator.pop(ctx),
-          child: const Text('Cancel'),
-        ),
+    return GlassPullDownButton(
+      icon: const Icon(
+        CupertinoIcons.ellipsis,
+        color: CupertinoColors.white,
+        size: 18,
       ),
+      semanticLabel: 'More options',
+      buttonWidth: 36,
+      buttonHeight: 36,
+      menuWidth: 248,
+      items: [
+        GlassMenuItem(
+          title: 'Add to Playlist',
+          subtitle: 'Choose or create a playlist',
+          icon: const Icon(CupertinoIcons.plus_rectangle_on_rectangle),
+          onTap: () => showAddToPlaylistDialog(
+            context,
+            songs: [mediaItemToMap(metadata)],
+          ),
+        ),
+        GlassMenuItem(
+          title: isOffline ? 'Remove Download' : 'Download for Offline',
+          subtitle: isOffline
+              ? 'Free up local storage'
+              : 'Keep this song available offline',
+          icon: Icon(
+            isOffline
+                ? CupertinoIcons.check_mark_circled_solid
+                : CupertinoIcons.arrow_down_circle,
+          ),
+          onTap: () async {
+            if (audioId == null) return;
+            if (isSongAlreadyOffline(audioId)) {
+              await OfflinePlaylistService().removeSongFromOfflineAndResync(
+                audioId,
+              );
+              if (context.mounted) {
+                showToast(context, 'Removed from offline storage');
+              }
+            } else {
+              final success = await makeSongOffline(mediaItemToMap(metadata));
+              if (context.mounted && success) {
+                showToast(context, 'Downloaded for offline playback');
+              }
+            }
+          },
+        ),
+        const GlassMenuDivider(),
+        GlassMenuItem(
+          title: 'Sleep Timer',
+          subtitle: 'Stop playback after a delay',
+          icon: const Icon(CupertinoIcons.timer),
+          onTap: () => showSleepTimerDialog(context),
+        ),
+        GlassMenuItem(
+          title: 'Lyrics Timing',
+          subtitle: 'Shift synced lyrics earlier or later',
+          icon: const Icon(CupertinoIcons.slider_horizontal_3),
+          onTap: () => _showLyricsOffsetSheet(context),
+        ),
+        GlassMenuItem(
+          title: 'Speed & Pitch',
+          subtitle: 'Advanced playback controls',
+          icon: const Icon(CupertinoIcons.speedometer),
+          onTap: () => _showPlaybackSpeedSheet(context),
+        ),
+      ],
     );
   }
 
@@ -620,58 +569,138 @@ class _MobileLayout extends StatelessWidget {
   }
 
   void _showPlaybackSpeedSheet(BuildContext context) {
+    var speed = audioHandler.audioPlayer.speed.clamp(0.5, 2.0);
+    var pitch = audioHandler.audioPlayer.pitch.clamp(0.5, 2.0);
+    // 0 = Speed, 1 = Pitch, 2 = Both.
+    var mode = 2;
+
+    void apply(double nextSpeed, double nextPitch) {
+      speed = nextSpeed.clamp(0.5, 2.0);
+      pitch = nextPitch.clamp(0.5, 2.0);
+      unawaited(audioHandler.setSpeed(speed));
+      unawaited(audioHandler.setPitch(pitch));
+    }
+
     showCupertinoModalPopup(
       context: context,
-      builder: (ctx) => CupertinoActionSheet(
-        title: const Text('Playback Speed & Pitch', style: TextStyle(fontWeight: FontWeight.bold)),
-        message: const Text('Select speed and audio preset'),
-        actions: [
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.pop(ctx);
-              audioHandler.setSpeed(1.0);
-              (audioHandler as dynamic).setPitch(1.0);
-            },
-            child: const Text('1.0x - Normal'),
-          ),
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.pop(ctx);
-              audioHandler.setSpeed(1.25);
-              (audioHandler as dynamic).setPitch(1.0);
-            },
-            child: const Text('1.25x - Sped-Up'),
-          ),
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.pop(ctx);
-              audioHandler.setSpeed(1.5);
-              (audioHandler as dynamic).setPitch(1.0);
-            },
-            child: const Text('1.5x - Fast'),
-          ),
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.pop(ctx);
-              audioHandler.setSpeed(0.85);
-              (audioHandler as dynamic).setPitch(0.85);
-            },
-            child: const Text('0.85x - Slowed + Reverb Vibe'),
-          ),
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.pop(ctx);
-              audioHandler.setSpeed(1.3);
-              (audioHandler as dynamic).setPitch(1.3);
-            },
-            child: const Text('1.3x - Nightcore Pitch'),
-          ),
-        ],
-        cancelButton: CupertinoActionSheetAction(
-          isDefaultAction: true,
-          onPressed: () => Navigator.pop(ctx),
-          child: const Text('Cancel'),
-        ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setSheetState) {
+          void applyFromSheet(double nextSpeed, double nextPitch) {
+            setSheetState(() => apply(nextSpeed, nextPitch));
+          }
+
+          return GlassModalSheet(
+            child: SafeArea(
+              top: false,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
+                child: GlassControlPanel(
+                  title: 'Speed & Pitch',
+                  subtitle:
+                      'Applied live. Tap a value badge to reset that control.',
+                  children: [
+                    GlassSegmentedControl(
+                      segments: const [
+                        GlassSegment(label: 'Speed'),
+                        GlassSegment(label: 'Pitch'),
+                        GlassSegment(label: 'Both'),
+                      ],
+                      selectedIndex: mode,
+                      onSegmentSelected: (index) {
+                        setSheetState(() => mode = index);
+                      },
+                    ),
+                    const SizedBox(height: 18),
+                    if (mode != 1)
+                      GlassControlSlider(
+                        label: 'Speed',
+                        valueLabel: '${speed.toStringAsFixed(2)}x',
+                        value: speed,
+                        min: 0.5,
+                        max: 2.0,
+                        divisions: 30,
+                        accent: const Color(0xFF0A84FF),
+                        onChanged: (value) {
+                          setSheetState(() => speed = value);
+                          unawaited(audioHandler.setSpeed(value));
+                        },
+                        onReset: () => applyFromSheet(1.0, pitch),
+                      ),
+                    if (mode != 0)
+                      GlassControlSlider(
+                        label: 'Pitch',
+                        valueLabel: pitch.toStringAsFixed(2),
+                        value: pitch,
+                        min: 0.5,
+                        max: 2.0,
+                        divisions: 150,
+                        accent: const Color(0xFFFF9500),
+                        onChanged: (value) {
+                          setSheetState(() => pitch = value);
+                          unawaited(audioHandler.setPitch(value));
+                        },
+                        onReset: () => applyFromSheet(speed, 1.0),
+                      ),
+                    const SizedBox(height: 4),
+                    GlassControlPresets(
+                      presets: const [
+                        'Normal',
+                        '1.25x',
+                        '1.50x',
+                        '0.85x',
+                        'Nightcore',
+                        'Reset all',
+                      ],
+                      onSelected: (label) {
+                        if (label == '1.25x') {
+                          applyFromSheet(1.25, 1.0);
+                        } else if (label == '1.50x') {
+                          applyFromSheet(1.5, 1.0);
+                        } else if (label == '0.85x') {
+                          applyFromSheet(0.85, 0.85);
+                        } else if (label == 'Nightcore') {
+                          applyFromSheet(1.3, 1.3);
+                        } else {
+                          applyFromSheet(1.0, 1.0);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      'Speed and pitch stay applied while the queue keeps '
+                      'playing. Pitch is unaffected by speed unless you move '
+                      'it yourself.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        height: 1.35,
+                        color: CupertinoColors.white.withValues(alpha: 0.55),
+                      ),
+                    ),
+                  ],
+                  footer: Row(
+                    children: [
+                      Expanded(
+                        child: CupertinoButton(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          borderRadius: BorderRadius.circular(14),
+                          color: CupertinoColors.white.withValues(alpha: 0.12),
+                          onPressed: () => Navigator.pop(ctx),
+                          child: const Text(
+                            'Done',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: CupertinoColors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }

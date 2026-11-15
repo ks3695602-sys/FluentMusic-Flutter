@@ -217,7 +217,7 @@ GlassThemeData getEffectiveGlassTheme() {
   final tintColor = Color.fromRGBO(255, 255, 255, config.tint);
   final base = GlassThemeData.simple(
     blur: liquidGlassBlurSetting.value,
-    thickness: liquidGlassThicknessSetting.value,
+    thickness: config.thickness,
     quality: parseGlassQuality(liquidGlassQualitySetting.value),
     chromaticAberration: config.chromaticAberration,
     refractiveIndex: config.refraction,

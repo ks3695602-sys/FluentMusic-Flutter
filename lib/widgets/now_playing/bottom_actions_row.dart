@@ -76,13 +76,38 @@ class BottomActionsRow extends StatelessWidget {
           ),
 
           // 2. AirPlay / Audio Output Device
-          GlassIconButton(
+          GlassPullDownButton(
             icon: const Icon(
               FluentIcons.speaker_2_24_regular,
               size: 20,
               color: CupertinoColors.white,
             ),
-            onPressed: () => _showAudioOutputSheet(context),
+            semanticLabel: 'Audio output',
+            buttonWidth: 44,
+            buttonHeight: 44,
+            menuWidth: 240,
+            items: [
+              GlassMenuItem(
+                title: 'System Default Output',
+                subtitle: 'Playback follows your device audio route',
+                icon: const Icon(CupertinoIcons.speaker_2_fill),
+                onTap: () => showToast(
+                  context,
+                  'Use the device volume buttons to change output level',
+                  duration: const Duration(seconds: 2),
+                ),
+              ),
+              GlassMenuItem(
+                title: 'Audio Quality',
+                subtitle: 'Streamed as provided; no resampling claim',
+                icon: const Icon(CupertinoIcons.music_note),
+                onTap: () => showToast(
+                  context,
+                  'FluentMusic streams the source audio without a lossless claim',
+                  duration: const Duration(seconds: 2),
+                ),
+              ),
+            ],
           ),
 
           // 3. Queue List Button
@@ -104,46 +129,7 @@ class BottomActionsRow extends StatelessWidget {
     );
   }
 
-  void _showAudioOutputSheet(BuildContext context) {
-    showCupertinoModalPopup(
-      context: context,
-      builder: (ctx) => CupertinoActionSheet(
-        title: const Text(
-          'Audio Output',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        message: const Text(
-          'Playback follows your device audio route and system volume. '
-          'FluentMusic does not resample or claim a lossless format.',
-        ),
-        actions: [
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.pop(ctx);
-              showToast(
-                context,
-                'Use the device volume buttons to change output level',
-                duration: const Duration(seconds: 2),
-              );
-            },
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(CupertinoIcons.speaker_2_fill),
-                SizedBox(width: 8),
-                Text('System Default Output'),
-              ],
-            ),
-          ),
-        ],
-        cancelButton: CupertinoActionSheetAction(
-          isDefaultAction: true,
-          onPressed: () => Navigator.pop(ctx),
-          child: const Text('Done'),
-        ),
-      ),
-    );
-  }
+
 }
 
 Future<void> toggleSongOffline(

@@ -194,6 +194,11 @@ class _PlaylistPageState extends State<PlaylistPage> {
     }
   }
 
+  int get _playlistSongsLength =>
+      (_playlist['list'] as List? ?? const []).length;
+
+  bool get _isUserCreatedPlaylist => _playlist['source'] == 'user-created';
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -237,13 +242,84 @@ class _PlaylistPageState extends State<PlaylistPage> {
                       ),
                       Padding(
                         padding: const EdgeInsets.only(right: 12.0),
-                        child: GlassIconButton(
+                        child: GlassPullDownButton(
                           icon: const Icon(
                             CupertinoIcons.ellipsis,
                             color: CupertinoColors.white,
                             size: 20,
                           ),
-                          onPressed: () => _showPlaylistOptions(),
+                          semanticLabel: 'Playlist options',
+                          buttonWidth: 44,
+                          buttonHeight: 44,
+                          menuWidth: 248,
+                          items: [
+                            if (widget.playlistId != null &&
+                                !_isUserCreatedPlaylist &&
+                                !offlineMode.value)
+                              GlassMenuItem(
+                                title: isPlaylistAlreadyLiked(
+                                  _resolvedPlaylistId ?? '',
+                                )
+                                    ? 'Unlike Playlist'
+                                    : 'Like Playlist',
+                                icon: Icon(
+                                  isPlaylistAlreadyLiked(
+                                    _resolvedPlaylistId ?? '',
+                                  )
+                                      ? CupertinoIcons.heart_fill
+                                      : CupertinoIcons.heart,
+                                ),
+                                onTap: () {
+                                  final id = _resolvedPlaylistId;
+                                  if (id == null) return;
+                                  updatePlaylistLikeStatus(
+                                    id,
+                                    !isPlaylistAlreadyLiked(id),
+                                    playlistData: _playlist,
+                                  );
+                                },
+                              ),
+                            if (_playlistSongsLength > 0)
+                              GlassMenuItem(
+                                title: 'Download All Songs',
+                                subtitle:
+                                    '$_playlistSongsLength songs for offline use',
+                                icon: const Icon(
+                                  CupertinoIcons.arrow_down_circle,
+                                ),
+                                onTap: () =>
+                                    offlinePlaylistService.downloadPlaylist(
+                                      context,
+                                      _playlist,
+                                    ),
+                              ),
+                            GlassMenuItem(
+                              title: 'Share Playlist',
+                              icon: const Icon(CupertinoIcons.share),
+                              onTap: _handleShare,
+                            ),
+                            if (_isUserCreatedPlaylist)
+                              GlassMenuItem(
+                                title: 'Edit Playlist Details',
+                                icon: const Icon(CupertinoIcons.pencil),
+                                onTap: () async {
+                                  final result = await showDialog<Map?>(
+                                    context: context,
+                                    builder: (context) => EditPlaylistDialog(
+                                      playlistData: _playlist,
+                                    ),
+                                  );
+                                  if (result == null || !mounted) return;
+                                  setState(() {
+                                    _playlist['title'] =
+                                        result['title'] ?? _playlist['title'];
+                                    _playlist['description'] =
+                                        result['description'] ??
+                                        _playlist['description'];
+                                  });
+                                },
+                              ),
+                          ],
                         ),
                       ),
                     ],
@@ -478,76 +554,6 @@ class _PlaylistPageState extends State<PlaylistPage> {
     } catch (e, stackTrace) {
       logger.log('Error sharing playlist', error: e, stackTrace: stackTrace);
     }
-  }
-
-  void _showPlaylistOptions() {
-    final songsLength = (_playlist['list'] as List? ?? const []).length;
-    final isUserCreated = _playlist['source'] == 'user-created';
-
-    showCupertinoModalPopup<void>(
-      context: context,
-      builder: (BuildContext ctx) => CupertinoActionSheet(
-        title: Text(_playlistTitle),
-        actions: <CupertinoActionSheetAction>[
-          if (widget.playlistId != null && !isUserCreated && !offlineMode.value)
-            CupertinoActionSheetAction(
-              onPressed: () {
-                Navigator.pop(ctx);
-                final id = _resolvedPlaylistId;
-                if (id != null) {
-                  final isLiked = isPlaylistAlreadyLiked(id);
-                  updatePlaylistLikeStatus(id, !isLiked, playlistData: _playlist);
-                }
-              },
-              child: Text(
-                isPlaylistAlreadyLiked(_resolvedPlaylistId ?? '')
-                    ? 'Unlike Playlist'
-                    : 'Like Playlist',
-              ),
-            ),
-          if (songsLength > 0)
-            CupertinoActionSheetAction(
-              onPressed: () {
-                Navigator.pop(ctx);
-                offlinePlaylistService.downloadPlaylist(
-                  context,
-                  _playlist,
-                );
-              },
-              child: const Text('Download All Songs'),
-            ),
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.pop(ctx);
-              _handleShare();
-            },
-            child: const Text('Share Playlist'),
-          ),
-          if (isUserCreated)
-            CupertinoActionSheetAction(
-              onPressed: () async {
-                Navigator.pop(ctx);
-                final result = await showDialog<Map?>(
-                  context: context,
-                  builder: (context) => EditPlaylistDialog(playlistData: _playlist),
-                );
-                if (result != null) {
-                  setState(() {
-                    _playlist['title'] = result['title'] ?? _playlist['title'];
-                    _playlist['description'] = result['description'] ?? _playlist['description'];
-                  });
-                }
-              },
-              child: const Text('Edit Playlist Details'),
-            ),
-        ],
-        cancelButton: CupertinoActionSheetAction(
-          isDefaultAction: true,
-          onPressed: () => Navigator.pop(ctx),
-          child: Text(context.l10n!.cancel),
-        ),
-      ),
-    );
   }
 
   Widget _buildShareButton() {
