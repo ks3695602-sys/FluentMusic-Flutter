@@ -81,52 +81,7 @@ class _NowPlayingPageState extends State<NowPlayingPage> {
         return Stack(
           children: [
             Positioned.fill(
-              child: Container(
-                color: CupertinoColors.black,
-                child: artworkUrl != null && artworkUrl.isNotEmpty
-                    ? ImageFiltered(
-                        imageFilter: ImageFilter.blur(sigmaX: 60, sigmaY: 60),
-                        child: Transform.scale(
-                          scale: 1.35,
-                          child: Opacity(
-                            opacity: 0.55,
-                            child: Image(
-                              image: ArtworkProvider.get(artworkUrl),
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                            ),
-                          ),
-                        ),
-                      )
-                    : Container(
-                        decoration: const BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              Color(0xFF2A1435),
-                              Color(0xFF140B1D),
-                              Color(0xFF000000),
-                            ],
-                          ),
-                        ),
-                      ),
-              ),
-            ),
-            Positioned.fill(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      CupertinoColors.black.withValues(alpha: 0.25),
-                      CupertinoColors.black.withValues(alpha: 0.75),
-                    ],
-                    stops: const [0.0, 1.0],
-                  ),
-                ),
-              ),
+              child: _FullBleedArtworkBackground(artworkUrl: artworkUrl),
             ),
             ValueListenableBuilder<bool>(
               valueListenable: _lyricsController.isFlipped,
@@ -780,6 +735,129 @@ class _MobileLayout extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Full-bleed, edge-to-edge player backdrop.
+///
+/// The artwork is drawn behind the status bar and the gesture handle, with no
+/// hard edges anywhere:
+///   * a heavily blurred copy fills the whole viewport
+///   * a sharper copy is revealed through a vertical mask, so the centre reads
+///     as real artwork while the top and bottom melt back into the blur
+///   * two gradient scrims keep the header and controls legible
+///
+/// Everything sits inside a [RepaintBoundary] so playback ticks never
+/// re-rasterise the blurred image.
+class _FullBleedArtworkBackground extends StatelessWidget {
+  const _FullBleedArtworkBackground({required this.artworkUrl});
+
+  final String? artworkUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    final url = artworkUrl?.trim();
+
+    if (url == null || url.isEmpty) {
+      return const DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF2A1435),
+              Color(0xFF140B1D),
+              Color(0xFF000000),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final provider = ArtworkProvider.get(url);
+
+    return RepaintBoundary(
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          const ColoredBox(color: Color(0xFF050409)),
+
+          // Blurred bed: over-scaled so blur never samples transparent edges.
+          Transform.scale(
+            scale: 1.25,
+            child: ImageFiltered(
+              imageFilter: ImageFilter.blur(
+                sigmaX: 70,
+                sigmaY: 70,
+                tileMode: TileMode.clamp,
+              ),
+              child: Image(
+                image: provider,
+                fit: BoxFit.cover,
+                gaplessPlayback: true,
+                filterQuality: FilterQuality.medium,
+                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              ),
+            ),
+          ),
+
+          // Sharper artwork, faded in from the blur at both ends.
+          ShaderMask(
+            blendMode: BlendMode.dstIn,
+            shaderCallback: (bounds) => const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Color(0x00000000),
+                Color(0xB3000000),
+                Color(0xB3000000),
+                Color(0x00000000),
+              ],
+              stops: [0.0, 0.2, 0.62, 0.95],
+            ).createShader(bounds),
+            child: Image(
+              image: provider,
+              fit: BoxFit.cover,
+              gaplessPlayback: true,
+              filterQuality: FilterQuality.medium,
+              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+            ),
+          ),
+
+          // Top scrim: status bar and page header.
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0xCC000000),
+                  Color(0x66000000),
+                  Color(0x00000000),
+                ],
+                stops: [0.0, 0.18, 0.42],
+              ),
+            ),
+          ),
+
+          // Bottom scrim: controls and gesture handle.
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.bottomCenter,
+                end: Alignment.topCenter,
+                colors: [
+                  Color(0xF2000000),
+                  Color(0xB3000000),
+                  Color(0x00000000),
+                ],
+                stops: [0.0, 0.28, 0.62],
+              ),
             ),
           ),
         ],
