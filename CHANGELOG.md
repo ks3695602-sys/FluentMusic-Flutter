@@ -1,5 +1,31 @@
 # Changelog
 
+## 1.5.0+14 — Signed-in YouTube Music, sharper player
+
+### The player
+- Full-bleed, edge-to-edge artwork: blurred bed, masked sharper layer and soft scrims, drawn behind the status bar and gesture handle with no solid strip.
+- The mini-player picture now flies into the player with a rounded `Hero` transition, plus a short dolly-in entrance.
+- Real remaining time (`-MM:SS`) instead of a static placeholder.
+- The fake "Lossless" pill is gone; only an actual speed change shows a badge.
+- One heart everywhere with optimistic state and a 450 ms debounce, for songs and radio alike.
+- Volume reaching zero can pause playback, and raising it can resume — both optional.
+
+### Glass controls
+- Every iOS-18-style action sheet is replaced by `GlassPullDownButton` + `GlassMenuItem`: player overflow, audio output, playlist options and the now-playing art menu.
+- Speed & Pitch is a real control panel: Speed/Pitch/Both segmented control, live sliders, presets and one-tap reset.
+- Glass Lab gains working **Distortion amount** and **Refraction height** sliders (refractive index and thickness), persisted and applied to the global glass theme.
+- Light-mode pass for Liked / Offline / Recent headers, the Account page and Glass Lab.
+
+### YouTube Music account
+- Sign in on Google's own page inside an isolated WebView. Only YouTube cookies are read back; the password never reaches the app.
+- Connected profile with avatar, email and channel handle, plus expired-session handling and explicit sign-out.
+- New experimental **Use Account for Playback** switch. It is off by default; when on, the app tries the signed-in session first and silently falls back to the existing anonymous stream. The anonymous path, buffer sizes, preload counts and URL caches are unchanged.
+
+### Known limitations
+- YouTube's `poToken`/BotGuard requirement means signed-in audio often falls back to the anonymous stream; that fallback is expected, not an error.
+- Two-device cloud sync remains a manual test and needs real Supabase keys.
+- Lyrics availability still depends on the upstream provider.
+
 ## 1.4.0+13 — iOS 27 Liquid Glass remake
 
 ### Glass engine
