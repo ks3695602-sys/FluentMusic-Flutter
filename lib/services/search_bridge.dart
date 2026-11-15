@@ -34,11 +34,31 @@ class InlineSearchBridge {
   /// Bumped once per submitted query. Listeners read from [takePending].
   static final ValueNotifier<int> request = ValueNotifier<int>(0);
 
+  /// Bumped when the shell switches to the Search tab, so the page can put the
+  /// caret in its own field. Kept separate from [request] because focusing must
+  /// not start a search.
+  static final ValueNotifier<int> focusRequest = ValueNotifier<int>(0);
+
   static String? _pendingQuery;
   static String _lastQuery = '';
+  static bool _pendingFocus = false;
 
   /// Last query that was submitted through the bar (handy for "recent search").
   static String get lastQuery => _lastQuery;
+
+  /// Queues a focus request and notifies the search page. If the page is cold,
+  /// it consumes the request on its first frame.
+  static void requestFieldFocus() {
+    _pendingFocus = true;
+    focusRequest.value++;
+  }
+
+  /// Returns whether a focus request is queued, and clears it.
+  static bool takeFocusRequest() {
+    final pending = _pendingFocus;
+    _pendingFocus = false;
+    return pending;
+  }
 
   /// Queues [query] and notifies the search page. Empty queries are ignored.
   static void submit(String query) {

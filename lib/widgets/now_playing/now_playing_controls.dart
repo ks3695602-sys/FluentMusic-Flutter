@@ -42,6 +42,7 @@ import 'package:musify/widgets/now_playing/bottom_actions_row.dart';
 import 'package:musify/widgets/now_playing/marquee_text_widget.dart';
 import 'package:musify/widgets/playback_icon_button.dart';
 import 'package:musify/widgets/position_slider.dart';
+import 'package:musify/widgets/now_playing/song_like_button.dart';
 
 class NowPlayingControls extends StatelessWidget {
   const NowPlayingControls({
@@ -132,40 +133,11 @@ class NowPlayingControls extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  ValueListenableBuilder<List>(
-                    valueListenable: userLikedSongsList,
-                    builder: (context, likedList, _) {
-                      final isLiked = isSongAlreadyLiked(audioId);
-                      return CupertinoButton(
-                        padding: EdgeInsets.zero,
-                        minSize: 38,
-                        onPressed: () async {
-                          HapticFeedback.lightImpact();
-                          final nextLiked = !isLiked;
-                          final songMap = mediaItemToMap(metadata);
-                          await updateSongLikeStatus(
-                            audioId,
-                            nextLiked,
-                            songData: songMap,
-                          );
-                          if (!context.mounted) return;
-                          showGlassToast(
-                            context,
-                            nextLiked
-                                ? context.l10n!.addedToLikedSongs
-                                : context.l10n!.removedFromLikedSongs,
-                            icon: nextLiked
-                                ? CupertinoIcons.heart_fill
-                                : CupertinoIcons.heart,
-                          );
-                        },
-                        child: Icon(
-                          isLiked ? CupertinoIcons.star_fill : CupertinoIcons.star,
-                          color: isLiked ? const Color(0xFFFF2D55) : CupertinoColors.white.withValues(alpha: 0.85),
-                          size: 24,
-                        ),
-                      );
-                    },
+                  SongLikeButton(
+                    songId: audioId?.toString(),
+                    songData: mediaItemToMap(metadata),
+                    iconSize: 24,
+                    minSize: 38,
                   ),
                   CupertinoButton(
                     padding: EdgeInsets.zero,
@@ -219,8 +191,22 @@ class NowPlayingControls extends StatelessWidget {
                           final vol = volSnap.data ?? 1.0;
                           return Slider(
                             value: vol.clamp(0.0, 1.0),
-                            onChanged: (val) {
-                              audioHandler.setVolume(val);
+                            onChanged: (val) async {
+                              final wasZero = vol <= 0.001;
+                              await audioHandler.setVolume(val);
+                              if (!context.mounted) return;
+                              final isPlaying =
+                                  audioHandler.playbackState.value.playing;
+                              if (val <= 0.001 &&
+                                  pauseOnVolumeZero.value &&
+                                  isPlaying) {
+                                await audioHandler.pause();
+                              } else if (wasZero &&
+                                  val > 0.001 &&
+                                  resumeOnVolumeRaise.value &&
+                                  !isPlaying) {
+                                await audioHandler.play();
+                              }
                             },
                           );
                         },

@@ -86,12 +86,24 @@ class _SearchPageState extends State<SearchPage> {
   void initState() {
     super.initState();
     InlineSearchBridge.request.addListener(_handleInlineSearch);
+    InlineSearchBridge.focusRequest.addListener(_handleFocusRequest);
     // Consume a query that was typed in the bar while this branch was cold.
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       final pending = InlineSearchBridge.takePending();
-      if (pending != null && mounted) {
+      if (pending != null) {
         _submitSearch(pending);
       }
+      if (InlineSearchBridge.takeFocusRequest()) {
+        _inputNode.requestFocus();
+      }
+    });
+  }
+
+  void _handleFocusRequest() {
+    if (!mounted || !InlineSearchBridge.takeFocusRequest()) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _inputNode.requestFocus();
     });
   }
 
@@ -121,6 +133,7 @@ class _SearchPageState extends State<SearchPage> {
   @override
   void dispose() {
     InlineSearchBridge.request.removeListener(_handleInlineSearch);
+    InlineSearchBridge.focusRequest.removeListener(_handleFocusRequest);
     _searchBar.dispose();
     _inputNode.dispose();
     _fetchingSongs.dispose();

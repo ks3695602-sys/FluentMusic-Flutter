@@ -39,6 +39,7 @@ import 'package:musify/widgets/flip_card.dart';
 import 'package:musify/widgets/now_playing/bottom_actions_row.dart';
 import 'package:musify/widgets/now_playing/now_playing_artwork.dart';
 import 'package:musify/widgets/now_playing/now_playing_controls.dart';
+import 'package:musify/widgets/now_playing/song_like_button.dart';
 import 'package:musify/widgets/playback_icon_button.dart';
 import 'package:musify/widgets/position_slider.dart';
 import 'package:musify/widgets/queue_list_view.dart';
@@ -394,25 +395,36 @@ class _MobileLayout extends StatelessWidget {
     final audioId = metadata.extras?['ytid']?.toString();
     final isRadioStation = metadata.extras?['isLive'] == true;
 
+    if (!isRadioStation) {
+      return Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: CupertinoColors.white.withValues(alpha: 0.12),
+          shape: BoxShape.circle,
+        ),
+        child: SongLikeButton(
+          songId: audioId,
+          songData: mediaItemToMap(metadata),
+          iconSize: 18,
+          minSize: 36,
+        ),
+      );
+    }
+
     return ValueListenableBuilder<List>(
-      valueListenable: isRadioStation ? userLikedRadioStations : userLikedSongsList,
+      valueListenable: userLikedRadioStations,
       builder: (context, _, __) {
-        final isLiked = isRadioStation
-            ? isRadioStationLiked(audioId ?? '')
-            : isSongAlreadyLiked(audioId);
+        final isLiked = isRadioStationLiked(audioId ?? '');
         return CupertinoButton(
           padding: EdgeInsets.zero,
           onPressed: () async {
             if (audioId == null) return;
             HapticFeedback.lightImpact();
-            if (isRadioStation) {
-              if (isLiked) {
-                await removeRadioStationFromLiked(audioId);
-              } else {
-                await addRadioStationToLiked(audioId);
-              }
+            if (isLiked) {
+              await removeRadioStationFromLiked(audioId);
             } else {
-              await updateSongLikeStatus(audioId, !isLiked, songData: mediaItemToMap(metadata));
+              await addRadioStationToLiked(audioId);
             }
           },
           child: Container(
@@ -423,7 +435,7 @@ class _MobileLayout extends StatelessWidget {
               shape: BoxShape.circle,
             ),
             child: Icon(
-              isLiked ? CupertinoIcons.star_fill : CupertinoIcons.star,
+              isLiked ? CupertinoIcons.heart_fill : CupertinoIcons.heart,
               size: 18,
               color: isLiked ? const Color(0xFFFF2D55) : CupertinoColors.white,
             ),

@@ -125,7 +125,8 @@ class _PositionSliderState extends State<PositionSlider> {
     final totalSec = positionData.duration.inSeconds;
     final positionText = formatDuration(curSec);
     final remainingSec = (totalSec - curSec) > 0 ? (totalSec - curSec) : 0;
-    final remainingText = '-';
+    // Real value, not a placeholder: what is left of the track.
+    final remainingText = '-${formatDuration(remainingSec)}';
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 22),
@@ -133,28 +134,33 @@ class _PositionSliderState extends State<PositionSlider> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(positionText, style: _textStyle),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: CupertinoColors.white.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(CupertinoIcons.double_music_note, size: 10, color: CupertinoColors.white),
-                SizedBox(width: 3),
-                Text(
-                  'Lossless',
-                  style: TextStyle(
+          // Only show a badge when playback is actually altered. There is no
+          // "Lossless" stream on YouTube Music, so never claim one.
+          StreamBuilder<double>(
+            stream: audioHandler.audioPlayer.speedStream,
+            initialData: audioHandler.audioPlayer.speed,
+            builder: (context, speedSnapshot) {
+              final speed = speedSnapshot.data ?? 1.0;
+              if ((speed - 1.0).abs() < 0.005) {
+                return const SizedBox.shrink();
+              }
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: CupertinoColors.white.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  '${speed.toStringAsFixed(2)}x',
+                  style: const TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
                     color: CupertinoColors.white,
                     letterSpacing: 0.2,
                   ),
                 ),
-              ],
-            ),
+              );
+            },
           ),
           Text(remainingText, style: _textStyle),
         ],

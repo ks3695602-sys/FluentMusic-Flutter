@@ -336,6 +336,12 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
       }
 
       _previousShellIndex = item.shellIndex;
+
+      // Landing on Search should put the caret in the field, without opening
+      // the dock's separate inline bar.
+      if (item.shellIndex == 1) {
+        InlineSearchBridge.requestFieldFocus();
+      }
     }
   }
 

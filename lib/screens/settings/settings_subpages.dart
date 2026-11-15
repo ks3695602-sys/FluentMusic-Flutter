@@ -607,6 +607,66 @@ class PlaybackSettingsPage extends StatelessWidget {
                     );
                   },
                 ),
+                ValueListenableBuilder<bool>(
+                  valueListenable: pauseOnVolumeZero,
+                  builder: (_, pauseOnZero, __) {
+                    return GlassListTile(
+                      leading: const Icon(
+                        CupertinoIcons.speaker_2_fill,
+                        color: Color(0xFF34C759),
+                      ),
+                      title: Text(
+                        'Pause at Zero Volume',
+                        style: TextStyle(color: titleColor),
+                      ),
+                      subtitle: Text(
+                        'Pause playback when the in-app volume reaches zero',
+                        style: TextStyle(color: subtitleColor, fontSize: 12),
+                      ),
+                      trailing: GlassSwitch(
+                        value: pauseOnZero,
+                        onChanged: (val) {
+                          pauseOnVolumeZero.value = val;
+                          addOrUpdateData(
+                            'settings',
+                            'pauseOnVolumeZero',
+                            val,
+                          );
+                        },
+                      ),
+                    );
+                  },
+                ),
+                ValueListenableBuilder<bool>(
+                  valueListenable: resumeOnVolumeRaise,
+                  builder: (_, resume, __) {
+                    return GlassListTile(
+                      leading: const Icon(
+                        CupertinoIcons.speaker_3_fill,
+                        color: Color(0xFF34C759),
+                      ),
+                      title: Text(
+                        'Resume When Volume Rises',
+                        style: TextStyle(color: titleColor),
+                      ),
+                      subtitle: Text(
+                        'Continue a volume-paused track when volume is raised',
+                        style: TextStyle(color: subtitleColor, fontSize: 12),
+                      ),
+                      trailing: GlassSwitch(
+                        value: resume,
+                        onChanged: (val) {
+                          resumeOnVolumeRaise.value = val;
+                          addOrUpdateData(
+                            'settings',
+                            'resumeOnVolumeRaise',
+                            val,
+                          );
+                        },
+                      ),
+                    );
+                  },
+                ),
                 GlassListTile(
                   leading: const Icon(
                     CupertinoIcons.slider_horizontal_3,

@@ -152,6 +152,16 @@ final pauseOnHeadphoneDisconnect = ValueNotifier<bool>(
   Hive.box('settings').get('pauseOnHeadphoneDisconnect', defaultValue: true),
 );
 
+/// Pause when the in-app volume slider reaches zero, and optionally resume
+/// when it is raised again. Playback itself never depends on these.
+final pauseOnVolumeZero = ValueNotifier<bool>(
+  Hive.box('settings').get('pauseOnVolumeZero', defaultValue: true),
+);
+
+final resumeOnVolumeRaise = ValueNotifier<bool>(
+  Hive.box('settings').get('resumeOnVolumeRaise', defaultValue: true),
+);
+
 final saveSearchHistoryEnabled = ValueNotifier<bool>(
   Hive.box('settings').get('saveSearchHistoryEnabled', defaultValue: true),
 );

@@ -109,11 +109,12 @@ class BottomActionsRow extends StatelessWidget {
       context: context,
       builder: (ctx) => CupertinoActionSheet(
         title: const Text(
-          'FluentMusic Lossless Output',
+          'Audio Output',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         message: const Text(
-          'Active: Built-in Audio Device\nFormat: 24-bit 48kHz Hi-Res Lossless Audio',
+          'Playback follows your device audio route and system volume. '
+          'FluentMusic does not resample or claim a lossless format.',
         ),
         actions: [
           CupertinoActionSheetAction(
@@ -121,7 +122,7 @@ class BottomActionsRow extends StatelessWidget {
               Navigator.pop(ctx);
               showToast(
                 context,
-                'Audio routing through system high-res mixer',
+                'Use the device volume buttons to change output level',
                 duration: const Duration(seconds: 2),
               );
             },
@@ -130,7 +131,7 @@ class BottomActionsRow extends StatelessWidget {
               children: [
                 Icon(CupertinoIcons.speaker_2_fill),
                 SizedBox(width: 8),
-                Text('Device Speaker / Headphones (Default)'),
+                Text('System Default Output'),
               ],
             ),
           ),
