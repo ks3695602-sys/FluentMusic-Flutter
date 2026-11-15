@@ -36,6 +36,7 @@ import 'package:musify/services/lyrics_manager.dart';
 import 'package:musify/services/playlists_manager.dart';
 import 'package:musify/services/proxy_manager.dart';
 import 'package:musify/services/settings_manager.dart';
+import 'package:musify/services/ytmusic_playback_service.dart';
 import 'package:musify/utilities/app_utils.dart';
 import 'package:musify/utilities/formatter.dart';
 import 'package:musify/utilities/map_utils.dart';
@@ -785,6 +786,15 @@ Future<String?> fetchSongStreamUrl(String songId, bool isLive) async {
       final streamInfo = await ytClient.videos.streamsClient
           .getHttpLiveStreamUrl(VideoId(songId));
       return streamInfo;
+    }
+
+    // D2: opportunistic signed-in resolution. Returns null unless the user
+    // opted in *and* YouTube handed back a plain audio URL, so the anonymous
+    // path below stays the default. Nothing is cached here either: the URL
+    // cache keeps its existing keys and lifetime.
+    final signedInUrl = await ytMusicPlaybackService.tryResolveStreamUrl(songId);
+    if (signedInUrl != null && signedInUrl.isNotEmpty) {
+      return signedInUrl;
     }
 
     const _cacheDuration = Duration(hours: 3);

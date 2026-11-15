@@ -69,18 +69,8 @@ class NowPlayingArtwork extends StatelessWidget {
       onTapFlipping:
           !offlineMode.value && !(metadata.extras?['isLive'] ?? false),
       controller: lyricsController,
-      frontWidget: DecoratedBox(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(borderRadius),
-          boxShadow: [
-            BoxShadow(
-              color: CupertinoColors.black.withValues(alpha: 0.40),
-              blurRadius: 36,
-              offset: const Offset(0, 16),
-              spreadRadius: 2,
-            ),
-          ],
-        ),
+      frontWidget: _ArtworkHero(
+        borderRadius: borderRadius,
         child: Stack(
           children: [
             ClipRRect(
@@ -108,6 +98,119 @@ class NowPlayingArtwork extends StatelessWidget {
           child: LyricsViewWidget(metadata: metadata),
         ),
       ),
+    );
+  }
+}
+
+/// Shared transition + entrance motion for the player artwork.
+///
+/// The mini player already exposes a `now_playing_artwork` hero, so opening the
+/// player grows the same picture instead of cross-fading two different frames.
+/// A short scale/fade entrance keeps the hero flight feeling continuous on
+/// routes where no source hero exists (deep links, queue taps).
+class _ArtworkHero extends StatefulWidget {
+  const _ArtworkHero({required this.child, required this.borderRadius});
+
+  final Widget child;
+  final double borderRadius;
+
+  @override
+  State<_ArtworkHero> createState() => _ArtworkHeroState();
+}
+
+class _ArtworkHeroState extends State<_ArtworkHero>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 420),
+  );
+  late final Animation<double> _curve = CurvedAnimation(
+    parent: _controller,
+    curve: Curves.easeOutCubic,
+  );
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _controller.value = 1;
+    } else if (_controller.isDismissed) {
+      _controller.forward();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Widget _shell(BuildContext context, Widget child) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(widget.borderRadius),
+        boxShadow: [
+          BoxShadow(
+            color: CupertinoColors.black.withValues(alpha: 0.40),
+            blurRadius: 36,
+            offset: const Offset(0, 16),
+            spreadRadius: 2,
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final child = Hero(
+      tag: 'now_playing_artwork',
+      transitionOnUserGestures: true,
+      // Keep the artwork corners rounded for the whole flight, otherwise the
+      // hero snaps from a square image into a rounded one mid-animation.
+      flightShuttleBuilder:
+          (
+            flightContext,
+            animation,
+            direction,
+            fromHeroContext,
+            toHeroContext,
+          ) {
+            final fromChild = (fromHeroContext.widget as Hero).child;
+            final toChild = (toHeroContext.widget as Hero).child;
+            return AnimatedBuilder(
+              animation: animation,
+              child: direction == HeroFlightDirection.push
+                  ? toChild
+                  : fromChild,
+              builder: (context, shuttleChild) {
+                final radius =
+                    widget.borderRadius * (animation.value.clamp(0.0, 1.0));
+                return ClipRRect(
+                  borderRadius: BorderRadius.circular(radius),
+                  child: shuttleChild,
+                );
+              },
+            );
+          },
+      child: _shell(context, widget.child),
+    );
+
+    return AnimatedBuilder(
+      animation: _curve,
+      child: child,
+      builder: (context, animatedChild) {
+        final t = _curve.value;
+        return Opacity(
+          opacity: t,
+          child: Transform.scale(
+            // Slight overshoot-free settle, reads as a gentle dolly-in.
+            scale: 0.94 + (0.06 * t),
+            child: animatedChild,
+          ),
+        );
+      },
     );
   }
 }

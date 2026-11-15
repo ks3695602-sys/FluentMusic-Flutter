@@ -19,6 +19,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:musify/screens/settings/ytmusic_login_page.dart';
+import 'package:musify/services/data_manager.dart';
+import 'package:musify/services/settings_manager.dart';
 import 'package:musify/services/ytmusic_auth_service.dart';
 import 'package:musify/widgets/glass/glass_toast.dart';
 
@@ -216,6 +218,35 @@ class YtMusicAccountCard extends StatelessWidget {
               ),
             ),
           ),
+        ),
+        const GlassMenuDivider(),
+        ValueListenableBuilder<bool>(
+          valueListenable: ytMusicSignedInPlayback,
+          builder: (context, enabled, _) {
+            return GlassListTile(
+              leading: const Icon(
+                CupertinoIcons.bolt_circle_fill,
+                color: Color(0xFFFF9F0A),
+              ),
+              title: const Text('Use Account for Playback'),
+              subtitle: const Text(
+                'Experimental. YouTube may refuse signed-in audio; playback '
+                'then falls back to the anonymous stream automatically.',
+                style: TextStyle(fontSize: 12, height: 1.3),
+              ),
+              trailing: GlassSwitch(
+                value: enabled,
+                onChanged: (value) {
+                  ytMusicSignedInPlayback.value = value;
+                  addOrUpdateData(
+                    'settings',
+                    'ytMusicSignedInPlayback',
+                    value,
+                  );
+                },
+              ),
+            );
+          },
         ),
       ];
     }

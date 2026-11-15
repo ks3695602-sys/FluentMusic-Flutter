@@ -162,6 +162,13 @@ final resumeOnVolumeRaise = ValueNotifier<bool>(
   Hive.box('settings').get('resumeOnVolumeRaise', defaultValue: true),
 );
 
+/// Experimental D2 switch: try the signed-in YouTube Music session first when
+/// resolving a stream. Off by default; the anonymous path is always the
+/// fallback and is never modified.
+final ytMusicSignedInPlayback = ValueNotifier<bool>(
+  Hive.box('settings').get('ytMusicSignedInPlayback', defaultValue: false),
+);
+
 final saveSearchHistoryEnabled = ValueNotifier<bool>(
   Hive.box('settings').get('saveSearchHistoryEnabled', defaultValue: true),
 );
@@ -295,6 +302,10 @@ void reloadSettingsFromStorage() {
   );
   showAudioQualityBadge.value = settings.get(
     'showAudioQualityBadge',
+    defaultValue: false,
+  );
+  ytMusicSignedInPlayback.value = settings.get(
+    'ytMusicSignedInPlayback',
     defaultValue: false,
   );
   syncedLyricsEnabled.value = settings.get(
