@@ -261,9 +261,15 @@ class _MusifyState extends State<Musify> with WidgetsBindingObserver {
 
         return AnnotatedRegion<SystemUiOverlayStyle>(
           value: SystemUiOverlayStyle(
+            // True edge-to-edge: both bars stay transparent and the page
+            // background/artwork draws behind them. Contrast enforcement is
+            // what paints the solid white/black strip behind the gesture
+            // handle on HyperOS/Android 14+, so it must stay off.
             statusBarColor: Colors.transparent,
+            systemStatusBarContrastEnforced: false,
             systemNavigationBarColor: Colors.transparent,
-            systemNavigationBarContrastEnforced: true,
+            systemNavigationBarDividerColor: Colors.transparent,
+            systemNavigationBarContrastEnforced: false,
             statusBarBrightness: isDark
                 ? Brightness.light
                 : Brightness.dark,

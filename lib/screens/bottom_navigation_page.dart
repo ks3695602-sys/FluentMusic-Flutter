@@ -103,6 +103,9 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
 
               return GlassScaffold(
                 contentAwareBrightness: true,
+                statusBarStyle: isLight
+                    ? GlassStatusBarStyle.dark
+                    : GlassStatusBarStyle.light,
                 background: Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
