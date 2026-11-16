@@ -490,16 +490,16 @@ class _PlaylistPageState extends State<PlaylistPage> {
   }
 
   Widget _buildBackButton(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: GlassIconButton(
-        icon: const Icon(
-          CupertinoIcons.chevron_back,
-          color: CupertinoColors.white,
-          size: 20,
-        ),
-        onPressed: () => Navigator.pop(context, widget.playlistData == _playlist),
+    return GlassIconButton(
+      size: 40,
+      iconSize: 19,
+      semanticLabel: 'Back',
+      icon: const Icon(
+        CupertinoIcons.chevron_back,
+        color: CupertinoColors.white,
+        size: 19,
       ),
+      onPressed: () => Navigator.pop(context, widget.playlistData == _playlist),
     );
   }
 

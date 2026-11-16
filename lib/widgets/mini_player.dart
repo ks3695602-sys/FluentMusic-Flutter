@@ -30,6 +30,7 @@ import 'package:musify/main.dart';
 import 'package:musify/models/full_player_state.dart';
 import 'package:musify/models/position_data.dart';
 import 'package:musify/screens/now_playing_page.dart';
+import 'package:musify/services/settings_manager.dart';
 import 'package:musify/widgets/marquee.dart';
 import 'package:musify/widgets/song_artwork.dart';
 import 'package:rxdart/rxdart.dart';
@@ -261,30 +262,7 @@ class _MiniPlayerBodyState extends State<_MiniPlayerBody>
               child: GestureDetector(
                 onTap: _navigateToNowPlaying,
                 behavior: HitTestBehavior.opaque,
-                child: Container(
-                  height: MiniPlayer.playerHeight,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? const Color(0xFF242426).withValues(alpha: 0.88)
-                        : const Color(0xFFFFFFFF).withValues(alpha: 0.90),
-                    borderRadius: BorderRadius.circular(MiniPlayer._borderRadius),
-                    border: Border.all(
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? CupertinoColors.white.withValues(alpha: 0.14)
-                          : CupertinoColors.black.withValues(alpha: 0.08),
-                      width: 0.8,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(
-                          alpha: Theme.of(context).brightness == Brightness.dark ? 0.30 : 0.08,
-                        ),
-                        blurRadius: 16,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
+                child: _MiniPlayerGlassShell(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 10),
                     child: Row(
@@ -330,6 +308,69 @@ class _MiniPlayerBodyState extends State<_MiniPlayerBody>
           ),
         );
       },
+    );
+  }
+}
+
+/// The mini player's own liquid-glass capsule.
+///
+/// The pill rides inside the dock's accessory slot, which paints no surface of
+/// its own, so it needs a real material here. Optics come from the Glass Lab
+/// dock settings, but the tint alpha is floored: the Lab allows 0.00, which
+/// used to leave the title floating on naked artwork.
+class _MiniPlayerGlassShell extends StatelessWidget {
+  const _MiniPlayerGlassShell({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = GlassTheme.brightnessOf(context) == Brightness.dark;
+    final base = getEffectiveDockGlassSettings(isDark: isDark);
+    final configured = base.glassColor;
+
+    final tint = configured.a < 0.20
+        ? (isDark ? const Color(0xFF1C1C1E) : CupertinoColors.white)
+              .withValues(alpha: isDark ? 0.72 : 0.88)
+        : configured.withValues(alpha: configured.a.clamp(0.42, 0.86));
+
+    final settings = base.copyWith(
+      blur: math.max(base.blur, 14),
+      frost: math.max(base.frost, 12),
+      glassColor: tint,
+    );
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(MiniPlayer._borderRadius),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.32 : 0.10),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: SizedBox(
+        height: MiniPlayer.playerHeight,
+        width: double.infinity,
+        child: AdaptiveGlass(
+          shape: LiquidRoundedSuperellipse(
+            borderRadius: MiniPlayer._borderRadius,
+          ),
+          settings: settings,
+          // Live backdrop filter rather than the premium texture path: the
+          // accessory sits inside the dock's glass group, so a texture capture
+          // would sample the bar instead of the page behind the pill.
+          quality: GlassQuality.standard,
+          useOwnLayer: true,
+          clipBehavior: Clip.antiAlias,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(MiniPlayer._borderRadius),
+            child: child,
+          ),
+        ),
+      ),
     );
   }
 }

@@ -19,6 +19,7 @@
  *     please visit: https://github.com/gokadzev/Musify
  */
 
+import 'dart:async';
 import 'dart:ui' as ui;
 
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
@@ -33,13 +34,16 @@ import 'package:musify/services/listening_stats_service.dart';
 import 'package:musify/services/playlists_manager.dart';
 import 'package:musify/services/search_bridge.dart';
 import 'package:musify/services/settings_manager.dart';
+import 'package:musify/services/ytmusic_library_store.dart';
 import 'package:musify/utilities/app_utils.dart';
 import 'package:musify/utilities/async_loader.dart';
 import 'package:musify/utilities/listening_stats_utils.dart';
 import 'package:musify/widgets/announcement_box.dart';
 import 'package:musify/widgets/home/home_artists_rail.dart';
 import 'package:musify/widgets/home/home_genres.dart';
+import 'package:musify/widgets/home/home_hero.dart';
 import 'package:musify/widgets/home/home_quick_picks.dart';
+import 'package:musify/widgets/home/home_ytmusic_shelves.dart';
 import 'package:musify/widgets/listening_recap_card.dart';
 import 'package:musify/widgets/mini_player_bottom_space.dart';
 import 'package:musify/widgets/playlist_artwork.dart';
@@ -66,6 +70,11 @@ class _HomePageState extends State<HomePage> {
     );
     _recommendedSongsFuture = getRecommendedSongs();
     externalRecommendations.addListener(_refreshRecommendedSongs);
+    // Restore the cached account library immediately, then refresh it in the
+    // background if the last sync is older than six hours.
+    unawaited(
+      restoreYtMusicLibrary().then((_) => autoSyncYtMusicLibrary()),
+    );
   }
 
   @override
@@ -110,6 +119,8 @@ class _HomePageState extends State<HomePage> {
                 onProfileTap: () => context.go('/settings'),
               ),
             ),
+            // Big gradient hero so Home opens with real weight.
+            const SliverToBoxAdapter(child: HomeHero()),
             // Announcement (only when a remote message exists)
             SliverToBoxAdapter(
               child: ValueListenableBuilder<String?>(
@@ -140,6 +151,9 @@ class _HomePageState extends State<HomePage> {
                 },
               ),
             ),
+            // Account-powered YTM rails: listen again, speed dial, forgotten
+            // favourites. Hidden entirely while signed out.
+            const SliverToBoxAdapter(child: HomeYtMusicShelves()),
             // Songs first: recents → quick picks → playlists → recommended.
             SliverToBoxAdapter(child: _buildRecentlyPlayedSection()),
             SliverToBoxAdapter(child: _buildQuickPicksSection()),
@@ -182,7 +196,7 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             SizedBox(
-              height: 200,
+              height: 236,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 physics: const BouncingScrollPhysics(),
@@ -199,7 +213,7 @@ class _HomePageState extends State<HomePage> {
                       song['lowResImage'];
 
                   return SizedBox(
-                    width: 140,
+                    width: 168,
                     child: GestureDetector(
                       onTap: () async {
                         await audioHandler.playPlaylistSong(
@@ -215,12 +229,12 @@ class _HomePageState extends State<HomePage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           ClipRRect(
-                            borderRadius: BorderRadius.circular(18),
+                            borderRadius: BorderRadius.circular(20),
                             child: Stack(
                               children: [
                                 PlaylistArtwork(
                                   playlistArtwork: image,
-                                  size: 140,
+                                  size: 168,
                                   cubeIcon: CupertinoIcons.music_note,
                                 ),
                                 Positioned(
@@ -331,7 +345,7 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
         SizedBox(
-          height: 200,
+          height: 236,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
@@ -348,7 +362,7 @@ class _HomePageState extends State<HomePage> {
                       : (context.l10n?.playlist ?? 'Playlist'));
 
               return SizedBox(
-                width: 140,
+                width: 168,
                 child: GestureDetector(
                   onTap: () =>
                       context.push('/home/playlist/${playlist['ytid']}'),
@@ -357,8 +371,8 @@ class _HomePageState extends State<HomePage> {
                     children: [
                       PlaylistCube(
                         playlist,
-                        size: 140,
-                        borderRadius: 18,
+                        size: 168,
+                        borderRadius: 20,
                         showTypeLabel: false,
                         showPlayBadge: true,
                       ),
@@ -394,7 +408,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  static const int _quickPickCount = 6;
+  static const int _quickPickCount = 8;
 
   Widget _buildQuickPicksSection() {
     return AsyncLoader<List<dynamic>>(

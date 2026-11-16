@@ -127,20 +127,20 @@ class _UserSongsPageState extends State<UserSongsPage> {
     return CustomScrollView(
       slivers: [
         PlaylistSliverAppBar(
-          leading: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: GlassIconButton(
-              // The header floats over light artwork in light mode, so the
-              // chevron has to follow the theme instead of always being white.
-              icon: Icon(
-                CupertinoIcons.chevron_back,
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? CupertinoColors.white
-                    : const Color(0xFF1C1C1E),
-                size: 20,
-              ),
-              onPressed: () => Navigator.pop(context),
+          leading: GlassIconButton(
+            size: 40,
+            iconSize: 19,
+            semanticLabel: 'Back',
+            // The header floats over light artwork in light mode, so the
+            // chevron has to follow the theme instead of always being white.
+            icon: Icon(
+              CupertinoIcons.chevron_back,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? CupertinoColors.white
+                  : const Color(0xFF1C1C1E),
+              size: 19,
             ),
+            onPressed: () => Navigator.pop(context),
           ),
           title: title,
           artwork: PlaylistHeroArtwork({'title': title}, cubeIcon: icon),

@@ -46,6 +46,7 @@ class GlassLabPage extends StatelessWidget {
     final subtitleColor = isDark ? Colors.white60 : const Color(0xFF636366);
 
     return GlassScaffold(
+      extendBody: false,
       contentAwareBrightness: true,
       background: const GlassBackdrop(animate: false),
       appBar: GlassAppBar(
@@ -402,16 +403,16 @@ class GlassLabPage extends StatelessWidget {
 
   Widget _buildBackButton(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Padding(
-      padding: const EdgeInsets.all(6),
-      child: GlassIconButton(
-        icon: Icon(
-          CupertinoIcons.chevron_back,
-          color: isDark ? Colors.white : Colors.black87,
-          size: 20,
-        ),
-        onPressed: () => Navigator.of(context).pop(),
+    return GlassIconButton(
+      size: 40,
+      iconSize: 19,
+      semanticLabel: 'Back',
+      icon: Icon(
+        CupertinoIcons.chevron_back,
+        color: isDark ? Colors.white : Colors.black87,
+        size: 19,
       ),
+      onPressed: () => Navigator.of(context).pop(),
     );
   }
 

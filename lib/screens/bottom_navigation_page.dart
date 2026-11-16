@@ -164,8 +164,11 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
                           onNotification: (notification) {
                             // The search field owns the screen while it is
                             // open; scrolling results must not tuck the dock
-                            // away underneath the keyboard.
-                            if (!_isSearchActive) {
+                            // away underneath the keyboard. Same for any
+                            // other keyboard session (dialogs, rename fields).
+                            final keyboardOpen =
+                                MediaQuery.viewInsetsOf(context).bottom > 0;
+                            if (!_isSearchActive && !keyboardOpen) {
                               _dockMinimizeController.handleNotification(
                                 notification,
                               );
@@ -259,7 +262,11 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
                               expandWhenActive: true,
                               // Floating search pill: tap → the dock morphs
                               // into a searchable bar and grabs the keyboard.
-                              showPill: true,
+                              // Explore already has the full search page, so
+                              // the pill would be a second door to the same
+                              // room.
+                              showPill:
+                                  _getCurrentIndex(items, isOfflineMode) != 1,
                               autoFocusOnExpand: true,
                               hintText: context.l10n?.search ?? 'Search',
                               textInputAction: TextInputAction.search,

@@ -37,6 +37,7 @@ class AboutPage extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     return GlassScaffold(
+      extendBody: false,
       contentAwareBrightness: true,
       appBar: GlassAppBar(title: Text(context.l10n!.about)),
       body: SingleChildScrollView(

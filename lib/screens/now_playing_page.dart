@@ -87,19 +87,30 @@ class _NowPlayingPageState extends State<NowPlayingPage> {
             Positioned.fill(
               child: _FullBleedArtworkBackground(artworkUrl: artworkUrl),
             ),
-            // Graduated blur under the transport controls: the artwork stays
-            // sharp in the middle and melts into frost at the bottom edge, so
-            // the dock + controls never sit on a hard cut-off.
+            // Graduated frost under the transport controls. The artwork bed
+            // behind this stack is already blurred once at sigma 70, so a live
+            // `ProgressiveBlur` (two more shader BackdropFilter passes over the
+            // whole lower third) only bought a per-frame GPU bill on device.
+            // A static gradient gives the same soft landing for free.
             const Positioned(
               left: 0,
               right: 0,
               bottom: 0,
-              height: 240,
+              height: 260,
               child: IgnorePointer(
-                child: ProgressiveBlur(
-                  maxSigma: 24,
-                  direction: ProgressiveBlurDirection.bottomToTop,
-                  falloff: 1.35,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                      colors: [
+                        Color(0x40000000),
+                        Color(0x1F000000),
+                        Color(0x00000000),
+                      ],
+                      stops: [0.0, 0.45, 1.0],
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -486,7 +497,8 @@ class _MobileLayout extends StatelessWidget {
       semanticLabel: 'More options',
       buttonWidth: 36,
       buttonHeight: 36,
-      menuWidth: 248,
+      menuWidth: 300,
+      maxStackHeight: 520,
       items: [
         const GlassMenuLabel(title: 'Now playing'),
         GlassMenuItem(
@@ -720,7 +732,10 @@ class _MobileLayout extends StatelessWidget {
 
     return GlassModalSheet.show<void>(
       context: context,
-      detents: const {GlassSheetDetent.medium, GlassSheetDetent.large},
+      // A taller glass stop instead of the opaque `large` detent: the panel
+      // needs room for three presets rows but should still read as glass.
+      detents: const {GlassSheetDetent.medium},
+      halfSize: 0.68,
       settings: glassSheetSettings(context, brightness: brightness),
       builder: (sheetContext) => StatefulBuilder(
         builder: (context, setSheetState) {
@@ -757,6 +772,15 @@ class _MobileLayout extends StatelessWidget {
                         GlassSegment(label: 'Both'),
                       ],
                       selectedIndex: mode,
+                      activeSelectedColor: const Color(0xFF0A84FF),
+                      selectedTextStyle: const TextStyle(
+                        color: CupertinoColors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      unselectedTextStyle: TextStyle(
+                        color: controlColors.subtitle,
+                        fontWeight: FontWeight.w500,
+                      ),
                       onSegmentSelected: (index) {
                         setSheetState(() => mode = index);
                       },

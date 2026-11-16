@@ -36,16 +36,18 @@ import 'package:musify/widgets/mini_player_bottom_space.dart';
 
 Widget buildGlassBackButton(BuildContext context) {
   final isDark = Theme.of(context).brightness == Brightness.dark;
-  return Padding(
-    padding: const EdgeInsets.all(6.0),
-    child: GlassIconButton(
-      icon: Icon(
-        CupertinoIcons.chevron_back,
-        color: isDark ? Colors.white : Colors.black87,
-        size: 20,
-      ),
-      onPressed: () => Navigator.of(context).pop(),
+  // No outer padding: GlassAppBar's toolbar row is 44 px tall, so padding
+  // around a 44 px GlassIconButton squeezed it down to ~32 px.
+  return GlassIconButton(
+    size: 40,
+    iconSize: 19,
+    semanticLabel: 'Back',
+    icon: Icon(
+      CupertinoIcons.chevron_back,
+      color: isDark ? Colors.white : Colors.black87,
+      size: 19,
     ),
+    onPressed: () => Navigator.of(context).pop(),
   );
 }
 
@@ -87,6 +89,7 @@ class ListeningStatsSettingsPage extends StatelessWidget {
     final subtitleColor = isDark ? Colors.white60 : const Color(0xFF636366);
 
     return GlassScaffold(
+      extendBody: false,
       contentAwareBrightness: true,
       background: buildSubpageBackground(isDark),
       appBar: GlassAppBar(
@@ -198,6 +201,7 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
     final subtitleColor = isDark ? Colors.white70 : const Color(0xFF636366);
 
     return GlassScaffold(
+      extendBody: false,
       contentAwareBrightness: true,
       background: buildSubpageBackground(isDark),
       appBar: GlassAppBar(
@@ -463,6 +467,7 @@ class PlaybackSettingsPage extends StatelessWidget {
     final subtitleColor = isDark ? Colors.white70 : const Color(0xFF636366);
 
     return GlassScaffold(
+      extendBody: false,
       contentAwareBrightness: true,
       background: buildSubpageBackground(isDark),
       appBar: GlassAppBar(
@@ -725,6 +730,7 @@ class _CanvasSettingsPageState extends State<CanvasSettingsPage> {
     final subtitleColor = isDark ? Colors.white60 : const Color(0xFF636366);
 
     return GlassScaffold(
+      extendBody: false,
       contentAwareBrightness: true,
       background: buildSubpageBackground(isDark),
       appBar: GlassAppBar(
@@ -854,6 +860,7 @@ class LyricsSettingsPage extends StatelessWidget {
     final subtitleColor = isDark ? Colors.white60 : const Color(0xFF636366);
 
     return GlassScaffold(
+      extendBody: false,
       contentAwareBrightness: true,
       background: buildSubpageBackground(isDark),
       appBar: GlassAppBar(
@@ -960,6 +967,7 @@ class ContentSettingsPage extends StatelessWidget {
     final subtitleColor = isDark ? Colors.white60 : const Color(0xFF636366);
 
     return GlassScaffold(
+      extendBody: false,
       contentAwareBrightness: true,
       background: buildSubpageBackground(isDark),
       appBar: GlassAppBar(
@@ -1064,6 +1072,7 @@ class BehaviorSettingsPage extends StatelessWidget {
     final subtitleColor = isDark ? Colors.white60 : const Color(0xFF636366);
 
     return GlassScaffold(
+      extendBody: false,
       contentAwareBrightness: true,
       background: buildSubpageBackground(isDark),
       appBar: GlassAppBar(
@@ -1214,6 +1223,7 @@ class AndroidAutoSettingsPage extends StatelessWidget {
     final subtitleColor = isDark ? Colors.white60 : const Color(0xFF636366);
 
     return GlassScaffold(
+      extendBody: false,
       contentAwareBrightness: true,
       background: buildSubpageBackground(isDark),
       appBar: GlassAppBar(

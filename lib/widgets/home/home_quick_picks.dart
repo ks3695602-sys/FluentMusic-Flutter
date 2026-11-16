@@ -21,15 +21,14 @@
 
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:material_ui/material_ui.dart';
 import 'package:musify/widgets/playlist_artwork.dart';
 import 'package:musify/widgets/section_header.dart';
 
-/// Compact two-column style "Quick Picks" rail used on the home page.
+/// Colourful two-column "Quick Picks" grid.
 ///
-/// Each card is a single song with artwork, title, artist and a play badge.
-/// The rail is intentionally shallow so the home page reads like Apple Music's
-/// Listen Now rather than a wall of album art.
+/// The old rail was a 68 px strip; this version gives every pick a big
+/// gradient card with 52 px artwork, so Home actually fills the screen before
+/// the dock gets a chance to collapse.
 class HomeQuickPicks extends StatelessWidget {
   const HomeQuickPicks({
     super.key,
@@ -40,23 +39,20 @@ class HomeQuickPicks extends StatelessWidget {
   final List<dynamic> songs;
   final ValueChanged<int> onSongTap;
 
-  static const double _cardHeight = 68;
+  static const double _cardHeight = 78;
+
+  static const List<List<Color>> _palettes = [
+    [Color(0xFF7C3AED), Color(0xFFDB2777)],
+    [Color(0xFF0EA5E9), Color(0xFF2563EB)],
+    [Color(0xFFF59E0B), Color(0xFFEF4444)],
+    [Color(0xFF10B981), Color(0xFF0D9488)],
+    [Color(0xFFEC4899), Color(0xFF8B5CF6)],
+    [Color(0xFFF97316), Color(0xFFDB2777)],
+  ];
 
   @override
   Widget build(BuildContext context) {
     if (songs.isEmpty) return const SizedBox.shrink();
-
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final titleColor = isDark ? CupertinoColors.white : const Color(0xFF1C1C1E);
-    final subColor = isDark
-        ? CupertinoColors.white.withValues(alpha: 0.62)
-        : const Color(0xFF8E8E93);
-    final cardColor = isDark
-        ? CupertinoColors.white.withValues(alpha: 0.08)
-        : CupertinoColors.black.withValues(alpha: 0.05);
-    final borderColor = isDark
-        ? CupertinoColors.white.withValues(alpha: 0.12)
-        : CupertinoColors.black.withValues(alpha: 0.08);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -68,102 +64,120 @@ class HomeQuickPicks extends StatelessWidget {
             icon: FluentIcons.sparkle_24_filled,
           ),
         ),
-        SizedBox(
-          height: _cardHeight + 8,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            clipBehavior: Clip.none,
-            itemCount: songs.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 10),
-            itemBuilder: (context, index) {
-              final song = songs[index];
-              final image = song['highResImage'] ??
-                  song['image'] ??
-                  song['lowResImage'] ??
-                  song['thumbnail'];
-              final title = song['title']?.toString() ?? '';
-              final artist = song['artist']?.toString() ?? '';
-
-              return GestureDetector(
-                onTap: () => onSongTap(index),
-                child: Container(
-                  width: 268,
-                  height: _cardHeight,
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: cardColor,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: borderColor, width: 0.7),
-                  ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
+            children: [
+              for (var row = 0; row < songs.length; row += 2)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
                   child: Row(
                     children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
-                        child: PlaylistArtwork(
-                          playlistArtwork: image?.toString(),
-                          playlistTitle: title,
-                          size: 52,
-                          cubeIcon: CupertinoIcons.music_note,
-                        ),
-                      ),
+                      Expanded(child: _card(songs[row], row)),
                       const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: titleColor,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: -0.2,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              artist,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: subColor,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Container(
-                        width: 28,
-                        height: 28,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: CupertinoColors.white.withValues(alpha: 0.10),
-                          border: Border.all(
-                            color: CupertinoColors.white.withValues(alpha: 0.18),
-                            width: 0.7,
-                          ),
-                        ),
-                        child: Icon(
-                          CupertinoIcons.play_fill,
-                          size: 12,
-                          color: titleColor,
-                        ),
-                      ),
+                      if (row + 1 < songs.length)
+                        Expanded(child: _card(songs[row + 1], row + 1))
+                      else
+                        const Spacer(),
                     ],
                   ),
                 ),
-              );
-            },
+            ],
           ),
         ),
       ],
+    );
+  }
+
+  Widget _card(dynamic song, int index) {
+    final image =
+        song['highResImage'] ?? song['image'] ?? song['lowResImage'];
+    final title = song['title']?.toString() ?? '';
+    final artist = song['artist']?.toString() ?? '';
+    final palette = _palettes[index % _palettes.length];
+
+    return GestureDetector(
+      onTap: () => onSongTap(index),
+      child: Container(
+        height: _cardHeight,
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: palette,
+          ),
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: palette.first.withValues(alpha: 0.28),
+              blurRadius: 14,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: PlaylistArtwork(
+                playlistArtwork: image?.toString(),
+                playlistTitle: title,
+                size: 58,
+                cubeIcon: CupertinoIcons.music_note,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: CupertinoColors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    artist,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: CupertinoColors.white.withValues(alpha: 0.78),
+                      fontSize: 11.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 4),
+            Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: CupertinoColors.white.withValues(alpha: 0.18),
+                border: Border.all(
+                  color: CupertinoColors.white.withValues(alpha: 0.30),
+                  width: 0.7,
+                ),
+              ),
+              child: const Icon(
+                CupertinoIcons.play_fill,
+                size: 12,
+                color: CupertinoColors.white,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

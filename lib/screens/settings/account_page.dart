@@ -100,6 +100,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
     final session = accountService.session;
 
     return GlassScaffold(
+      extendBody: false,
       contentAwareBrightness: true,
       background: buildSubpageBackground(isDark),
       appBar: GlassAppBar(

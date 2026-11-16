@@ -219,16 +219,16 @@ class _ArtistPageState extends State<ArtistPage> {
           child: CustomScrollView(
             slivers: [
               PlaylistSliverAppBar(
-                leading: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: GlassIconButton(
-                    icon: const Icon(
-                      CupertinoIcons.chevron_back,
-                      color: CupertinoColors.white,
-                      size: 20,
-                    ),
-                    onPressed: () => Navigator.pop(context),
+                leading: GlassIconButton(
+                  size: 40,
+                  iconSize: 19,
+                  semanticLabel: 'Back',
+                  icon: const Icon(
+                    CupertinoIcons.chevron_back,
+                    color: CupertinoColors.white,
+                    size: 19,
                   ),
+                  onPressed: () => Navigator.pop(context),
                 ),
                 title: _artistTitle,
                 artwork: PlaylistHeroArtwork(

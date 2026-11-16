@@ -26,6 +26,8 @@ class GlassPullDownButton extends StatelessWidget {
     this.buttonHeight = 44,
     this.buttonShape,
     this.menuWidth = 200,
+    this.menuHeight,
+    this.maxStackHeight,
     this.menuAlignment,
     this.settings,
     this.quality,
@@ -82,6 +84,18 @@ class GlassPullDownButton extends StatelessWidget {
   /// Width of the expanded menu.
   final double menuWidth;
 
+  /// Explicit height for a single-level menu.
+  ///
+  /// Forwarded to [GlassMenu.menuHeight]. When null the menu grows with its
+  /// items and is capped by the screen.
+  final double? menuHeight;
+
+  /// Maximum height of the whole nested menu stack.
+  ///
+  /// Forwarded to [GlassMenu.maxStackHeight]; useful for menus with submenus
+  /// that would otherwise run past the screen edge.
+  final double? maxStackHeight;
+
   /// Controls where the menu expands relative to the trigger button.
   ///
   /// Defaults to [GlassMenuAlignment.none], which auto-detects the best
@@ -134,6 +148,8 @@ class GlassPullDownButton extends StatelessWidget {
 
     return GlassMenu(
       menuWidth: menuWidth,
+      menuHeight: menuHeight,
+      maxStackHeight: maxStackHeight,
       menuAlignment: menuAlignment,
       menuSemanticLabel: menuSemanticLabel,
       autoAdjustToScreen: true,

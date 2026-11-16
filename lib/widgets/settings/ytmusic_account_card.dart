@@ -24,6 +24,7 @@ import 'package:musify/services/settings_manager.dart';
 import 'package:musify/services/ytmusic_auth_service.dart';
 import 'package:musify/widgets/glass/glass_sheet_style.dart';
 import 'package:musify/widgets/glass/glass_toast.dart';
+import 'package:musify/widgets/settings/ytmusic_sync_tile.dart';
 
 /// Self-contained YouTube Music account card for the Account page.
 ///
@@ -252,6 +253,8 @@ class YtMusicAccountCard extends StatelessWidget {
             );
           },
         ),
+        const GlassMenuDivider(),
+        const YtMusicSyncTile(),
       ];
     }
 

@@ -64,7 +64,7 @@ class SettingsPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  'FluentMusic 1.5.2 · iOS 27 glass edition',
+                  'FluentMusic 1.5.3 · iOS 27 glass edition',
                   style: TextStyle(
                     fontSize: 13,
                     color: subtitleColor,
@@ -159,7 +159,7 @@ class SettingsPage extends StatelessWidget {
           const SizedBox(height: 10),
           Center(
             child: Text(
-              'v1.5.2 (16) · built with an unhealthy amount of glass',
+              'v1.5.3 (17) · built with an unhealthy amount of glass',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 11.5,
@@ -248,10 +248,11 @@ class _SettingsTile extends StatelessWidget {
       ),
       subtitle: Text(
         subtitle,
-        maxLines: 1,
+        maxLines: 2,
         overflow: TextOverflow.ellipsis,
         style: TextStyle(
           fontSize: 12.5,
+          height: 1.25,
           color: isDark
               ? CupertinoColors.white.withValues(alpha: 0.55)
               : const Color(0xFF6C6C70),

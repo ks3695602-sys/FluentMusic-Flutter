@@ -36,6 +36,7 @@ import 'package:musify/extensions/l10n.dart';
 import 'package:musify/localization/app_localizations.dart';
 import 'package:musify/services/account_service.dart';
 import 'package:musify/services/ytmusic_auth_service.dart';
+import 'package:musify/services/ytmusic_library_store.dart';
 import 'package:musify/services/audio_service.dart';
 import 'package:musify/services/data_manager.dart';
 import 'package:musify/services/desktop_media_artwork.dart';
@@ -418,7 +419,13 @@ Future<void> initialisation() async {
 
     // Restore the YouTube Music session (profile only; playback stays
     // anonymous and flag-gated).
-    unawaited(ytMusicAuthService.load());
+    unawaited(
+      ytMusicAuthService.load().then((_) async {
+        if (!ytMusicAuthService.isConnected) return;
+        await restoreYtMusicLibrary();
+        await autoSyncYtMusicLibrary();
+      }),
+    );
 
     // Local-first sync: media starts instantly, and if the user has a cloud
     // account the library reconciles quietly after the first frame.
