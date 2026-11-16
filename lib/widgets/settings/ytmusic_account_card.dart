@@ -22,6 +22,7 @@ import 'package:musify/screens/settings/ytmusic_login_page.dart';
 import 'package:musify/services/data_manager.dart';
 import 'package:musify/services/settings_manager.dart';
 import 'package:musify/services/ytmusic_auth_service.dart';
+import 'package:musify/widgets/glass/glass_sheet_style.dart';
 import 'package:musify/widgets/glass/glass_toast.dart';
 
 /// Self-contained YouTube Music account card for the Account page.
@@ -32,23 +33,28 @@ class YtMusicAccountCard extends StatelessWidget {
   const YtMusicAccountCard({super.key});
 
   Future<void> _openLogin(BuildContext context) async {
-    showCupertinoModalPopup<void>(
+    await GlassModalSheet.show<void>(
       context: context,
-      builder: (sheetContext) => GlassModalSheet(
-        child: SafeArea(
+      detents: const {GlassSheetDetent.medium},
+      settings: glassSheetSettings(context),
+      builder: (sheetContext) {
+        final labelColor = glassSheetLabelColor(sheetContext);
+        final subtitleColor = glassSheetSubtitleColor(sheetContext);
+        return SafeArea(
           top: false,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
+            padding: const EdgeInsets.fromLTRB(20, 22, 20, 24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text(
+                Text(
                   'Connect YouTube Music',
                   style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: CupertinoColors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.3,
+                    color: labelColor,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -60,7 +66,7 @@ class YtMusicAccountCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 13,
                     height: 1.45,
-                    color: CupertinoColors.white.withValues(alpha: 0.7),
+                    color: subtitleColor,
                   ),
                 ),
                 const SizedBox(height: 18),
@@ -97,16 +103,14 @@ class YtMusicAccountCard extends StatelessWidget {
                   onPressed: () => Navigator.pop(sheetContext),
                   child: Text(
                     'Not now',
-                    style: TextStyle(
-                      color: CupertinoColors.white.withValues(alpha: 0.6),
-                    ),
+                    style: TextStyle(color: subtitleColor),
                   ),
                 ),
               ],
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 

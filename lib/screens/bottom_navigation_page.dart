@@ -58,10 +58,21 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
   /// Inline search state driven by [GlassTabBar.searchable].
   bool _isSearchActive = false;
   final TextEditingController _inlineSearchController = TextEditingController();
+  final FocusNode _inlineSearchFocusNode = FocusNode();
+
+  /// Scroll-driven dock collapse. The searchable placement only gained this
+  /// hook through the vendored package patch, so search and minimise can now
+  /// coexist without swapping bar constructors mid-gesture.
+  final GlassTabBarMinimizeController _dockMinimizeController =
+      GlassTabBarMinimizeController(
+        behavior: GlassBarMinimizeBehavior.onScrollDown,
+      );
 
   @override
   void dispose() {
     _inlineSearchController.dispose();
+    _inlineSearchFocusNode.dispose();
+    _dockMinimizeController.dispose();
     super.dispose();
   }
 
@@ -75,6 +86,7 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
         final currentIndex = widget.child.currentIndex;
         if (_isSearchActive) {
           setState(() => _isSearchActive = false);
+          _inlineSearchFocusNode.unfocus();
         }
         if (currentIndex != 0) {
           widget.child.goBranch(0);
@@ -148,7 +160,20 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
                               _onTabTapped(index, items),
                         ),
                       Expanded(
-                        child: widget.child,
+                        child: NotificationListener<ScrollNotification>(
+                          onNotification: (notification) {
+                            // The search field owns the screen while it is
+                            // open; scrolling results must not tuck the dock
+                            // away underneath the keyboard.
+                            if (!_isSearchActive) {
+                              _dockMinimizeController.handleNotification(
+                                notification,
+                              );
+                            }
+                            return false;
+                          },
+                          child: widget.child,
+                        ),
                       ),
                     ],
                   ),
@@ -163,11 +188,13 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
 
                           return GlassTabBar.searchable(
                             isSearchActive: searchExpanded,
+                            minimizeController: _dockMinimizeController,
                             selectedIndex:
                                 _getCurrentIndex(items, isOfflineMode),
                             onTabSelected: (index) {
                               if (_isSearchActive) {
                                 setState(() => _isSearchActive = false);
+                                _inlineSearchFocusNode.unfocus();
                               }
                               _onTabTapped(index, items);
                             },
@@ -185,6 +212,9 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
                             horizontalPadding: 16.0,
                             verticalPadding: 8.0,
                             spacing: 8.0,
+                            settings: getEffectiveDockGlassSettings(
+                              isDark: !isLight,
+                            ),
                             selectedIconColor: const Color(0xFFFF2D55),
                             unselectedIconColor: isLight
                                 ? CupertinoColors.black
@@ -198,7 +228,9 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
                             interactionBehavior:
                                 GlassInteractionBehavior.full,
                             pressScale: 0.96,
-                            adaptiveBrightness: true,
+                            // Dynamic tint OFF freezes the dock to the chosen
+                            // colour; ON lets it sample the backdrop.
+                            adaptiveBrightness: glassConfig.dynamicTint,
                             barBorderRadius: glassConfig.barRadius ??
                                 GlassDefaults.capsuleRadius,
                             indicatorBorderRadius:
@@ -209,24 +241,26 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
                               horizontal: glassConfig.expansionH,
                               vertical: glassConfig.expansionV,
                             ),
-                            // The mini-player lives *inside* the bar's accessory
-                            // slot. No external GlassBackdropGroup: one glass
-                            // layer = no dull composite, no dock overlap.
+                            // One accessory, two native placements: a full row
+                            // above the expanded dock, a compact strip inside
+                            // the minimised one. No external backdrop group —
+                            // the accessory paints its content on the dock
+                            // glass instead of stacking a second surface.
                             bottomAccessory:
                                 isMiniPlayerVisible && !searchExpanded
                                     ? const MiniPlayer()
                                     : null,
                             bottomAccessoryHeight:
                                 MiniPlayer.playerHeight + 8,
-                            bottomAccessorySpacing: 4,
-                            bottomAccessoryPlacement:
-                                GlassTabBarAccessoryPlacement.expanded,
+                            bottomAccessorySpacing: 6,
                             searchConfig: GlassSearchBarConfig(
                               controller: _inlineSearchController,
+                              focusNode: _inlineSearchFocusNode,
                               expandWhenActive: true,
-                              // The dock already has a Search tab, and a floating
-                              // pill duplicated it on top of page content.
-                              showPill: false,
+                              // Floating search pill: tap → the dock morphs
+                              // into a searchable bar and grabs the keyboard.
+                              showPill: true,
+                              autoFocusOnExpand: true,
                               hintText: context.l10n?.search ?? 'Search',
                               textInputAction: TextInputAction.search,
                               onSubmitted: _submitInlineSearch,
@@ -235,11 +269,17 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
                                 setState(() => _isSearchActive = active);
                                 if (active) {
                                   closeCurrentBottomSheet();
+                                  if (_dockMinimizeController.minimized) {
+                                    _dockMinimizeController.expand();
+                                  }
                                   if (widget.child.currentIndex != 1) {
                                     widget.child.goBranch(1);
                                   }
-                                } else if (widget.child.currentIndex == 1) {
-                                  widget.child.goBranch(0);
+                                } else {
+                                  _inlineSearchFocusNode.unfocus();
+                                  if (widget.child.currentIndex == 1) {
+                                    widget.child.goBranch(0);
+                                  }
                                 }
                               },
                               searchIconColor: isLight
@@ -261,6 +301,8 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
   }
 
   List<_NavigationItem> _getNavigationItems(bool isOfflineMode) {
+    // Four tents, no Search tab: discovery lives behind the Explore compass
+    // and the floating search pill morphs the dock instead of owning a slot.
     final items = <_NavigationItem>[
       _NavigationItem(
         icon: CupertinoIcons.house,
@@ -268,13 +310,12 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
         label: context.l10n?.home ?? 'Home',
         shellIndex: 0,
       ),
-      if (!isOfflineMode)
-        _NavigationItem(
-          icon: CupertinoIcons.search,
-          selectedIcon: CupertinoIcons.search,
-          label: context.l10n?.search ?? 'Search',
-          shellIndex: 1,
-        ),
+      _NavigationItem(
+        icon: CupertinoIcons.compass,
+        selectedIcon: CupertinoIcons.compass_fill,
+        label: 'Explore',
+        shellIndex: 1,
+      ),
       _NavigationItem(
         icon: CupertinoIcons.music_albums,
         selectedIcon: CupertinoIcons.music_albums_fill,

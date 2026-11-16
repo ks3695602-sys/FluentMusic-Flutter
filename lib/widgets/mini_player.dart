@@ -24,6 +24,7 @@ import 'dart:math' as math;
 import 'package:audio_service/audio_service.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:musify/main.dart';
 import 'package:musify/models/full_player_state.dart';
@@ -160,11 +161,81 @@ class _MiniPlayerBodyState extends State<_MiniPlayerBody>
     );
   }
 
+  /// Compact dock accessory used while the tab bar is scrolled into its
+  /// minimized state. It deliberately paints no glass of its own: it sits on
+  /// the dock's existing glass, so a second surface would just look muddy.
+  Widget _buildInline(BuildContext context) {
+    final isDark = GlassTheme.brightnessOf(context) == Brightness.dark;
+    final primary = isDark ? CupertinoColors.white : const Color(0xFF1C1C1E);
+    final secondary = primary.withValues(alpha: 0.62);
+    final playing = widget.state.playbackState.playing;
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: _navigateToNowPlaying,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: Row(
+          children: [
+            SongArtworkWidget(
+              metadata: widget.metadata,
+              size: 30,
+              borderRadius: 8,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.metadata.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: -0.1,
+                      color: primary,
+                    ),
+                  ),
+                  Text(
+                    widget.metadata.artist ?? '',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 10.5, color: secondary),
+                  ),
+                ],
+              ),
+            ),
+            CupertinoButton(
+              padding: EdgeInsets.zero,
+              minSize: 30,
+              pressedOpacity: 0.65,
+              onPressed: () =>
+                  playing ? audioHandler.pause() : audioHandler.play(),
+              child: Icon(
+                playing ? CupertinoIcons.pause_fill : CupertinoIcons.play_fill,
+                size: 17,
+                color: primary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = widget.colorScheme;
     final metadata = widget.metadata;
     final state = widget.state;
+
+    if (GlassTabBarAccessoryPlacementScope.of(context) ==
+        GlassTabBarAccessoryPlacement.inline) {
+      return _buildInline(context);
+    }
 
     final totalDuration = state.position.duration > Duration.zero
         ? state.position.duration

@@ -38,6 +38,7 @@ import 'package:musify/utilities/mediaitem.dart';
 import 'package:musify/utilities/playlist_dialogs.dart';
 import 'package:musify/widgets/flip_card.dart';
 import 'package:musify/widgets/glass/glass_control_panel.dart';
+import 'package:musify/widgets/glass/glass_sheet_style.dart';
 import 'package:musify/widgets/now_playing/bottom_actions_row.dart';
 import 'package:musify/widgets/now_playing/now_playing_artwork.dart';
 import 'package:musify/widgets/now_playing/now_playing_controls.dart';
@@ -86,10 +87,34 @@ class _NowPlayingPageState extends State<NowPlayingPage> {
             Positioned.fill(
               child: _FullBleedArtworkBackground(artworkUrl: artworkUrl),
             ),
+            // Graduated blur under the transport controls: the artwork stays
+            // sharp in the middle and melts into frost at the bottom edge, so
+            // the dock + controls never sit on a hard cut-off.
+            const Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: 240,
+              child: IgnorePointer(
+                child: ProgressiveBlur(
+                  maxSigma: 24,
+                  direction: ProgressiveBlurDirection.bottomToTop,
+                  falloff: 1.35,
+                ),
+              ),
+            ),
             ValueListenableBuilder<bool>(
               valueListenable: _lyricsController.isFlipped,
               builder: (context, isLyricsMode, _) {
-                return GlassScaffold(
+                // The player always sits on its own artwork under dark scrims.
+                // Pin the glass chrome dark locally so a light app theme never
+                // paints white-on-white header or menu glass over the art.
+                final pageGlassTheme =
+                    GlassTheme.maybeOf(context)?.data ??
+                    GlassThemeData.fallback();
+                return GlassTheme(
+                  data: pageGlassTheme.copyWith(brightness: Brightness.dark),
+                  child: GlassScaffold(
                   contentAwareBrightness: true,
                   backgroundColor: Colors.transparent,
                   appBar: isLyricsMode
@@ -139,6 +164,7 @@ class _NowPlayingPageState extends State<NowPlayingPage> {
                           isLargeScreen: isLargeScreen,
                           lyricsController: _lyricsController,
                         ),
+                  ),
                 );
               },
             ),
@@ -462,6 +488,7 @@ class _MobileLayout extends StatelessWidget {
       buttonHeight: 36,
       menuWidth: 248,
       items: [
+        const GlassMenuLabel(title: 'Now playing'),
         GlassMenuItem(
           title: 'Add to Playlist',
           icon: const Icon(CupertinoIcons.plus_rectangle_on_rectangle),
@@ -471,12 +498,18 @@ class _MobileLayout extends StatelessWidget {
           ),
         ),
         GlassMenuItem(
-          title: isOffline ? 'Remove Download' : 'Download for Offline',
+          title: isOffline ? 'Saved for Offline' : 'Download for Offline',
+          subtitle: isOffline
+              ? 'Already on this device — no data needed'
+              : 'Keep it local, dodge the buffering',
           icon: Icon(
             isOffline
                 ? CupertinoIcons.check_mark_circled_solid
                 : CupertinoIcons.arrow_down_circle,
           ),
+          isSelected: isOffline,
+          semanticsSelected: isOffline,
+          isDestructive: isOffline,
           onTap: () async {
             if (audioId == null) return;
             if (isSongAlreadyOffline(audioId)) {
@@ -496,77 +529,187 @@ class _MobileLayout extends StatelessWidget {
         ),
         const GlassMenuDivider(),
         GlassMenuItem(
-          title: 'Sleep Timer',
-          icon: const Icon(CupertinoIcons.timer),
-          onTap: () => showSleepTimerDialog(context),
-        ),
-        GlassMenuItem(
-          title: 'Lyrics Timing',
+          title: 'Playback',
+          subtitle: 'Timer, lyric sync and speed',
           icon: const Icon(CupertinoIcons.slider_horizontal_3),
-          onTap: () => _showLyricsOffsetSheet(context),
-        ),
-        GlassMenuItem(
-          title: 'Speed & Pitch',
-          icon: const Icon(CupertinoIcons.speedometer),
-          onTap: () => _showPlaybackSpeedSheet(context),
+          onTap: () {},
+          submenu: [
+            GlassMenuItem(
+              title: 'Sleep Timer',
+              icon: const Icon(CupertinoIcons.timer),
+              onTap: () => showSleepTimerDialog(context),
+            ),
+            GlassMenuItem(
+              title: 'Lyrics Timing',
+              subtitle: 'Nudge karaoke lines ±250 ms',
+              icon: const Icon(CupertinoIcons.music_note_list),
+              onTap: () => _showLyricsOffsetSheet(context),
+            ),
+            GlassMenuItem(
+              title: 'Speed & Pitch',
+              subtitle: 'Nightcore mode lives here',
+              icon: const Icon(CupertinoIcons.speedometer),
+              onTap: () => _showPlaybackSpeedSheet(context),
+            ),
+          ],
         ),
       ],
     );
   }
 
-  void _showLyricsOffsetSheet(BuildContext context) {
-    showCupertinoModalPopup(
+  Future<void> _showLyricsOffsetSheet(BuildContext context) {
+    final brightness = GlassTheme.brightnessOf(context);
+    return GlassModalSheet.show<void>(
       context: context,
-      builder: (ctx) => ValueListenableBuilder<int>(
-        valueListenable: lyricsOffsetMs,
-        builder: (context, offset, _) {
-          return CupertinoActionSheet(
-            title: const Text('Lyrics Timing Sync Offset', style: TextStyle(fontWeight: FontWeight.bold)),
-            message: Text(
-              'Current offset: ${offset}ms\n'
-              '(Tap ±250ms to nudge lyrics timing)',
-            ),
-            actions: [
-              CupertinoActionSheetAction(
-                onPressed: () {
-                  final newOffset = offset - 250;
-                  lyricsOffsetMs.value = newOffset;
-                  addOrUpdateData('settings', 'lyricsOffsetMs', newOffset);
-                },
-                child: const Text('◀ -250 ms (Lyrics Appear Earlier)'),
+      detents: const {GlassSheetDetent.medium},
+      settings: glassSheetSettings(context, brightness: brightness),
+      builder: (sheetContext) {
+        final labelColor = glassSheetLabelColor(
+          sheetContext,
+          brightness: brightness,
+        );
+        final subtitleColor = glassSheetSubtitleColor(
+          sheetContext,
+          brightness: brightness,
+        );
+        final rowColor =
+            (brightness == Brightness.dark
+                    ? CupertinoColors.white
+                    : CupertinoColors.black)
+                .withValues(alpha: brightness == Brightness.dark ? 0.09 : 0.05);
+
+        Widget offsetRow({
+          required IconData icon,
+          required String title,
+          required String subtitle,
+          required VoidCallback onTap,
+        }) {
+          return CupertinoButton(
+            padding: EdgeInsets.zero,
+            onPressed: onTap,
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: rowColor,
+                borderRadius: BorderRadius.circular(16),
               ),
-              CupertinoActionSheetAction(
-                onPressed: () {
-                  final newOffset = offset + 250;
-                  lyricsOffsetMs.value = newOffset;
-                  addOrUpdateData('settings', 'lyricsOffsetMs', newOffset);
-                },
-                child: const Text('▶ +250 ms (Lyrics Appear Later)'),
+              child: Row(
+                children: [
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: rowColor,
+                      borderRadius: BorderRadius.circular(11),
+                    ),
+                    child: Icon(icon, size: 20, color: labelColor),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: labelColor,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle,
+                          style: TextStyle(fontSize: 12, color: subtitleColor),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              CupertinoActionSheetAction(
-                onPressed: () {
-                  lyricsOffsetMs.value = 0;
-                  addOrUpdateData('settings', 'lyricsOffsetMs', 0);
-                },
-                child: const Text('↺ Reset to Default (0 ms)'),
-              ),
-            ],
-            cancelButton: CupertinoActionSheetAction(
-              isDefaultAction: true,
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Done'),
             ),
           );
-        },
-      ),
+        }
+
+        return SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 22, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Lyrics Timing',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.4,
+                    color: labelColor,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                ValueListenableBuilder<int>(
+                  valueListenable: lyricsOffsetMs,
+                  builder: (context, offset, _) {
+                    final sign = offset > 0 ? '+' : '';
+                    return Text(
+                      offset == 0
+                          ? 'Perfectly in sync at 0 ms.'
+                          : 'Currently nudged by $sign${offset}ms.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        height: 1.35,
+                        color: subtitleColor,
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 18),
+                offsetRow(
+                  icon: CupertinoIcons.gobackward_10,
+                  title: 'Earlier by 250 ms',
+                  subtitle: 'Lyrics show up before the singer inhales',
+                  onTap: () {
+                    final newOffset = lyricsOffsetMs.value - 250;
+                    lyricsOffsetMs.value = newOffset;
+                    addOrUpdateData('settings', 'lyricsOffsetMs', newOffset);
+                  },
+                ),
+                offsetRow(
+                  icon: CupertinoIcons.goforward_10,
+                  title: 'Later by 250 ms',
+                  subtitle: 'For when the lyrics spoil the drop',
+                  onTap: () {
+                    final newOffset = lyricsOffsetMs.value + 250;
+                    lyricsOffsetMs.value = newOffset;
+                    addOrUpdateData('settings', 'lyricsOffsetMs', newOffset);
+                  },
+                ),
+                offsetRow(
+                  icon: CupertinoIcons.arrow_counterclockwise,
+                  title: 'Reset to 0 ms',
+                  subtitle: 'Back to factory sync, no questions asked',
+                  onTap: () {
+                    lyricsOffsetMs.value = 0;
+                    addOrUpdateData('settings', 'lyricsOffsetMs', 0);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
-  void _showPlaybackSpeedSheet(BuildContext context) {
+  Future<void> _showPlaybackSpeedSheet(BuildContext context) {
     var speed = audioHandler.audioPlayer.speed.clamp(0.5, 2.0);
     var pitch = audioHandler.audioPlayer.pitch.clamp(0.5, 2.0);
     // 0 = Speed, 1 = Pitch, 2 = Both.
     var mode = 2;
+    final brightness = GlassTheme.brightnessOf(context);
 
     void apply(double nextSpeed, double nextPitch) {
       speed = nextSpeed.clamp(0.5, 2.0);
@@ -575,20 +718,29 @@ class _MobileLayout extends StatelessWidget {
       unawaited(audioHandler.setPitch(pitch));
     }
 
-    showCupertinoModalPopup(
+    return GlassModalSheet.show<void>(
       context: context,
-      builder: (ctx) => StatefulBuilder(
+      detents: const {GlassSheetDetent.medium, GlassSheetDetent.large},
+      settings: glassSheetSettings(context, brightness: brightness),
+      builder: (sheetContext) => StatefulBuilder(
         builder: (context, setSheetState) {
           void applyFromSheet(double nextSpeed, double nextPitch) {
             setSheetState(() => apply(nextSpeed, nextPitch));
           }
 
-          // The sheet can paint light glass over bright artwork even when the
-          // player itself is dark. Resolve every colour from the painted
-          // variant instead of assuming white text.
-          final controlColors = glassControlColors(context);
+          // Pin the sheet's internal widgets (segmented control, sliders,
+          // badges) to the same variant the sheet itself paints, so text and
+          // glass can never disagree.
+          final parentTheme =
+              GlassTheme.maybeOf(sheetContext)?.data ??
+              GlassThemeData.fallback();
+          final controlColors = glassControlColors(
+            context,
+            brightness: brightness,
+          );
 
-          return GlassModalSheet(
+          return GlassTheme(
+            data: parentTheme.copyWith(brightness: brightness),
             child: SafeArea(
               top: false,
               child: SingleChildScrollView(
@@ -683,7 +835,7 @@ class _MobileLayout extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           borderRadius: BorderRadius.circular(14),
                           color: controlColors.badge,
-                          onPressed: () => Navigator.pop(ctx),
+                          onPressed: () => Navigator.pop(sheetContext),
                           child: Text(
                             'Done',
                             style: TextStyle(

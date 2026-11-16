@@ -253,6 +253,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
                           buttonHeight: 44,
                           menuWidth: 248,
                           items: [
+                            const GlassMenuLabel(title: 'Playlist'),
                             if (widget.playlistId != null &&
                                 !_isUserCreatedPlaylist &&
                                 !offlineMode.value)
@@ -260,14 +261,25 @@ class _PlaylistPageState extends State<PlaylistPage> {
                                 title: isPlaylistAlreadyLiked(
                                   _resolvedPlaylistId ?? '',
                                 )
-                                    ? 'Unlike Playlist'
+                                    ? 'Liked Playlist'
                                     : 'Like Playlist',
+                                subtitle: isPlaylistAlreadyLiked(
+                                  _resolvedPlaylistId ?? '',
+                                )
+                                    ? 'Tap to un-heart the whole thing'
+                                    : 'Heart it, no emotional damage',
                                 icon: Icon(
                                   isPlaylistAlreadyLiked(
                                     _resolvedPlaylistId ?? '',
                                   )
                                       ? CupertinoIcons.heart_fill
                                       : CupertinoIcons.heart,
+                                ),
+                                isSelected: isPlaylistAlreadyLiked(
+                                  _resolvedPlaylistId ?? '',
+                                ),
+                                semanticsSelected: isPlaylistAlreadyLiked(
+                                  _resolvedPlaylistId ?? '',
                                 ),
                                 onTap: () {
                                   final id = _resolvedPlaylistId;
@@ -279,20 +291,69 @@ class _PlaylistPageState extends State<PlaylistPage> {
                                   );
                                 },
                               ),
-                            if (_playlistSongsLength > 0)
+                            if (_playlistSongsLength > 0 &&
+                                _resolvedPlaylistId != null)
                               GlassMenuItem(
-                                title: 'Download All Songs',
-                                subtitle:
-                                    '$_playlistSongsLength songs for offline use',
-                                icon: const Icon(
-                                  CupertinoIcons.arrow_down_circle,
+                                title: 'Offline',
+                                subtitle: offlinePlaylistService
+                                        .isPlaylistDownloaded(
+                                          _resolvedPlaylistId!,
+                                        )
+                                    ? 'Saved on this device'
+                                    : '$_playlistSongsLength songs to download',
+                                icon: Icon(
+                                  offlinePlaylistService.isPlaylistDownloaded(
+                                    _resolvedPlaylistId!,
+                                  )
+                                      ? CupertinoIcons.check_mark_circled_solid
+                                      : CupertinoIcons.arrow_down_circle,
                                 ),
-                                onTap: () =>
-                                    offlinePlaylistService.downloadPlaylist(
-                                      context,
-                                      _playlist,
+                                isSelected: offlinePlaylistService
+                                    .isPlaylistDownloaded(_resolvedPlaylistId!),
+                                semanticsSelected: offlinePlaylistService
+                                    .isPlaylistDownloaded(_resolvedPlaylistId!),
+                                onTap: () {},
+                                submenu: [
+                                  GlassMenuItem(
+                                    title: 'Download All Songs',
+                                    subtitle:
+                                        '$_playlistSongsLength songs for offline use',
+                                    icon: const Icon(
+                                      CupertinoIcons.arrow_down_circle,
                                     ),
+                                    onTap: () =>
+                                        offlinePlaylistService.downloadPlaylist(
+                                          context,
+                                          _playlist,
+                                        ),
+                                  ),
+                                  if (offlinePlaylistService
+                                      .isPlaylistDownloaded(
+                                        _resolvedPlaylistId!,
+                                      ))
+                                    GlassMenuItem(
+                                      title: 'Remove Offline Copy',
+                                      subtitle: 'Free up storage, lose no playlists',
+                                      icon: const Icon(
+                                        CupertinoIcons.trash,
+                                      ),
+                                      isDestructive: true,
+                                      onTap: () async {
+                                        await offlinePlaylistService
+                                            .removeOfflinePlaylist(
+                                              _resolvedPlaylistId!,
+                                            );
+                                        if (context.mounted) {
+                                          showToast(
+                                            context,
+                                            context.l10n!.removeOffline,
+                                          );
+                                        }
+                                      },
+                                    ),
+                                ],
                               ),
+                            const GlassMenuDivider(),
                             GlassMenuItem(
                               title: 'Share Playlist',
                               icon: const Icon(CupertinoIcons.share),

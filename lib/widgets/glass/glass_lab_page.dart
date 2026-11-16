@@ -25,6 +25,7 @@ import 'package:musify/theme/glass_config.dart';
 import 'package:musify/theme/glass_config_controller.dart';
 import 'package:musify/utilities/flutter_toast.dart';
 import 'package:musify/widgets/glass/glass_backdrop.dart';
+import 'package:musify/widgets/glass/glass_sheet_style.dart';
 import 'package:musify/widgets/mini_player_bottom_space.dart';
 
 /// Live tuner for the liquid-glass engine.
@@ -60,6 +61,67 @@ class GlassLabPage extends StatelessWidget {
         children: [
           _buildPreview(context, config),
           const SizedBox(height: 16),
+          GlassGroupedSection(
+            header: _sectionHeader('PRESET', subtitleColor),
+            surfaceStyle: GlassSurfaceStyle.solid,
+            children: [
+              GlassListTile(
+                leading: const Icon(
+                  CupertinoIcons.sparkles,
+                  color: Color(0xFF0A84FF),
+                ),
+                title: Text(
+                  'iOS 27',
+                  style: TextStyle(
+                    color: titleColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                subtitle: Text(
+                  'Clear glass, soft frost, zero rainbow fringes',
+                  style: TextStyle(color: subtitleColor, fontSize: 12.5),
+                ),
+                trailing: config == GlassConfig.ios27
+                    ? const Icon(
+                        CupertinoIcons.checkmark_circle_fill,
+                        color: Color(0xFF0A84FF),
+                      )
+                    : null,
+                onTap: () {
+                  controller.applyIos27();
+                  showToast(context, 'iOS 27 glass applied ✨');
+                },
+              ),
+              GlassListTile(
+                leading: const Icon(
+                  CupertinoIcons.rainbow,
+                  color: Color(0xFFBF5AF2),
+                ),
+                title: Text(
+                  'Classic',
+                  style: TextStyle(
+                    color: titleColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                subtitle: Text(
+                  'Tinted glass with the old dispersion fringes',
+                  style: TextStyle(color: subtitleColor, fontSize: 12.5),
+                ),
+                trailing: config == GlassConfig.classic
+                    ? const Icon(
+                        CupertinoIcons.checkmark_circle_fill,
+                        color: Color(0xFFBF5AF2),
+                      )
+                    : null,
+                onTap: () {
+                  controller.applyClassic();
+                  showToast(context, 'Classic glass restored 🕰️');
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
           GlassGroupedSection(
             header: _sectionHeader('INDICATOR PARITY', subtitleColor),
             surfaceStyle: GlassSurfaceStyle.solid,
@@ -102,14 +164,24 @@ class GlassLabPage extends StatelessWidget {
             surfaceStyle: GlassSurfaceStyle.solid,
             children: [
               _LabSliderTile(
-                icon: CupertinoIcons.wand_stars,
-                color: const Color(0xFFAF52DE),
-                title: 'Chromatic aberration',
-                valueLabel: config.chromaticAberration.toStringAsFixed(2),
-                value: config.chromaticAberration,
-                min: GlassConfig.chromaticAberrationMin,
-                max: GlassConfig.chromaticAberrationMax,
-                onChanged: controller.setChromaticAberration,
+                icon: CupertinoIcons.cloud,
+                color: const Color(0xFF64D2FF),
+                title: 'Frost',
+                valueLabel: config.frost.toStringAsFixed(1),
+                value: config.frost,
+                min: GlassConfig.frostMin,
+                max: GlassConfig.frostMax,
+                onChanged: controller.setFrost,
+              ),
+              _LabSliderTile(
+                icon: CupertinoIcons.camera_filters,
+                color: const Color(0xFF30D158),
+                title: 'Blur sigma',
+                valueLabel: config.blur.toStringAsFixed(1),
+                value: config.blur,
+                min: GlassConfig.blurMin,
+                max: GlassConfig.blurMax,
+                onChanged: controller.setBlur,
               ),
               _LabSliderTile(
                 icon: CupertinoIcons.drop,
@@ -122,24 +194,101 @@ class GlassLabPage extends StatelessWidget {
                 onChanged: controller.setTint,
               ),
               _LabSliderTile(
-                icon: CupertinoIcons.waveform,
+                icon: CupertinoIcons.paintbrush,
+                color: const Color(0xFFFF375F),
+                title: 'Saturation',
+                valueLabel: config.saturation.toStringAsFixed(2),
+                value: config.saturation,
+                min: GlassConfig.saturationMin,
+                max: GlassConfig.saturationMax,
+                onChanged: controller.setSaturation,
+              ),
+              _LabSliderTile(
+                icon: CupertinoIcons.wand_stars,
+                color: const Color(0xFFAF52DE),
+                title: 'Chromatic aberration',
+                valueLabel: config.chromaticAberration.toStringAsFixed(2),
+                value: config.chromaticAberration,
+                min: GlassConfig.chromaticAberrationMin,
+                max: GlassConfig.chromaticAberrationMax,
+                onChanged: controller.setChromaticAberration,
+              ),
+              _LabSliderTile(
+                icon: CupertinoIcons.arrow_up_down,
                 color: const Color(0xFFFF9500),
-                title: 'Distortion amount',
+                title: 'Thickness',
+                valueLabel: '${config.thickness.round()} px',
+                value: config.thickness,
+                min: GlassConfig.thicknessMin,
+                max: GlassConfig.thicknessMax,
+                onChanged: controller.setThickness,
+              ),
+              _LabSliderTile(
+                icon: CupertinoIcons.waveform,
+                color: const Color(0xFF5856D6),
+                title: 'Refractive index',
                 valueLabel: config.refraction.toStringAsFixed(2),
                 value: config.refraction,
                 min: GlassConfig.refractionMin,
                 max: GlassConfig.refractionMax,
                 onChanged: controller.setDistortionAmount,
               ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          GlassGroupedSection(
+            header: _sectionHeader('COLOR & TRANSPARENCY', subtitleColor),
+            surfaceStyle: GlassSurfaceStyle.solid,
+            children: [
+              _buildColorTile(
+                titleColor: titleColor,
+                subtitleColor: subtitleColor,
+                title: 'Glass colour',
+                subtitle:
+                    'Global tint used by cards, sheets and the dock by default',
+                color: Color(config.tintColor),
+                onTap: () => _pickColor(context, controller, dock: false),
+              ),
+              _buildColorTile(
+                titleColor: titleColor,
+                subtitleColor: subtitleColor,
+                title: 'Dock colour',
+                subtitle: config.dockTintColor == null
+                    ? 'Following the global glass colour'
+                    : 'Custom colour, independent of everything else',
+                color: Color(config.dockTintColor ?? config.tintColor),
+                inherited: config.dockTintColor == null,
+                onTap: () => _pickColor(context, controller, dock: true),
+              ),
               _LabSliderTile(
-                icon: CupertinoIcons.arrow_up_down,
-                color: const Color(0xFFFF9500),
-                title: 'Refraction height',
-                valueLabel: '${config.thickness.round()} px',
-                value: config.thickness,
-                min: GlassConfig.thicknessMin,
-                max: GlassConfig.thicknessMax,
-                onChanged: controller.setThickness,
+                icon: CupertinoIcons.drop_fill,
+                color: const Color(0xFF0A84FF),
+                title: 'Dock transparency',
+                valueLabel: (config.dockTint ?? config.tint).toStringAsFixed(2),
+                value: config.dockTint ?? config.tint,
+                min: GlassConfig.tintMin,
+                max: GlassConfig.tintMax,
+                onChanged: controller.setDockTint,
+              ),
+              GlassListTile(
+                leading: const Icon(
+                  CupertinoIcons.circle_lefthalf_fill,
+                  color: Color(0xFFBF5AF2),
+                ),
+                title: Text(
+                  'Dynamic background tint',
+                  style: TextStyle(color: titleColor),
+                ),
+                subtitle: Text(
+                  config.dynamicTint
+                      ? 'On — glass samples the colours behind it'
+                      : 'Off — fixed tint, flat saturation, no mood swings',
+                  style: TextStyle(color: subtitleColor, fontSize: 12.5),
+                ),
+                trailing: GlassSwitch(
+                  value: config.dynamicTint,
+                  onChanged: controller.setDynamicTint,
+                ),
               ),
             ],
           ),
@@ -388,6 +537,216 @@ class GlassLabPage extends StatelessWidget {
         value: isAuto,
         onChanged: (auto) => onChanged(auto ? null : 24),
       ),
+    );
+  }
+
+  Widget _buildColorTile({
+    required Color titleColor,
+    required Color subtitleColor,
+    required String title,
+    required String subtitle,
+    required Color color,
+    required VoidCallback onTap,
+    bool inherited = false,
+  }) {
+    return GlassListTile(
+      leading: Container(
+        width: 30,
+        height: 30,
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: CupertinoColors.separator.resolveFrom(context),
+            width: 1,
+          ),
+        ),
+      ),
+      title: Text(title, style: TextStyle(color: titleColor)),
+      subtitle: Text(
+        subtitle,
+        style: TextStyle(color: subtitleColor, fontSize: 12.5),
+      ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (inherited)
+            Text(
+              'Auto',
+              style: TextStyle(
+                color: subtitleColor,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          const SizedBox(width: 6),
+          Icon(
+            CupertinoIcons.chevron_forward,
+            size: 15,
+            color: subtitleColor,
+          ),
+        ],
+      ),
+      onTap: onTap,
+    );
+  }
+
+  Future<void> _pickColor(
+    BuildContext context,
+    GlassConfigController controller, {
+    required bool dock,
+  }) async {
+    const swatches = <int>[
+      0xFFFFFFFF,
+      0xFFF2F2F7,
+      0xFF1C1C1E,
+      0xFF000000,
+      0xFF0A84FF,
+      0xFF5E5CE6,
+      0xFFBF5AF2,
+      0xFFFF375F,
+      0xFFFF9F0A,
+      0xFF30D158,
+      0xFF64D2FF,
+      0xFFFFD60A,
+    ];
+    final current = Color(
+      dock
+          ? controller.config.dockTintColor ?? controller.config.tintColor
+          : controller.config.tintColor,
+    );
+
+    await GlassModalSheet.show<void>(
+      context: context,
+      detents: const {GlassSheetDetent.medium},
+      settings: glassSheetSettings(context),
+      builder: (sheetContext) {
+        final labelColor = glassSheetLabelColor(sheetContext);
+        final subtitleColor = glassSheetSubtitleColor(sheetContext);
+
+        return SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 22, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  dock ? 'Dock colour' : 'Glass colour',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.4,
+                    color: labelColor,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  dock
+                      ? 'Only the bottom dock changes. The rest of the glass keeps the global colour.'
+                      : 'A base tint for every glass surface. Alpha stays in the Tint alpha slider.',
+                  style: TextStyle(
+                    fontSize: 13,
+                    height: 1.4,
+                    color: subtitleColor,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                if (dock)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 14),
+                    child: CupertinoButton(
+                      padding: EdgeInsets.zero,
+                      onPressed: () {
+                        controller.setDockTintColor(null);
+                        Navigator.pop(sheetContext);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: labelColor.withValues(alpha: 0.06),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              CupertinoIcons.arrow_uturn_left,
+                              size: 18,
+                              color: labelColor,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'Inherit global glass colour',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: labelColor,
+                                ),
+                              ),
+                            ),
+                            if (controller.config.dockTintColor == null)
+                              const Icon(
+                                CupertinoIcons.checkmark_circle_fill,
+                                size: 20,
+                                color: Color(0xFF0A84FF),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: [
+                    for (final value in swatches)
+                      GestureDetector(
+                        onTap: () {
+                          if (dock) {
+                            controller.setDockTintColor(value);
+                          } else {
+                            controller.setTintColor(value);
+                          }
+                          Navigator.pop(sheetContext);
+                        },
+                        child: Container(
+                          width: 46,
+                          height: 46,
+                          decoration: BoxDecoration(
+                            color: Color(value),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Color(value) == current
+                                  ? const Color(0xFF0A84FF)
+                                  : CupertinoColors.separator.resolveFrom(
+                                      sheetContext,
+                                    ),
+                              width: Color(value) == current ? 3 : 1,
+                            ),
+                          ),
+                          child: Color(value) == current
+                              ? Icon(
+                                  CupertinoIcons.checkmark_alt,
+                                  size: 18,
+                                  color: Color(value).computeLuminance() > 0.55
+                                      ? CupertinoColors.black
+                                      : CupertinoColors.white,
+                                )
+                              : null,
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 

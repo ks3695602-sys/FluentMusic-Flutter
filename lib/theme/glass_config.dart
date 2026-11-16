@@ -41,10 +41,17 @@ class GlassConfig {
     this.pinchStrength = 0.40,
     this.expansionH = 12,
     this.expansionV = 8,
-    this.chromaticAberration = 0.15,
+    this.chromaticAberration = 0.00,
     this.tint = 0.00,
     this.refraction = 1.15,
     this.thickness = 30.0,
+    this.frost = 14.0,
+    this.blur = 4.0,
+    this.saturation = 1.4,
+    this.tintColor = 0xFFFFFFFF,
+    this.dockTintColor,
+    this.dockTint,
+    this.dynamicTint = true,
     this.barRadius,
     this.indicatorRadius,
   });
@@ -52,6 +59,21 @@ class GlassConfig {
   /// iOS 27 calibrated defaults. `null` radius means "let the package decide"
   /// (capsule bar, automatic indicator radius).
   static const GlassConfig defaults = GlassConfig();
+
+  /// The original `v1.x` look: no frost, muted colours and visible rainbow
+  /// fringes. Kept as a one-tap comparison preset in the Glass Lab.
+  static const GlassConfig classic = GlassConfig(
+    chromaticAberration: 0.30,
+    tint: 0.24,
+    refraction: 1.20,
+    thickness: 30,
+    frost: 0,
+    blur: 3.5,
+    saturation: 0.7,
+  );
+
+  /// Explicit alias for the image-2 look.
+  static const GlassConfig ios27 = GlassConfig();
 
   /// Minimum/maximum accepted values (also used by the Lab sliders).
   static const double pinchStrengthMin = 0.0;
@@ -61,11 +83,17 @@ class GlassConfig {
   static const double chromaticAberrationMin = 0.0;
   static const double chromaticAberrationMax = 0.5;
   static const double tintMin = 0.0;
-  static const double tintMax = 1.0;
+  static const double tintMax = 0.8;
   static const double refractionMin = 1.0;
   static const double refractionMax = 1.5;
   static const double thicknessMin = 0.0;
   static const double thicknessMax = 60.0;
+  static const double frostMin = 0.0;
+  static const double frostMax = 20.0;
+  static const double blurMin = 0.0;
+  static const double blurMax = 10.0;
+  static const double saturationMin = 0.5;
+  static const double saturationMax = 2.5;
   static const double radiusMin = 0.0;
   static const double radiusMax = 60.0;
 
@@ -93,6 +121,31 @@ class GlassConfig {
   /// Higher values make the lens feel deeper.
   final double thickness;
 
+  /// Frost cloud amount (`LiquidGlassSettings.frost`). This is the wide,
+  /// milky diffusion stage that sits on top of the backdrop blur.
+  final double frost;
+
+  /// Backdrop Gaussian sigma (`LiquidGlassSettings.blur`).
+  final double blur;
+
+  /// Colour intensity of the backdrop (`LiquidGlassSettings.saturation`).
+  final double saturation;
+
+  /// Base tint colour as `0xAARRGGBB`. Its alpha comes from [tint], so the
+  /// same colour works in light and dark.
+  final int tintColor;
+
+  /// Optional dock-only tint colour. `null` inherits [tintColor].
+  final int? dockTintColor;
+
+  /// Optional dock-only tint alpha. `null` inherits [tint].
+  final double? dockTint;
+
+  /// When true the glass picks up the backdrop's colour. When false it uses
+  /// the fixed [tintColor] at [tint], saturation 1.0 and no adaptive
+  /// brightness.
+  final bool dynamicTint;
+
   /// Bar corner radius. `null` = package capsule.
   final double? barRadius;
 
@@ -113,6 +166,13 @@ class GlassConfig {
     double? tint,
     double? refraction,
     double? thickness,
+    double? frost,
+    double? blur,
+    double? saturation,
+    int? tintColor,
+    Object? dockTintColor = _unset,
+    Object? dockTint = _unset,
+    bool? dynamicTint,
     Object? barRadius = _unset,
     Object? indicatorRadius = _unset,
   }) {
@@ -124,6 +184,17 @@ class GlassConfig {
       tint: tint ?? this.tint,
       refraction: refraction ?? this.refraction,
       thickness: thickness ?? this.thickness,
+      frost: frost ?? this.frost,
+      blur: blur ?? this.blur,
+      saturation: saturation ?? this.saturation,
+      tintColor: tintColor ?? this.tintColor,
+      dockTintColor: identical(dockTintColor, _unset)
+          ? this.dockTintColor
+          : dockTintColor as int?,
+      dockTint: identical(dockTint, _unset)
+          ? this.dockTint
+          : dockTint as double?,
+      dynamicTint: dynamicTint ?? this.dynamicTint,
       barRadius: identical(barRadius, _unset)
           ? this.barRadius
           : barRadius as double?,
@@ -175,6 +246,20 @@ class GlassConfig {
         thicknessMax,
         defaults.thickness,
       ),
+      frost: _clamp(frost, frostMin, frostMax, defaults.frost),
+      blur: _clamp(blur, blurMin, blurMax, defaults.blur),
+      saturation: _clamp(
+        saturation,
+        saturationMin,
+        saturationMax,
+        defaults.saturation,
+      ),
+      tintColor: tintColor,
+      dockTintColor: dockTintColor,
+      dockTint: dockTint == null
+          ? null
+          : _clamp(dockTint!, tintMin, tintMax, defaults.tint),
+      dynamicTint: dynamicTint,
       barRadius: barRadius == null
           ? null
           : _clamp(barRadius!, radiusMin, radiusMax, 0),
@@ -194,6 +279,13 @@ class GlassConfig {
       'tint': tint,
       'refraction': refraction,
       'thickness': thickness,
+      'frost': frost,
+      'blur': blur,
+      'saturation': saturation,
+      'tintColor': tintColor,
+      'dockTintColor': dockTintColor,
+      'dockTint': dockTint,
+      'dynamicTint': dynamicTint,
       'barRadius': barRadius,
       'indicatorRadius': indicatorRadius,
     };
@@ -215,6 +307,15 @@ class GlassConfig {
       tint: _readDouble(json['tint'], defaults.tint),
       refraction: _readDouble(json['refraction'], defaults.refraction),
       thickness: _readDouble(json['thickness'], defaults.thickness),
+      frost: _readDouble(json['frost'], defaults.frost),
+      blur: _readDouble(json['blur'], defaults.blur),
+      saturation: _readDouble(json['saturation'], defaults.saturation),
+      tintColor: _readColor(json['tintColor'], defaults.tintColor),
+      dockTintColor: _readNullableColor(json['dockTintColor']),
+      dockTint: _readNullableDouble(json['dockTint']),
+      dynamicTint: json['dynamicTint'] is bool
+          ? json['dynamicTint'] as bool
+          : defaults.dynamicTint,
       barRadius: _readNullableDouble(json['barRadius']),
       indicatorRadius: _readNullableDouble(json['indicatorRadius']),
     ).clamped();
@@ -242,6 +343,24 @@ class GlassConfig {
       if (parsed != null && parsed.isFinite) return parsed;
     }
     return fallback;
+  }
+
+  static int _readColor(Object? value, int fallback) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) {
+      final parsed = int.tryParse(value.replaceFirst('#', ''));
+      if (parsed != null) {
+        return parsed <= 0xFFFFFF ? 0xFF000000 | parsed : parsed;
+      }
+    }
+    return fallback;
+  }
+
+  static int? _readNullableColor(Object? value) {
+    if (value == null) return null;
+    final parsed = _readColor(value, -1);
+    return parsed == -1 ? null : parsed;
   }
 
   static double? _readNullableDouble(Object? value) {
@@ -275,6 +394,13 @@ class GlassConfig {
             other.tint == tint &&
             other.refraction == refraction &&
             other.thickness == thickness &&
+            other.frost == frost &&
+            other.blur == blur &&
+            other.saturation == saturation &&
+            other.tintColor == tintColor &&
+            other.dockTintColor == dockTintColor &&
+            other.dockTint == dockTint &&
+            other.dynamicTint == dynamicTint &&
             other.barRadius == barRadius &&
             other.indicatorRadius == indicatorRadius;
   }
@@ -288,6 +414,13 @@ class GlassConfig {
         tint,
         refraction,
         thickness,
+        frost,
+        blur,
+        saturation,
+        tintColor,
+        dockTintColor,
+        dockTint,
+        dynamicTint,
         barRadius,
         indicatorRadius,
       );
@@ -297,6 +430,9 @@ class GlassConfig {
     return 'GlassConfig(pinch: $pinchStrength, expansion: '
         '$expansionH x $expansionV, aberration: $chromaticAberration, '
         'tint: $tint, refraction: $refraction, thickness: $thickness, '
+        'frost: $frost, blur: $blur, saturation: $saturation, '
+        'tintColor: $tintColor, dockTintColor: $dockTintColor, '
+        'dockTint: $dockTint, dynamicTint: $dynamicTint, '
         'barRadius: $barRadius, '
         'indicatorRadius: $indicatorRadius)';
   }

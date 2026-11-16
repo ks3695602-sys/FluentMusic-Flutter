@@ -281,34 +281,32 @@ class _MusifyState extends State<Musify> with WidgetsBindingObserver {
                 ? Brightness.light
                 : Brightness.dark,
           ),
-          child: GlassTheme(
-            // Pin the painted glass variant to the app theme. Without this,
-            // a system-dark device + ThemeMode.light could keep solid cards
-            // and segmented labels on their dark variant while the Material
-            // text below them switched to light (white-on-white rows after a
-            // live theme change). Pages can still override this locally.
-            data: (GlassTheme.maybeOf(context)?.data ??
-                    GlassThemeData.fallback())
-                .copyWith(
-              brightness: isDark ? Brightness.dark : Brightness.light,
-            ),
-            child: MaterialApp.router(
-              title: 'FluentMusic',
-              builder: (context, child) => Material(
+          child: MaterialApp.router(
+            title: 'FluentMusic',
+            // GlassTheme.brightnessOf reads the Cupertino pin before it falls
+            // back to the OS. Pinning here (instead of overriding GlassTheme
+            // above the whole app) keeps every page's glass variant aligned
+            // with the Material theme, while local dark overrides still work.
+            builder: (context, child) => CupertinoTheme(
+              data: CupertinoThemeData(
+                brightness: isDark ? Brightness.dark : Brightness.light,
+                primaryColor: (isDark ? darkScheme : lightScheme).primary,
+              ),
+              child: Material(
                 type: MaterialType.transparency,
                 child: child!,
               ),
-              themeMode: themeMode,
-              theme: getAppTheme(lightScheme),
-              darkTheme: getAppTheme(darkScheme),
-              localizationsDelegates: [
-                AppLocalizations.delegate,
-                ...GlobalMaterialLocalizations.delegates,
-              ],
-              supportedLocales: appSupportedLocales,
-              locale: languageSetting,
-              routerConfig: NavigationManager.router,
             ),
+            themeMode: themeMode,
+            theme: getAppTheme(lightScheme),
+            darkTheme: getAppTheme(darkScheme),
+            localizationsDelegates: [
+              AppLocalizations.delegate,
+              ...GlobalMaterialLocalizations.delegates,
+            ],
+            supportedLocales: appSupportedLocales,
+            locale: languageSetting,
+            routerConfig: NavigationManager.router,
           ),
         );
       },

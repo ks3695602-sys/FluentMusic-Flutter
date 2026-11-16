@@ -26,9 +26,11 @@ import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 /// the app theme is dark. Reading `Theme.brightness` here produced white text on
 /// white glass, so every panel colour goes through this helper instead.
 ({Color title, Color subtitle, Color badge}) glassControlColors(
-  BuildContext context,
-) {
-  final isDark = GlassTheme.brightnessOf(context) == Brightness.dark;
+  BuildContext context, {
+  Brightness? brightness,
+}) {
+  final isDark =
+      (brightness ?? GlassTheme.brightnessOf(context)) == Brightness.dark;
   return (
     title: isDark ? CupertinoColors.white : const Color(0xFF1C1C1E),
     subtitle: isDark

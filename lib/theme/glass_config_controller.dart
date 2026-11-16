@@ -89,6 +89,38 @@ class GlassConfigController extends ChangeNotifier {
   void setThickness(double value) =>
       update(_config.copyWith(thickness: value));
 
+  /// Frost cloud amount (`LiquidGlassSettings.frost`).
+  void setFrost(double value) => update(_config.copyWith(frost: value));
+
+  /// Backdrop blur sigma (`LiquidGlassSettings.blur`).
+  void setBlur(double value) => update(_config.copyWith(blur: value));
+
+  /// Backdrop colour intensity (`LiquidGlassSettings.saturation`).
+  void setSaturation(double value) =>
+      update(_config.copyWith(saturation: value));
+
+  /// Base tint colour, stored as `0xAARRGGBB`.
+  void setTintColor(int value) =>
+      update(_config.copyWith(tintColor: value));
+
+  /// Dock-only tint colour. Pass `null` to inherit the global colour.
+  void setDockTintColor(int? value) =>
+      update(_config.copyWith(dockTintColor: value));
+
+  /// Dock-only tint alpha. Pass `null` to inherit the global alpha.
+  void setDockTint(double? value) =>
+      update(_config.copyWith(dockTint: value));
+
+  /// Turns backdrop-driven tinting on or off.
+  void setDynamicTint(bool value) =>
+      update(_config.copyWith(dynamicTint: value));
+
+  /// Applies the iOS 27 image-2 preset.
+  void applyIos27() => update(GlassConfig.ios27);
+
+  /// Applies the classic dispersion-heavy preset.
+  void applyClassic() => update(GlassConfig.classic);
+
   /// Pass `null` to restore the package capsule radius.
   void setBarRadius(double? value) =>
       update(_config.copyWith(barRadius: value));

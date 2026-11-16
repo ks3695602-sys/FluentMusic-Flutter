@@ -87,10 +87,13 @@ class BottomActionsRow extends StatelessWidget {
             buttonHeight: 44,
             menuWidth: 240,
             items: [
+              const GlassMenuLabel(title: 'Audio output'),
               GlassMenuItem(
                 title: 'System Default Output',
                 subtitle: 'Playback follows your device audio route',
                 icon: const Icon(CupertinoIcons.speaker_2_fill),
+                isSelected: true,
+                semanticsSelected: true,
                 onTap: () => showToast(
                   context,
                   'Use the device volume buttons to change output level',
@@ -101,9 +104,40 @@ class BottomActionsRow extends StatelessWidget {
                 title: 'Audio Quality',
                 subtitle: 'Streamed as provided; no resampling claim',
                 icon: const Icon(CupertinoIcons.music_note),
+                onTap: () {},
+                submenu: [
+                  GlassMenuItem(
+                    title: 'Source Audio',
+                    subtitle: 'Whatever the stream ships, untouched',
+                    icon: const Icon(CupertinoIcons.waveform),
+                    isSelected: true,
+                    semanticsSelected: true,
+                    onTap: () => showToast(
+                      context,
+                      'FluentMusic streams the source audio without a lossless claim',
+                      duration: const Duration(seconds: 2),
+                    ),
+                  ),
+                  GlassMenuItem(
+                    title: 'No Upscaling',
+                    subtitle: 'We never pretend 128 kbps is hi-res audio',
+                    icon: const Icon(CupertinoIcons.info_circle),
+                    onTap: () => showToast(
+                      context,
+                      'Audio is never upscaled or re-encoded for show',
+                      duration: const Duration(seconds: 2),
+                    ),
+                  ),
+                ],
+              ),
+              const GlassMenuDivider(),
+              GlassMenuItem(
+                title: 'Connection Info',
+                subtitle: 'Output switching follows the OS, not the app',
+                icon: const Icon(CupertinoIcons.antenna_radiowaves_left_right),
                 onTap: () => showToast(
                   context,
-                  'FluentMusic streams the source audio without a lossless claim',
+                  'Change AirPods / speaker routing from the system picker',
                   duration: const Duration(seconds: 2),
                 ),
               ),

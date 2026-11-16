@@ -218,31 +218,65 @@ GlassQuality parseGlassQuality(String q) {
   }
 }
 
+/// Resolves the shared glass theme from the Glass Lab config.
+///
+/// The tint colour is stored as `0xAARRGGBB`; its alpha is the separate
+/// transparency value, so one colour works in both appearances.
 GlassThemeData getEffectiveGlassTheme() {
   final config = glassConfigController.config;
-  // Tint is stored as white alpha so the same value works in light and dark.
-  final tintColor = Color.fromRGBO(255, 255, 255, config.tint);
+  final tintColor = Color(config.tintColor).withValues(alpha: config.tint);
+  final saturation = config.dynamicTint ? config.saturation : 1.0;
   final base = GlassThemeData.simple(
-    blur: liquidGlassBlurSetting.value,
+    blur: config.blur,
     thickness: config.thickness,
     quality: parseGlassQuality(liquidGlassQualitySetting.value),
     chromaticAberration: config.chromaticAberration,
     refractiveIndex: config.refraction,
+    saturation: saturation,
   );
 
-  GlassThemeVariant withTint(GlassThemeVariant variant) {
+  GlassThemeVariant tune(GlassThemeVariant variant) {
     final settings = variant.settings ?? const GlassThemeSettings();
     return variant.copyWith(
-      settings: settings.copyWith(glassColor: tintColor),
+      settings: settings.copyWith(
+        glassColor: tintColor,
+        frost: config.frost,
+        blur: config.blur,
+        thickness: config.thickness,
+        chromaticAberration: config.chromaticAberration,
+        refractiveIndex: config.refraction,
+        saturation: saturation,
+      ),
     );
   }
 
   return GlassThemeData(
     style: base.style,
-    light: withTint(base.light),
-    dark: withTint(base.dark),
+    light: tune(base.light),
+    dark: tune(base.dark),
     interaction: base.interaction,
     brightness: base.brightness,
+  );
+}
+
+/// Dock-specific glass settings, so the tab bar can be tuned independently
+/// from the rest of the app while staying inside the same glass group.
+LiquidGlassSettings getEffectiveDockGlassSettings({required bool isDark}) {
+  final config = glassConfigController.config;
+  final theme = liquidGlassThemeNotifier.value;
+  final variant = isDark ? theme.dark : theme.light;
+  final base = (variant.settings ?? const GlassThemeSettings())
+      .applyTo(const LiquidGlassSettings());
+  final color = Color(config.dockTintColor ?? config.tintColor);
+  final alpha = config.dockTint ?? config.tint;
+  return base.copyWith(
+    blur: config.blur,
+    frost: config.frost,
+    thickness: config.thickness,
+    chromaticAberration: config.chromaticAberration,
+    refractiveIndex: config.refraction,
+    saturation: config.dynamicTint ? config.saturation : 1.0,
+    glassColor: color.withValues(alpha: alpha),
   );
 }
 

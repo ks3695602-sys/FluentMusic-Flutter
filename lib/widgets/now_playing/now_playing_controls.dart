@@ -150,6 +150,7 @@ class NowPlayingControls extends StatelessWidget {
                     buttonHeight: 38,
                     menuWidth: 248,
                     items: [
+                      const GlassMenuLabel(title: 'Now playing'),
                       GlassMenuItem(
                         title: 'Add to Playlist',
                         icon: const Icon(
@@ -164,8 +165,19 @@ class NowPlayingControls extends StatelessWidget {
                         title: isSongAlreadyOffline(
                           metadata.extras?['ytid']?.toString(),
                         )
-                            ? 'Remove Download'
+                            ? 'Saved for Offline'
                             : 'Download for Offline',
+                        subtitle: isSongAlreadyOffline(
+                          metadata.extras?['ytid']?.toString(),
+                        )
+                            ? 'Tap to free up storage'
+                            : 'One tap, zero spinner anxiety',
+                        isSelected: isSongAlreadyOffline(
+                          metadata.extras?['ytid']?.toString(),
+                        ),
+                        isDestructive: isSongAlreadyOffline(
+                          metadata.extras?['ytid']?.toString(),
+                        ),
                         icon: Icon(
                           isSongAlreadyOffline(
                                 metadata.extras?['ytid']?.toString(),
@@ -199,11 +211,21 @@ class NowPlayingControls extends StatelessWidget {
                           }
                         },
                       ),
+                      const GlassMenuDivider(),
                       GlassMenuItem(
-                        title: 'Sleep Timer',
-                        icon: const Icon(CupertinoIcons.timer),
-                        onTap: () => showSleepTimerDialog(context),
+                        title: 'Playback',
+                        subtitle: 'Timer and playback behaviour',
+                        icon: const Icon(CupertinoIcons.slider_horizontal_3),
+                        onTap: () {},
+                        submenu: [
+                          GlassMenuItem(
+                            title: 'Sleep Timer',
+                            icon: const Icon(CupertinoIcons.timer),
+                            onTap: () => showSleepTimerDialog(context),
+                          ),
+                        ],
                       ),
+                      const GlassMenuDivider(),
                       if (_canOpenArtist(metadata))
                         GlassMenuItem(
                           title: 'Go to Artist',

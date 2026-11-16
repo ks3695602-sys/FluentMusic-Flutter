@@ -44,6 +44,7 @@ import 'package:musify/widgets/artist_bar.dart';
 import 'package:musify/widgets/confirmation_dialog.dart';
 import 'package:musify/widgets/custom_bar.dart';
 import 'package:musify/widgets/custom_search_bar.dart';
+import 'package:musify/widgets/glass/glass_sheet_style.dart';
 import 'package:musify/widgets/mini_player_bottom_space.dart';
 import 'package:musify/widgets/playlist_bar.dart';
 import 'package:musify/widgets/radio_station_card.dart';
@@ -803,104 +804,150 @@ class _SearchPageState extends State<SearchPage> {
     }
   }
 
-  void _showSearchQueueChoiceSheet(BuildContext context, Map song, int index) {
-    showCupertinoModalPopup(
+  Future<void> _showSearchQueueChoiceSheet(
+    BuildContext context,
+    Map song,
+    int index,
+  ) {
+    return GlassModalSheet.show<void>(
       context: context,
-      builder: (ctx) => GlassModalSheet(
-        child: SafeArea(
+      detents: const {GlassSheetDetent.medium},
+      settings: glassSheetSettings(context),
+      builder: (sheetContext) {
+        final labelColor = glassSheetLabelColor(sheetContext);
+        final subtitleColor = glassSheetSubtitleColor(sheetContext);
+        final isDark =
+            GlassTheme.brightnessOf(sheetContext) == Brightness.dark;
+        final rowColor = isDark
+            ? CupertinoColors.white.withValues(alpha: 0.09)
+            : CupertinoColors.black.withValues(alpha: 0.045);
+        final selectedColor = isDark
+            ? CupertinoColors.white.withValues(alpha: 0.14)
+            : CupertinoColors.black.withValues(alpha: 0.08);
+
+        Widget actionRow({
+          required IconData icon,
+          required String title,
+          required String subtitle,
+          required VoidCallback onTap,
+        }) {
+          return CupertinoButton(
+            padding: EdgeInsets.zero,
+            onPressed: onTap,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+              decoration: BoxDecoration(
+                color: rowColor,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: selectedColor,
+                      borderRadius: BorderRadius.circular(11),
+                    ),
+                    child: Icon(icon, size: 20, color: labelColor),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: -0.2,
+                            color: labelColor,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle,
+                          style: TextStyle(
+                            fontSize: 12,
+                            height: 1.25,
+                            color: subtitleColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    CupertinoIcons.chevron_right,
+                    size: 15,
+                    color: subtitleColor,
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return SafeArea(
           top: false,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            padding: const EdgeInsets.fromLTRB(20, 22, 20, 24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
                   song['title']?.toString() ?? 'Play Song',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: CupertinoColors.white,
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.4,
+                    color: labelColor,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 3),
                 Text(
                   song['artist']?.toString() ?? '',
                   style: TextStyle(
                     fontSize: 14,
-                    color: CupertinoColors.white.withValues(alpha: 0.7),
+                    color: subtitleColor,
                   ),
                   maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 20),
-                CupertinoButton(
-                  padding: EdgeInsets.zero,
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    final songsList = _songsSearchResult.whereType<Map>().toList();
-                    audioHandler.addPlaylistToQueue(songsList, replace: true, startIndex: index);
+                actionRow(
+                  icon: CupertinoIcons.list_bullet,
+                  title: 'Play with Search Queue',
+                  subtitle: 'Keep the whole result list lined up next',
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    final songsList =
+                        _songsSearchResult.whereType<Map>().toList();
+                    audioHandler.addPlaylistToQueue(
+                      songsList,
+                      replace: true,
+                      startIndex: index,
+                    );
                   },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    decoration: BoxDecoration(
-                      color: CupertinoColors.white.withValues(alpha: 0.14),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: CupertinoColors.white.withValues(alpha: 0.20),
-                        width: 0.8,
-                      ),
-                    ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(CupertinoIcons.list_bullet, color: CupertinoColors.white, size: 20),
-                        SizedBox(width: 8),
-                        Text(
-                          'Play with Search Queue',
-                          style: TextStyle(color: CupertinoColors.white, fontWeight: FontWeight.w600),
-                        ),
-                      ],
-                    ),
-                  ),
                 ),
-                const SizedBox(height: 12),
-                CupertinoButton(
-                  padding: EdgeInsets.zero,
-                  onPressed: () {
-                    Navigator.pop(ctx);
+                const SizedBox(height: 10),
+                actionRow(
+                  icon: CupertinoIcons.radiowaves_right,
+                  title: 'Play with Related Songs',
+                  subtitle: 'Let the algorithm do its little dance',
+                  onTap: () {
+                    Navigator.pop(sheetContext);
                     audioHandler.playSongWithRelated(song);
                   },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    decoration: BoxDecoration(
-                      color: CupertinoColors.white.withValues(alpha: 0.14),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: CupertinoColors.white.withValues(alpha: 0.20),
-                        width: 0.8,
-                      ),
-                    ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(CupertinoIcons.radiowaves_right, color: CupertinoColors.white, size: 20),
-                        SizedBox(width: 8),
-                        Text(
-                          'Play with Related Songs',
-                          style: TextStyle(color: CupertinoColors.white, fontWeight: FontWeight.w600),
-                        ),
-                      ],
-                    ),
-                  ),
                 ),
-                const SizedBox(height: 14),
               ],
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 

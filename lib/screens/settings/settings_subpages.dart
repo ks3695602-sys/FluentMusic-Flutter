@@ -203,7 +203,7 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
       appBar: GlassAppBar(
         leading: buildGlassBackButton(context),
         title: Text(
-          'Liquid Glass',
+          'Appearance',
           style: TextStyle(fontWeight: FontWeight.bold, color: titleColor),
         ),
       ),
@@ -325,7 +325,7 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
                   style: TextStyle(color: titleColor),
                 ),
                 subtitle: Text(
-                  '8 live sliders — pinch, expansion, dispersion, tint, refraction and radii',
+                  'iOS 27 preset, 7 optics sliders, glass + dock colours',
                   style: TextStyle(color: subtitleColor, fontSize: 12),
                 ),
                 trailing: Icon(
@@ -342,79 +342,77 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
             ],
           ),
 
-          // 4. THEME & DISPLAY
-          Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: 8, top: 20),
-            child: Text(
+          // 3. THEME & DISPLAY
+          GlassGroupedSection(
+            header: Text(
               'THEME & DISPLAY',
               style: TextStyle(
                 color: subtitleColor,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.7,
               ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        CupertinoIcons.sun_max_fill,
-                        color: Color(0xFFFFCC00),
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        context.l10n?.themeMode ?? 'Theme Mode',
-                        style: TextStyle(
-                          color: titleColor,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+            surfaceStyle: GlassSurfaceStyle.solid,
+            children: [
+              GlassListTile(
+                leading: const Icon(
+                  CupertinoIcons.sun_max_fill,
+                  color: Color(0xFFFFCC00),
+                ),
+                title: Text(
+                  context.l10n?.themeMode ?? 'Theme Mode',
+                  style: TextStyle(color: titleColor),
+                ),
+                subtitle: Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: GlassSegmentedControl(
+                    segments: const [
+                      GlassSegment(label: 'System'),
+                      GlassSegment(label: 'Light'),
+                      GlassSegment(label: 'Dark'),
                     ],
+                    // Explicit label colours: the control paints a light track
+                    // even when the ambient Cupertino theme is still
+                    // mid-switch, which previously left white on light grey.
+                    selectedTextStyle: TextStyle(
+                      color: isDark ? Colors.white : const Color(0xFF1C1C1E),
+                      fontWeight: FontWeight.w600,
+                    ),
+                    unselectedTextStyle: TextStyle(
+                      color: isDark ? Colors.white70 : const Color(0xFF3C3C43),
+                    ),
+                    selectedIndex: themeMode == ThemeMode.system
+                        ? 0
+                        : (themeMode == ThemeMode.light ? 1 : 2),
+                    onSegmentSelected: (index) {
+                      final mode = index == 0
+                          ? ThemeMode.system
+                          : (index == 1 ? ThemeMode.light : ThemeMode.dark);
+                      addOrUpdateData<int>(
+                        'settings',
+                        'themeIndex',
+                        mode.index,
+                      );
+                      Musify.updateAppState(context, newThemeMode: mode);
+                      setState(() {});
+                    },
                   ),
                 ),
-                const SizedBox(height: 8),
-                GlassSegmentedControl(
-                  segments: const [
-                    GlassSegment(label: 'System'),
-                    GlassSegment(label: 'Light'),
-                    GlassSegment(label: 'Dark'),
-                  ],
-                  // Explicit label colours: the control paints a light track
-                  // even when the ambient Cupertino theme is still mid-switch,
-                  // which previously left white labels on light grey.
-                  selectedTextStyle: TextStyle(
-                    color: isDark ? Colors.white : const Color(0xFF1C1C1E),
-                    fontWeight: FontWeight.w600,
-                  ),
-                  unselectedTextStyle: TextStyle(
-                    color: isDark
-                        ? Colors.white70
-                        : const Color(0xFF3C3C43),
-                  ),
-                  selectedIndex: themeMode == ThemeMode.system
-                      ? 0
-                      : (themeMode == ThemeMode.light ? 1 : 2),
-                  onSegmentSelected: (index) {
-                    final mode = index == 0
-                        ? ThemeMode.system
-                        : (index == 1 ? ThemeMode.light : ThemeMode.dark);
-                    addOrUpdateData<int>('settings', 'themeIndex', mode.index);
-                    Musify.updateAppState(context, newThemeMode: mode);
-                    setState(() {});
-                  },
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
+          const SizedBox(height: 8),
           GlassGroupedSection(
+            header: Text(
+              'DISPLAY',
+              style: TextStyle(
+                color: subtitleColor,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.7,
+              ),
+            ),
             surfaceStyle: GlassSurfaceStyle.solid,
             children: [
               ValueListenableBuilder<bool>(
