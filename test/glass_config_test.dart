@@ -53,7 +53,7 @@ void main() {
       final tuned = GlassConfig.defaults.copyWith(
         dockTintColor: 0xFF5E5CE6,
         dockTint: 0.4,
-        barRadius: 28,
+        barRadius: 28.0,
       );
       expect(tuned.dockTintColor, 0xFF5E5CE6);
       expect(tuned.dockTint, 0.4);
@@ -118,8 +118,8 @@ void main() {
         dockTintColor: 0xFFFF9F0A,
         dockTint: 0.32,
         dynamicTint: false,
-        barRadius: 24,
-        indicatorRadius: 14,
+        barRadius: 24.0,
+        indicatorRadius: 14.0,
       );
 
       final decoded = GlassConfig.fromJson(tuned.toJson());
