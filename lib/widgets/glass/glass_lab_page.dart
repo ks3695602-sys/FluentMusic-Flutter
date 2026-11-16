@@ -94,7 +94,7 @@ class GlassLabPage extends StatelessWidget {
               ),
               GlassListTile(
                 leading: const Icon(
-                  CupertinoIcons.rainbow,
+                  CupertinoIcons.arrow_counterclockwise,
                   color: Color(0xFFBF5AF2),
                 ),
                 title: Text(
@@ -174,7 +174,7 @@ class GlassLabPage extends StatelessWidget {
                 onChanged: controller.setFrost,
               ),
               _LabSliderTile(
-                icon: CupertinoIcons.camera_filters,
+                icon: CupertinoIcons.slider_horizontal_3,
                 color: const Color(0xFF30D158),
                 title: 'Blur sigma',
                 valueLabel: config.blur.toStringAsFixed(1),
@@ -557,7 +557,7 @@ class GlassLabPage extends StatelessWidget {
           color: color,
           shape: BoxShape.circle,
           border: Border.all(
-            color: CupertinoColors.separator.resolveFrom(context),
+            color: titleColor.withValues(alpha: 0.16),
             width: 1,
           ),
         ),

@@ -24,6 +24,7 @@ import 'dart:async';
 import 'package:app_links/app_links.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:dynamic_color/dynamic_color.dart';
+import 'package:flutter/cupertino.dart' show CupertinoTheme, CupertinoThemeData;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
