@@ -4,7 +4,7 @@ homepage: https://github.com/ks3695602-sys/FluentMusic-Flutter
 repository: https://github.com/ks3695602-sys/FluentMusic-Flutter
 
 publish_to: 'none'
-version: 1.5.0+14
+version: 1.5.1+15
 
 environment:
   sdk: '>=3.13.0 <4.0.0'

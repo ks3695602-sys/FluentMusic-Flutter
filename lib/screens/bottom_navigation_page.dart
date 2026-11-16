@@ -224,7 +224,9 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
                             searchConfig: GlassSearchBarConfig(
                               controller: _inlineSearchController,
                               expandWhenActive: true,
-                              showPill: !isOfflineMode,
+                              // The dock already has a Search tab, and a floating
+                              // pill duplicated it on top of page content.
+                              showPill: false,
                               hintText: context.l10n?.search ?? 'Search',
                               textInputAction: TextInputAction.search,
                               onSubmitted: _submitInlineSearch,

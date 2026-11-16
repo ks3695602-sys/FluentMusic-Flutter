@@ -76,7 +76,7 @@ class SettingsPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'FluentMusic 1.4.0 · liquid glass edition',
+                    'FluentMusic 1.5.1 - liquid glass edition',
                     style: TextStyle(
                       fontSize: 13,
                       color: subtitleColor,

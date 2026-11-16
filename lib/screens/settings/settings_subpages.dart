@@ -387,6 +387,18 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
                     GlassSegment(label: 'Light'),
                     GlassSegment(label: 'Dark'),
                   ],
+                  // Explicit label colours: the control paints a light track
+                  // even when the ambient Cupertino theme is still mid-switch,
+                  // which previously left white labels on light grey.
+                  selectedTextStyle: TextStyle(
+                    color: isDark ? Colors.white : const Color(0xFF1C1C1E),
+                    fontWeight: FontWeight.w600,
+                  ),
+                  unselectedTextStyle: TextStyle(
+                    color: isDark
+                        ? Colors.white70
+                        : const Color(0xFF3C3C43),
+                  ),
                   selectedIndex: themeMode == ThemeMode.system
                       ? 0
                       : (themeMode == ThemeMode.light ? 1 : 2),

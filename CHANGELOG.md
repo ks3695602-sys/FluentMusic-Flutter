@@ -1,6 +1,17 @@
 # Changelog
 
-## 1.5.0+14 — Signed-in YouTube Music, sharper player
+## 1.5.1+15 - Light-mode and menu polish
+
+### Fixed from the v1.5.0 recording
+- Glass surfaces now follow the app theme explicitly, fixing light-mode Account/Appearance rows that turned dark (or white-on-white) after switching from System dark to Light, and the white segmented-control labels on a light track.
+- Speed & Pitch panel text, value badges and the Done button resolve from the painted glass variant, so the sheet is readable over both dark artwork and light glass.
+- Player overflow menus are titles-only, so the last row (Speed & Pitch) is no longer clipped.
+- Removed the stray floating search pill that duplicated the Search tab icon on every page; the Search tab remains the single entry point.
+- Settings now reports `FluentMusic 1.5.1` instead of the stale 1.4.0 label.
+- Library badge now says `Offline Cache Ready` instead of claiming lossless caching.
+- Lyrics Timing sheet shows the real current offset value.
+
+## 1.5.0+14 - Signed-in YouTube Music, sharper player
 
 ### The player
 - Full-bleed, edge-to-edge artwork: blurred bed, masked sharper layer and soft scrims, drawn behind the status bar and gesture handle with no solid strip.

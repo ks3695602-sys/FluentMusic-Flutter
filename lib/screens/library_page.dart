@@ -348,7 +348,7 @@ class _LibraryPageState extends State<LibraryPage> {
                       const Icon(CupertinoIcons.sparkles, color: Color(0xFFFF2D55), size: 16),
                       const SizedBox(width: 8),
                       Text(
-                        'Smart Lossless Cache Active',
+                        'Offline Cache Ready',
                         style: TextStyle(
                           color: isDark ? CupertinoColors.white : const Color(0xFF1C1C1E),
                           fontWeight: FontWeight.w600,

@@ -20,6 +20,26 @@ import 'dart:ui' show FontFeature;
 import 'package:flutter/cupertino.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
+/// Resolves text colours against the glass variant that is actually painted.
+///
+/// A sheet over bright artwork can resolve to the light glass variant even when
+/// the app theme is dark. Reading `Theme.brightness` here produced white text on
+/// white glass, so every panel colour goes through this helper instead.
+({Color title, Color subtitle, Color badge}) glassControlColors(
+  BuildContext context,
+) {
+  final isDark = GlassTheme.brightnessOf(context) == Brightness.dark;
+  return (
+    title: isDark ? CupertinoColors.white : const Color(0xFF1C1C1E),
+    subtitle: isDark
+        ? CupertinoColors.white.withValues(alpha: 0.65)
+        : const Color(0xFF636366),
+    badge: isDark
+        ? CupertinoColors.white.withValues(alpha: 0.12)
+        : const Color(0xFF000000).withValues(alpha: 0.06),
+  );
+}
+
 /// Shared header for control sheets (Speed & Pitch, and future panels).
 ///
 /// The panel itself adds no glass layer: it is meant to sit inside a single
@@ -41,6 +61,7 @@ class GlassControlPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = glassControlColors(context);
     final subtitleText = subtitle;
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -48,10 +69,10 @@ class GlassControlPanel extends StatelessWidget {
       children: [
         Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: CupertinoColors.white,
+            color: colors.title,
           ),
         ),
         if (subtitleText != null) ...[
@@ -60,7 +81,7 @@ class GlassControlPanel extends StatelessWidget {
             subtitleText,
             style: TextStyle(
               fontSize: 13,
-              color: CupertinoColors.white.withValues(alpha: 0.65),
+              color: colors.subtitle,
             ),
           ),
         ],
@@ -99,6 +120,7 @@ class GlassControlSlider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = glassControlColors(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: Column(
@@ -109,10 +131,10 @@ class GlassControlSlider extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
-                  color: CupertinoColors.white,
+                  color: colors.title,
                 ),
               ),
               GestureDetector(
@@ -123,16 +145,16 @@ class GlassControlSlider extends StatelessWidget {
                     vertical: 3,
                   ),
                   decoration: BoxDecoration(
-                    color: CupertinoColors.white.withValues(alpha: 0.12),
+                    color: colors.badge,
                     borderRadius: BorderRadius.circular(7),
                   ),
                   child: Text(
                     valueLabel,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: CupertinoColors.white,
-                      fontFeatures: [FontFeature.tabularFigures()],
+                      color: colors.title,
+                      fontFeatures: const [FontFeature.tabularFigures()],
                     ),
                   ),
                 ),
@@ -171,6 +193,7 @@ class GlassControlPresets extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = glassControlColors(context);
     return Wrap(
       spacing: 8,
       runSpacing: 8,
@@ -183,15 +206,15 @@ class GlassControlPresets extends StatelessWidget {
               ),
               minSize: 0,
               borderRadius: BorderRadius.circular(20),
-              color: CupertinoColors.white.withValues(alpha: 0.12),
+              color: colors.badge,
               pressedOpacity: 0.7,
               onPressed: () => onSelected(label),
               child: Text(
                 label,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: CupertinoColors.white,
+                  color: colors.title,
                 ),
               ),
             ),

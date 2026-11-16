@@ -464,7 +464,6 @@ class _MobileLayout extends StatelessWidget {
       items: [
         GlassMenuItem(
           title: 'Add to Playlist',
-          subtitle: 'Choose or create a playlist',
           icon: const Icon(CupertinoIcons.plus_rectangle_on_rectangle),
           onTap: () => showAddToPlaylistDialog(
             context,
@@ -473,9 +472,6 @@ class _MobileLayout extends StatelessWidget {
         ),
         GlassMenuItem(
           title: isOffline ? 'Remove Download' : 'Download for Offline',
-          subtitle: isOffline
-              ? 'Free up local storage'
-              : 'Keep this song available offline',
           icon: Icon(
             isOffline
                 ? CupertinoIcons.check_mark_circled_solid
@@ -501,19 +497,16 @@ class _MobileLayout extends StatelessWidget {
         const GlassMenuDivider(),
         GlassMenuItem(
           title: 'Sleep Timer',
-          subtitle: 'Stop playback after a delay',
           icon: const Icon(CupertinoIcons.timer),
           onTap: () => showSleepTimerDialog(context),
         ),
         GlassMenuItem(
           title: 'Lyrics Timing',
-          subtitle: 'Shift synced lyrics earlier or later',
           icon: const Icon(CupertinoIcons.slider_horizontal_3),
           onTap: () => _showLyricsOffsetSheet(context),
         ),
         GlassMenuItem(
           title: 'Speed & Pitch',
-          subtitle: 'Advanced playback controls',
           icon: const Icon(CupertinoIcons.speedometer),
           onTap: () => _showPlaybackSpeedSheet(context),
         ),
@@ -530,7 +523,8 @@ class _MobileLayout extends StatelessWidget {
           return CupertinoActionSheet(
             title: const Text('Lyrics Timing Sync Offset', style: TextStyle(fontWeight: FontWeight.bold)),
             message: Text(
-              'Current Offset: ms\n(Tap ±250ms to nudge lyrics timing)',
+              'Current offset: ${offset}ms\n'
+              '(Tap ±250ms to nudge lyrics timing)',
             ),
             actions: [
               CupertinoActionSheetAction(
@@ -588,6 +582,11 @@ class _MobileLayout extends StatelessWidget {
           void applyFromSheet(double nextSpeed, double nextPitch) {
             setSheetState(() => apply(nextSpeed, nextPitch));
           }
+
+          // The sheet can paint light glass over bright artwork even when the
+          // player itself is dark. Resolve every colour from the painted
+          // variant instead of assuming white text.
+          final controlColors = glassControlColors(context);
 
           return GlassModalSheet(
             child: SafeArea(
@@ -673,7 +672,7 @@ class _MobileLayout extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 12,
                         height: 1.35,
-                        color: CupertinoColors.white.withValues(alpha: 0.55),
+                        color: controlColors.subtitle,
                       ),
                     ),
                   ],
@@ -683,13 +682,13 @@ class _MobileLayout extends StatelessWidget {
                         child: CupertinoButton(
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           borderRadius: BorderRadius.circular(14),
-                          color: CupertinoColors.white.withValues(alpha: 0.12),
+                          color: controlColors.badge,
                           onPressed: () => Navigator.pop(ctx),
-                          child: const Text(
+                          child: Text(
                             'Done',
                             style: TextStyle(
                               fontWeight: FontWeight.w600,
-                              color: CupertinoColors.white,
+                              color: controlColors.title,
                             ),
                           ),
                         ),

@@ -152,7 +152,6 @@ class NowPlayingControls extends StatelessWidget {
                     items: [
                       GlassMenuItem(
                         title: 'Add to Playlist',
-                        subtitle: 'Choose or create a playlist',
                         icon: const Icon(
                           CupertinoIcons.plus_rectangle_on_rectangle,
                         ),
@@ -167,11 +166,6 @@ class NowPlayingControls extends StatelessWidget {
                         )
                             ? 'Remove Download'
                             : 'Download for Offline',
-                        subtitle: isSongAlreadyOffline(
-                          metadata.extras?['ytid']?.toString(),
-                        )
-                            ? 'Free up local storage'
-                            : 'Keep this song available offline',
                         icon: Icon(
                           isSongAlreadyOffline(
                                 metadata.extras?['ytid']?.toString(),
@@ -207,7 +201,6 @@ class NowPlayingControls extends StatelessWidget {
                       ),
                       GlassMenuItem(
                         title: 'Sleep Timer',
-                        subtitle: 'Stop playback after a delay',
                         icon: const Icon(CupertinoIcons.timer),
                         onTap: () => showSleepTimerDialog(context),
                       ),

@@ -281,22 +281,34 @@ class _MusifyState extends State<Musify> with WidgetsBindingObserver {
                 ? Brightness.light
                 : Brightness.dark,
           ),
-          child: MaterialApp.router(
-            title: 'FluentMusic',
-            builder: (context, child) => Material(
-              type: MaterialType.transparency,
-              child: child!,
+          child: GlassTheme(
+            // Pin the painted glass variant to the app theme. Without this,
+            // a system-dark device + ThemeMode.light could keep solid cards
+            // and segmented labels on their dark variant while the Material
+            // text below them switched to light (white-on-white rows after a
+            // live theme change). Pages can still override this locally.
+            data: (GlassTheme.maybeOf(context)?.data ??
+                    GlassThemeData.fallback())
+                .copyWith(
+              brightness: isDark ? Brightness.dark : Brightness.light,
             ),
-            themeMode: themeMode,
-            theme: getAppTheme(lightScheme),
-            darkTheme: getAppTheme(darkScheme),
-            localizationsDelegates: [
-              AppLocalizations.delegate,
-              ...GlobalMaterialLocalizations.delegates,
-            ],
-            supportedLocales: appSupportedLocales,
-            locale: languageSetting,
-            routerConfig: NavigationManager.router,
+            child: MaterialApp.router(
+              title: 'FluentMusic',
+              builder: (context, child) => Material(
+                type: MaterialType.transparency,
+                child: child!,
+              ),
+              themeMode: themeMode,
+              theme: getAppTheme(lightScheme),
+              darkTheme: getAppTheme(darkScheme),
+              localizationsDelegates: [
+                AppLocalizations.delegate,
+                ...GlobalMaterialLocalizations.delegates,
+              ],
+              supportedLocales: appSupportedLocales,
+              locale: languageSetting,
+              routerConfig: NavigationManager.router,
+            ),
           ),
         );
       },
