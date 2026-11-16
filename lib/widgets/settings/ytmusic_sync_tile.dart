@@ -15,6 +15,7 @@
 import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart' show CircularProgressIndicator;
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:musify/services/ytmusic_auth_service.dart';
 import 'package:musify/services/ytmusic_library_store.dart';

@@ -314,12 +314,14 @@ class YtMusicLibraryService {
       final carousel = node['musicCarouselShelfRenderer'];
       if (carousel is Map) {
         final header = carousel['header'];
+        final headerRenderer = header is Map
+            ? header['musicCarouselShelfBasicHeaderRenderer']
+            : null;
+        final shelfTitle = headerRenderer is Map
+            ? headerRenderer['title']
+            : null;
         out.add((
-          title: _textOf(
-            header is Map
-                ? header['musicCarouselShelfBasicHeaderRenderer']?['title']
-                : null,
-          ),
+          title: _textOf(shelfTitle),
           contents: carousel['contents'],
         ));
         return;
@@ -432,9 +434,10 @@ class YtMusicLibraryService {
     if (columns is List) {
       for (var i = 0; i < columns.length; i++) {
         final column = columns[i];
-        final text = column is Map
-            ? column['musicResponsiveListItemFlexColumnRenderer']?['text']
+        final columnRenderer = column is Map
+            ? column['musicResponsiveListItemFlexColumnRenderer']
             : null;
+        final text = columnRenderer is Map ? columnRenderer['text'] : null;
         if (i == 0) {
           title = _textOf(text);
         } else {
