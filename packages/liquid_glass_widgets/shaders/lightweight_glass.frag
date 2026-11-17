@@ -38,7 +38,7 @@ uniform float uFresnelStrength;
 // 34: uBodyMode — 0.0 = adaptive (default, iOS 26 Glass.regular), 1.0 = clear (iOS 26 Glass.clear).
 // In clear mode, luminance normalization is bypassed for direct alpha compositing.
 uniform float uBodyMode;
-// 35..38: uRimConfig — (rimShade, rimLight, rimShadeEnds, reserved)
+// 35..38: uRimConfig — (rimShade, rimLight, rimShadeEnds, visibility)
 uniform vec4 uRimConfig;
 
 uniform sampler2D uBackground; // The captured background texture
@@ -173,6 +173,7 @@ void main() {
   float uRimShade           = uRimConfig.x;
   float uRimLight           = uRimConfig.y;
   float uRimShadeEnds       = uRimConfig.z;
+  float uVisibility         = clamp(uRimConfig.w, 0.0, 1.0);
   bool hasNativeRim         = (uRimShade > 0.001) || (uRimLight > 0.001);
   // AdaptiveGlass._withoutNativeMaterial folds +0.5*rimLight into lightIntensity
   // as a no-shader stand-in. Recover the true directional lightIntensity when
@@ -220,10 +221,12 @@ void main() {
   float smoothing = 1.0 / uScale.x;
   float mask = 1.0 - smoothstep(-smoothing, smoothing, dist);
 
-  if (mask <= 0.0) {
+  // Skip shading outside the shape or when fully dematerialized without an
+  // early return (multiple returns in main() alongside samplers can fail
+  // Windows HLSL/FXC; flutter#190809).
+  if (mask <= 0.0 || uVisibility <= 0.0) {
     fragColor = vec4(0.0);
-    return;
-  }
+  } else {
 
   // ---- STAGE 2: SURFACE NORMALS ----
   // Since gradient is analytically derived from maximum positive divergence,
@@ -636,5 +639,9 @@ void main() {
 
     fragColor = vec4(clamp(pmRgb, 0.0, 1.0) * mask, pmA * mask);
   }
+  if (uVisibility < 1.0) {
+    fragColor *= uVisibility;
+  }
+  } // end mask > 0.0
 }
 

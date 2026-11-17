@@ -1,3 +1,23 @@
+# 1.17.5
+
+## Bug Fixes
+
+- **`GlassDialog`, `showGlassActionSheet`, and `GlassQuality.standard` / `minimal` materialize transitions (PR #491, #492):** Eliminates the fade-in backdrop blur pop by dissolving alert platters and `standard` / `minimal` glass without an ancestor `OpacityLayer`, preserves child focus/state across transitions, and calibrates `GlassQuality.standard` alert legibility on `ios26` / `ios27`.
+- **`GlassTabBar.searchable` right-edge anchor during parent resize (PR #488):** Animates the search pill's right inset and width so the pill stays anchored to its trailing edge while a parent container resizes or reverses mid-transition. Thanks to [@wow-sven](https://github.com/wow-sven) for the fix (#488).
+- **`GlassTabBar.searchable` input retention and keyboard-lifted hit targets (PR #489):** Retains the `CupertinoTextField` input client, selection, and composing state across compact/expanded transitions, and keeps search dismiss controls tappable above the keyboard when a bottom accessory is mounted. Thanks to [@wow-sven](https://github.com/wow-sven) for the fix (#489).
+
+# 1.17.4
+
+## Features
+
+- **`GlassSwitch` disabled state (`GlassSwitch.onChanged` is now `ValueChanged<bool>?`) (#485, #486):** Passing `onChanged: null` disables the switch — rendering it at 50% group opacity (matching `UISwitch` and `CupertinoSwitch`), ignoring touch, drag, and keyboard input without lifting into a glass lens, reporting disabled state to assistive technology, and still sliding the thumb on programmatic `value` updates. Direct callers should update `switchWidget.onChanged(v)` to `switchWidget.onChanged?.call(v)`.
+
+## Bug Fixes
+
+- **`LiquidVerticalRoundedRectangle` corner radii in `GlassQuality.standard` (PR #487):** Preserves independent top and bottom corner radii in the Standard glass renderer (`LightweightLiquidGlass`) instead of applying the larger `effectiveRadius` to all four corners. Thanks to [@wow-sven](https://github.com/wow-sven) for the fix (#487).
+- **Flutter 3.50.0 / Windows HLSL & Web ANGLE shader single-exit `main()` (`flutter/flutter#190809`):** Refactored `void main()` across all five fragment shaders (`progressive_blur.frag`, `lightweight_glass.frag`, `interactive_indicator.frag`, `liquid_glass_render.frag`, and `liquid_glass_geometry_blended.frag`) to eliminate early/multiple `return;` statements alongside `sampler2D` texture sampling — silencing all four `impellerc` warnings on Flutter `3.50.0` (`flutter build web --wasm`, Windows, and mobile) and preventing `d3dcompiler_47.dll` (FXC) HLSL compilation failures on Windows Direct3D and Chrome ANGLE with zero visual or GPU performance regressions.
+- **Shader CI & test guards (`scripts/validate_shaders.sh`, `test/shaders/single_return_main_test.dart`):** Extended shader validation to enforce single-exit `main()` statically, run Flutter's `impellerc` multi-target runtime stage check (failing on any `[WARNING]`) alongside `glslangValidator`, and guard against regressions in `flutter test` across all platforms.
+
 # 1.17.3
 
 ## Features
