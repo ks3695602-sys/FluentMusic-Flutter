@@ -20,18 +20,36 @@ import 'package:musify/theme/glass_config.dart';
 
 void main() {
   group('GlassConfig defaults', () {
-    test('iOS 27 preset matches the shipped image-2 numbers', () {
+    test('iOS 27 preset is the tuned clear lens', () {
       const config = GlassConfig.ios27;
-      expect(config.frost, 14);
-      expect(config.blur, 4);
+      expect(config.frost, 2);
+      expect(config.blur, 9);
       expect(config.tint, 0);
-      expect(config.saturation, 1.4);
-      expect(config.chromaticAberration, 0);
-      expect(config.thickness, 30);
-      expect(config.refraction, 1.15);
+      expect(config.saturation, 1.6);
+      expect(config.chromaticAberration, 0.12);
+      expect(config.thickness, 56);
+      expect(config.refraction, 1.35);
       expect(config.dynamicTint, isTrue);
       expect(config.barRadius, isNull);
       expect(config.indicatorRadius, isNull);
+    });
+
+    test('clear lens maximizes bend and removes frost', () {
+      const config = GlassConfig.clearLens;
+      expect(config.frost, 0);
+      expect(config.blur, greaterThanOrEqualTo(GlassConfig.ios27.blur));
+      expect(
+        config.refraction,
+        greaterThan(GlassConfig.ios27.refraction),
+      );
+      expect(config.isDefault, isFalse);
+    });
+
+    test('soft frost adds diffusion and a light tint', () {
+      const config = GlassConfig.softFrost;
+      expect(config.frost, greaterThan(GlassConfig.ios27.frost));
+      expect(config.tint, greaterThan(GlassConfig.ios27.tint));
+      expect(config.isDefault, isFalse);
     });
 
     test('defaults and ios27 are the same look', () {
