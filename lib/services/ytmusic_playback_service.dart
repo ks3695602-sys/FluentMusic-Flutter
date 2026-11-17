@@ -34,7 +34,7 @@ import 'package:musify/services/ytmusic_auth_service.dart';
 /// the default, not an error path.
 class YtMusicPlaybackService {
   YtMusicPlaybackService({InnerTubeClient? client, YtMusicAuthService? authService})
-    : _client = client ?? InnerTubeClient(timeout: const Duration(seconds: 6)),
+    : _client = client ?? InnerTubeClient(timeout: const Duration(seconds: 3)),
       _authService = authService ?? ytMusicAuthService {
     // A new toggle or a fresh session deserves a fresh attempt.
     ytMusicSignedInPlayback.addListener(_resetFailures);

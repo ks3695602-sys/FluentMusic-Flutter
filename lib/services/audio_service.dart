@@ -2237,7 +2237,11 @@ class MusifyAudioHandler extends BaseAudioHandler implements AndroidAutoHost {
 
     if (invalidateCache) await invalidateSongStreamCache(songId);
 
-    final freshUrl = await fetchSongStreamUrl(songId, song['isLive'] ?? false);
+    final freshUrl = await fetchSongStreamUrl(
+      songId,
+      song['isLive'] ?? false,
+      skipSignedIn: true,
+    );
     if (freshUrl == null || freshUrl.isEmpty) return false;
 
     final freshSource = await buildAudioSource(song, freshUrl, false);

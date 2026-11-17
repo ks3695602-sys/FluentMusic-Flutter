@@ -20,6 +20,7 @@
  */
 
 import 'package:musify/services/lyrics/lyrics_models.dart';
+import 'package:musify/utilities/ytmusic_metadata.dart';
 
 const _noise =
     r'official|video|audio|lyric|lyrics|visuali[sz]er|music video|\bmv\b|'
@@ -64,12 +65,20 @@ String cleanTitle(String input) {
 
 /// Returns the primary artist: drops "- Topic"/"VEVO" channel suffixes and
 /// everything after the first comma or "feat.".
+///
+/// Account library rows can carry the item type in the artist field
+/// ("Song", "Single", ...). Those tokens are skipped so lyrics lookups do not
+/// search for a track type as the performer.
 String cleanArtist(String input) {
-  var a = input.split(',').first.trim();
-  a = a.replaceAll(RegExp(r'\s*-\s*topic\s*$', caseSensitive: false), '');
-  a = a.replaceAll(RegExp(r'\s*vevo\s*$', caseSensitive: false), '');
-  a = a.replaceAll(_trailingFeat, '');
-  return a.trim();
+  for (final rawPart in input.split(',')) {
+    var a = rawPart.trim();
+    a = a.replaceAll(RegExp(r'\s*-\s*topic\s*$', caseSensitive: false), '');
+    a = a.replaceAll(RegExp(r'\s*vevo\s*$', caseSensitive: false), '');
+    a = a.replaceAll(_trailingFeat, '');
+    a = a.trim();
+    if (!isJunkArtist(a)) return a;
+  }
+  return '';
 }
 
 const _foldMap = <String, String>{

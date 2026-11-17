@@ -776,7 +776,14 @@ Future<AudioOnlyStreamInfo?> fetchBestAudioStream(String? songId) async {
 }
 
 /// Resolves a playable stream URL for a song (cached when possible).
-Future<String?> fetchSongStreamUrl(String songId, bool isLive) async {
+///
+/// [skipSignedIn] forces the anonymous resolver. Playback retries use it after
+/// a signed-in URL failed so the retry cannot return the same broken stream.
+Future<String?> fetchSongStreamUrl(
+  String songId,
+  bool isLive, {
+  bool skipSignedIn = false,
+}) async {
   try {
     if (songId.isEmpty) {
       logger.log('fetchSongStreamUrl: songId is empty');
@@ -788,22 +795,29 @@ Future<String?> fetchSongStreamUrl(String songId, bool isLive) async {
       return streamInfo;
     }
 
-    // D2: opportunistic signed-in resolution. Returns null unless the user
-    // opted in *and* YouTube handed back a plain audio URL, so the anonymous
-    // path below stays the default. Nothing is cached here either: the URL
-    // cache keeps its existing keys and lifetime.
-    final signedInUrl = await ytMusicPlaybackService.tryResolveStreamUrl(songId);
-    if (signedInUrl != null && signedInUrl.isNotEmpty) {
-      return signedInUrl;
-    }
-
     const _cacheDuration = Duration(hours: 3);
     final cacheKey = 'song_${songId}_${audioQualitySetting.value}_url';
 
-    // Try to get from cache
+    // Fast path first. Account sync and background preloads both resolve
+    // through here, so a cached URL must never wait on the optional signed-in
+    // round trip.
     final cachedUrl = await _getCachedSongUrl(songId, cacheKey, _cacheDuration);
     if (cachedUrl != null) {
       return cachedUrl;
+    }
+
+    if (!skipSignedIn) {
+      // D2: opportunistic signed-in resolution. Returns null unless the user
+      // opted in *and* YouTube handed back a plain audio URL, so the anonymous
+      // path below stays the default. Cache the result: background preloads
+      // then hand it straight to playback instead of resolving it again.
+      final signedInUrl = await ytMusicPlaybackService.tryResolveStreamUrl(
+        songId,
+      );
+      if (signedInUrl != null && signedInUrl.isNotEmpty) {
+        unawaited(addOrUpdateData<String>('cache', cacheKey, signedInUrl));
+        return signedInUrl;
+      }
     }
 
     // Get fresh URL, reusing the stream already resolved for this song.

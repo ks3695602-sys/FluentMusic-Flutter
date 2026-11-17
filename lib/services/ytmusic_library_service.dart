@@ -20,6 +20,7 @@ import 'dart:async';
 
 import 'package:musify/services/innertube_client.dart';
 import 'package:musify/services/ytmusic_auth_service.dart';
+import 'package:musify/utilities/ytmusic_metadata.dart';
 
 /// One account home shelf, e.g. "Listen again", "Speed dial" or
 /// "Forgotten favourites".
@@ -364,7 +365,7 @@ class YtMusicLibraryService {
     ]);
     final image = _thumbnailUrl(renderer);
     final subtitleRuns = _runsOf(renderer['subtitle']);
-    final author = subtitleRuns.isEmpty ? null : subtitleRuns.first;
+    final author = pickArtistFromSubtitles([renderer['subtitle']]);
 
     if (videoId != null && videoId.isNotEmpty) {
       return _songLayout(
@@ -410,7 +411,7 @@ class YtMusicLibraryService {
       'id': 0,
       'ytid': id,
       'title': title,
-      'author': subtitleRuns.isEmpty ? null : subtitleRuns.first,
+      'author': pickArtistFromRuns(subtitleRuns),
       'image': _thumbnailUrl(renderer),
       'source': 'ytmusic',
       'kind': 'playlist',
@@ -430,6 +431,7 @@ class YtMusicLibraryService {
     final columns = renderer['flexColumns'];
     String? title;
     final secondaryRuns = <String>[];
+    final secondaryNodes = <dynamic>[];
 
     if (columns is List) {
       for (var i = 0; i < columns.length; i++) {
@@ -441,9 +443,17 @@ class YtMusicLibraryService {
         if (i == 0) {
           title = _textOf(text);
         } else {
+          secondaryNodes.add(text);
           secondaryRuns.addAll(_runsOf(text));
         }
       }
+    }
+
+    // Some renderers keep the subtitle outside `flexColumns`.
+    final rendererSubtitle = renderer['subtitle'];
+    if (rendererSubtitle != null) {
+      secondaryNodes.add(rendererSubtitle);
+      secondaryRuns.addAll(_runsOf(rendererSubtitle));
     }
 
     title ??= _textOf(renderer['title']);
@@ -452,7 +462,10 @@ class YtMusicLibraryService {
     // Some rows (private uploads, unavailable tracks) have no video id.
     if (videoId == null || videoId.isEmpty) return null;
 
-    final artist = secondaryRuns.isEmpty ? null : secondaryRuns.first;
+    // Account library rows lead with the item type ("Song", "Single", ...),
+    // followed by the real artist. Pick the artist run instead of blindly
+    // taking the first subtitle token.
+    final artist = pickArtistFromSubtitles(secondaryNodes);
 
     return _songLayout(
       videoId: videoId,

@@ -153,6 +153,14 @@ void main() {
       expect(cleanArtist('Simon & Garfunkel'), 'Simon & Garfunkel');
     });
 
+    test('cleanArtist rejects account library item types', () {
+      expect(cleanArtist('Song'), '');
+      expect(cleanArtist('Single'), '');
+      expect(cleanArtist('Album'), '');
+      expect(cleanArtist('Single, The Weeknd'), 'The Weeknd');
+      expect(cleanArtist('Song, Single, Adele'), 'Adele');
+    });
+
     test('slugs fold accents and reject non-Latin text', () {
       expect(lyricsSlug('Beyoncé  Knowles'), 'beyonce-knowles');
       expect(lyricsSlug("Don't Stop!"), 'dont-stop');
@@ -178,6 +186,18 @@ void main() {
             .length,
         1,
       );
+    });
+
+    test('recovers the artist from a dashed title when the field is junk', () {
+      final variants = buildSearchVariants(
+        const TrackInfo(
+          title: 'The Weeknd - Blinding Lights',
+          artist: 'Song',
+        ),
+      );
+      expect(variants, isNotEmpty);
+      expect(variants.first.artist, 'The Weeknd');
+      expect(variants.first.title, 'Blinding Lights');
     });
   });
 
