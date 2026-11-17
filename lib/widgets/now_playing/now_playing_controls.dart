@@ -140,7 +140,8 @@ class NowPlayingControls extends StatelessWidget {
                     iconSize: 24,
                     minSize: 38,
                   ),
-                  GlassPullDownButton(
+                  DarkGlassMenuTheme(
+                    child: GlassPullDownButton(
                     icon: Icon(
                       CupertinoIcons.ellipsis,
                       color: CupertinoColors.white.withValues(alpha: 0.9),
@@ -249,6 +250,7 @@ class NowPlayingControls extends StatelessWidget {
                         ],
                       ),
                     ],
+                  ),
                   ),
                 ],
               ),

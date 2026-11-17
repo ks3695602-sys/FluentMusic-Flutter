@@ -488,7 +488,8 @@ class _MobileLayout extends StatelessWidget {
     final audioId = metadata.extras?['ytid']?.toString();
     final isOffline = isSongAlreadyOffline(audioId);
 
-    return GlassPullDownButton(
+    return DarkGlassMenuTheme(
+      child: GlassPullDownButton(
       icon: const Icon(
         CupertinoIcons.ellipsis,
         color: CupertinoColors.white,
@@ -567,6 +568,7 @@ class _MobileLayout extends StatelessWidget {
           ],
         ),
       ],
+      ),
     );
   }
 

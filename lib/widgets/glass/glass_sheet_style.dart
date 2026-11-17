@@ -54,3 +54,24 @@ Color glassSheetSubtitleColor(BuildContext context, {Brightness? brightness}) {
       ? CupertinoColors.white.withValues(alpha: 0.68)
       : const Color(0xFF636366);
 }
+
+/// Pins text resolution to the dark variant for menus whose glass is forced
+/// dark over artwork.
+///
+/// Menus render in the nearest [OverlayPortal], which keeps this subtree's
+/// inherited themes. Now Playing pins its glass dark even in light mode, so
+/// the Cupertino text theme has to follow; otherwise [GlassMenuItem] resolves
+/// black labels against the dark platter.
+class DarkGlassMenuTheme extends StatelessWidget {
+  const DarkGlassMenuTheme({required this.child, super.key});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return CupertinoTheme(
+      data: CupertinoTheme.of(context).copyWith(brightness: Brightness.dark),
+      child: child,
+    );
+  }
+}

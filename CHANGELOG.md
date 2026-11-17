@@ -7,13 +7,14 @@
 - The segmented control uses the painted sheet variant for its track, indicator and labels, keeping contrast correct in light and dark themes.
 - Player overflow menus are wider, capped at 62% of the screen, and grouped into Playback and Track submenus with short, readable labels.
 - The menu glass now carries an explicit readable tint instead of relying on the clear global iOS 27 tint over bright artwork.
+- Menu labels, icons and dividers follow the same dark variant, so light mode no longer draws black menu text on the dark platter.
 - Synced lyrics add a soft shadow so the active line and its neighbours stay legible on pale artwork.
 
 ### Layout and navigation
 - Home's large title is shorter, reducing the empty band above the hero card on tall status-bar phones.
 - Settings subtitles are shortened to fit the two-line row, so labels no longer truncate mid-word.
 - Mini-player bottom spacing follows the dock: 150 px plus the safe-area inset while a track is loaded, and a compact 88 px when the dock is alone.
-- The floating dock hides while a page-owned text field has the keyboard, leaving the field and results unobstructed.
+- The floating dock hides while a page-owned text field has the keyboard, releasing its reserved height and bottom fade so the field and results use the full viewport.
 - Settings-style subpages keep the dock-aware body layout, with 40 px back buttons and no content hidden behind the bars.
 
 ### Account and Home

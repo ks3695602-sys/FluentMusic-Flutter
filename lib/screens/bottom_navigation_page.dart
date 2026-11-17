@@ -112,6 +112,13 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
 
               final isLight = Theme.of(context).brightness == Brightness.light;
               final glassConfig = GlassConfigScope.of(context).config;
+              // A page-owned text field (rename, search inside a page) owns the
+              // keyboard viewport. Drop the dock entirely so GlassScaffold does
+              // not reserve its 60 px or paint the bottom edge fade behind the
+              // keyboard; searches started from the dock keep it visible.
+              final dockHiddenForKeyboard =
+                  MediaQuery.viewInsetsOf(context).bottom > 0 &&
+                  !_isSearchActive;
 
               return GlassScaffold(
                 contentAwareBrightness: true,
@@ -181,21 +188,13 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
                     ],
                   ),
                 ),
-                bottomBar: !isLargeScreen
+                bottomBar: !isLargeScreen && !dockHiddenForKeyboard
                     ? StreamBuilder<bool>(
                         initialData: audioHandler.mediaItem.value != null,
                         stream: _miniPlayerVisibilityStream,
                         builder: (context, snapshot) {
                           final isMiniPlayerVisible = snapshot.data ?? false;
                           final searchExpanded = _isSearchActive;
-                          final pageKeyboardOpen =
-                              MediaQuery.viewInsetsOf(context).bottom > 0;
-                          if (pageKeyboardOpen && !searchExpanded) {
-                            // A page-owned search/rename field gets the full
-                            // keyboard viewport; reserve dock morph for its
-                            // own search action.
-                            return const SizedBox.shrink();
-                          }
 
                           return GlassTabBar.searchable(
                             isSearchActive: searchExpanded,

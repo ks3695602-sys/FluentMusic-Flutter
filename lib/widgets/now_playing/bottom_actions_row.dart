@@ -77,7 +77,8 @@ class BottomActionsRow extends StatelessWidget {
           ),
 
           // 2. AirPlay / Audio Output Device
-          GlassPullDownButton(
+          DarkGlassMenuTheme(
+            child: GlassPullDownButton(
             icon: const Icon(
               FluentIcons.speaker_2_24_regular,
               size: 20,
@@ -145,6 +146,7 @@ class BottomActionsRow extends StatelessWidget {
                 ),
               ),
             ],
+          ),
           ),
 
           // 3. Queue List Button
