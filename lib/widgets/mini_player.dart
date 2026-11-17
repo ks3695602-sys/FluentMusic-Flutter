@@ -161,66 +161,108 @@ class _MiniPlayerBodyState extends State<_MiniPlayerBody>
   }
 
   /// Compact dock accessory used while the tab bar is scrolled into its
-  /// minimized state. It deliberately paints no glass of its own: it sits on
-  /// the dock's existing glass, so a second surface would just look muddy.
+  /// minimized state. The glass shell stays mounted around this content, so
+  /// the pill never turns into a bare row while the dock slides down.
   Widget _buildInline(BuildContext context) {
     final isDark = GlassTheme.brightnessOf(context) == Brightness.dark;
     final primary = isDark ? CupertinoColors.white : const Color(0xFF1C1C1E);
     final secondary = primary.withValues(alpha: 0.62);
     final playing = widget.state.playbackState.playing;
 
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: _navigateToNowPlaying,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4),
-        child: Row(
-          children: [
-            SongArtworkWidget(
-              metadata: widget.metadata,
-              size: 30,
-              borderRadius: 8,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: Row(
+        children: [
+          SongArtworkWidget(
+            metadata: widget.metadata,
+            size: 32,
+            borderRadius: 8,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.metadata.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -0.1,
+                    color: primary,
+                  ),
+                ),
+                Text(
+                  widget.metadata.artist ?? '',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 10.5, color: secondary),
+                ),
+              ],
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
+          ),
+          CupertinoButton(
+            padding: EdgeInsets.zero,
+            minSize: 30,
+            pressedOpacity: 0.65,
+            onPressed: () =>
+                playing ? audioHandler.pause() : audioHandler.play(),
+            child: Icon(
+              playing ? CupertinoIcons.pause_fill : CupertinoIcons.play_fill,
+              size: 17,
+              color: primary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExpanded({
+    required ColorScheme colorScheme,
+    required MediaItem metadata,
+    required FullPlayerState state,
+    required double progress,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: Row(
+        children: [
+          _ArtworkWidget(metadata: metadata),
+          Expanded(
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              switchInCurve: Curves.easeIn,
+              switchOutCurve: Curves.easeOut,
+              layoutBuilder: (currentChild, previousChildren) => Stack(
+                alignment: Alignment.centerLeft,
                 children: [
-                  Text(
-                    widget.metadata.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: -0.1,
-                      color: primary,
-                    ),
-                  ),
-                  Text(
-                    widget.metadata.artist ?? '',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 10.5, color: secondary),
-                  ),
+                  ...previousChildren,
+                  if (currentChild != null) currentChild,
                 ],
               ),
-            ),
-            CupertinoButton(
-              padding: EdgeInsets.zero,
-              minSize: 30,
-              pressedOpacity: 0.65,
-              onPressed: () =>
-                  playing ? audioHandler.pause() : audioHandler.play(),
-              child: Icon(
-                playing ? CupertinoIcons.pause_fill : CupertinoIcons.play_fill,
-                size: 17,
-                color: primary,
+              transitionBuilder: (child, animation) =>
+                  FadeTransition(opacity: animation, child: child),
+              child: KeyedSubtree(
+                key: ValueKey(metadata.id),
+                child: _MetadataWidget(
+                  title: metadata.title,
+                  artist: metadata.artist,
+                  colorScheme: colorScheme,
+                ),
               ),
             ),
-          ],
-        ),
+          ),
+          _ControlsWidget(
+            colorScheme: colorScheme,
+            playbackState: state.playbackState,
+            hasNext: widget.hasNext,
+            progress: progress,
+          ),
+        ],
       ),
     );
   }
@@ -231,10 +273,9 @@ class _MiniPlayerBodyState extends State<_MiniPlayerBody>
     final metadata = widget.metadata;
     final state = widget.state;
 
-    if (GlassTabBarAccessoryPlacementScope.of(context) ==
-        GlassTabBarAccessoryPlacement.inline) {
-      return _buildInline(context);
-    }
+    final isInline =
+        GlassTabBarAccessoryPlacementScope.of(context) ==
+        GlassTabBarAccessoryPlacement.inline;
 
     final totalDuration = state.position.duration > Duration.zero
         ? state.position.duration
@@ -249,55 +290,54 @@ class _MiniPlayerBodyState extends State<_MiniPlayerBody>
       animation: _scaleAnimation,
       builder: (context, child) {
         return Transform.scale(
-          scale: _scaleAnimation.value,
+          scale: isInline ? 1 : _scaleAnimation.value,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+            padding: EdgeInsets.symmetric(
+              horizontal: isInline ? 0 : 14,
+              vertical: 4,
+            ),
             child: GestureDetector(
-              onTapDown: (_) => _animationController.forward(),
-              onTapUp: (_) => _animationController.reverse(),
-              onTapCancel: () => _animationController.reverse(),
+              onTapDown: isInline
+                  ? null
+                  : (_) => _animationController.forward(),
+              onTapUp: isInline
+                  ? null
+                  : (_) => _animationController.reverse(),
+              onTapCancel: isInline
+                  ? null
+                  : () => _animationController.reverse(),
               onVerticalDragUpdate: _handleVerticalDrag,
               child: GestureDetector(
                 onTap: _navigateToNowPlaying,
                 behavior: HitTestBehavior.opaque,
+                // The shell is deliberately outside the content switcher:
+                // expanded -> inline is a content morph, not a surface morph,
+                // so the glass is never removed for a frame.
                 child: _MiniPlayerGlassShell(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    child: Row(
+                  inline: isInline,
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 220),
+                    switchInCurve: Curves.easeOut,
+                    switchOutCurve: Curves.easeIn,
+                    layoutBuilder: (currentChild, previousChildren) => Stack(
+                      fit: StackFit.expand,
                       children: [
-                        _ArtworkWidget(metadata: metadata),
-                        Expanded(
-                          child: AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 300),
-                            switchInCurve: Curves.easeIn,
-                            switchOutCurve: Curves.easeOut,
-                            layoutBuilder: (currentChild, previousChildren) =>
-                                Stack(
-                                  alignment: Alignment.centerLeft,
-                                  children: [
-                                    ...previousChildren,
-                                    if (currentChild != null) currentChild,
-                                  ],
-                                ),
-                            transitionBuilder: (child, animation) =>
-                                FadeTransition(opacity: animation, child: child),
-                            child: KeyedSubtree(
-                              key: ValueKey(metadata.id),
-                              child: _MetadataWidget(
-                                title: metadata.title,
-                                artist: metadata.artist,
-                                colorScheme: colorScheme,
-                              ),
-                            ),
-                          ),
-                        ),
-                        _ControlsWidget(
-                          colorScheme: colorScheme,
-                          playbackState: state.playbackState,
-                          hasNext: widget.hasNext,
-                          progress: progress,
-                        ),
+                        ...previousChildren,
+                        if (currentChild != null) currentChild,
                       ],
+                    ),
+                    transitionBuilder: (child, animation) =>
+                        FadeTransition(opacity: animation, child: child),
+                    child: KeyedSubtree(
+                      key: ValueKey(isInline),
+                      child: isInline
+                          ? _buildInline(context)
+                          : _buildExpanded(
+                              colorScheme: colorScheme,
+                              metadata: metadata,
+                              state: state,
+                              progress: progress,
+                            ),
                     ),
                   ),
                 ),
@@ -317,9 +357,14 @@ class _MiniPlayerBodyState extends State<_MiniPlayerBody>
 /// dock settings, but the tint alpha is floored: the Lab allows 0.00, which
 /// used to leave the title floating on naked artwork.
 class _MiniPlayerGlassShell extends StatelessWidget {
-  const _MiniPlayerGlassShell({required this.child});
+  const _MiniPlayerGlassShell({required this.child, this.inline = false});
 
   final Widget child;
+
+  /// Whether the pill is docked beside the minimized tab bar. Inline pills sit
+  /// on the dock's own glass, so they use a tighter radius, a shallower shadow
+  /// and a lower tint floor than the floating expanded capsule.
+  final bool inline;
 
   @override
   Widget build(BuildContext context) {
@@ -329,21 +374,29 @@ class _MiniPlayerGlassShell extends StatelessWidget {
 
     // Keep the pill genuinely clear. The old code forced 42-88% opacity
     // whenever the Lab tint was low, which turned the accessory into a grey
-    // slab and hid the artwork refraction the dock was showing.
+    // slab and hid the artwork refraction the dock was showing. Inline pills
+    // can go lighter still because the dock's glass sits directly underneath.
+    final tintFloor = inline
+        ? (isDark ? 0.06 : 0.08)
+        : (isDark ? 0.10 : 0.12);
+    final tintCeiling = inline ? 0.26 : 0.30;
     final tint = configured.a < 0.06
-        ? configured.withValues(alpha: isDark ? 0.10 : 0.12)
-        : configured.withValues(alpha: configured.a.clamp(0.06, 0.30));
+        ? configured.withValues(alpha: tintFloor)
+        : configured.withValues(alpha: configured.a.clamp(0.04, tintCeiling));
 
     final settings = base.copyWith(glassColor: tint);
+    final radius = inline ? 24.0 : MiniPlayer._borderRadius;
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(MiniPlayer._borderRadius),
+        borderRadius: BorderRadius.circular(radius),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.26 : 0.08),
-            blurRadius: 16,
-            offset: const Offset(0, 5),
+            color: Colors.black.withValues(
+              alpha: inline ? (isDark ? 0.16 : 0.05) : (isDark ? 0.26 : 0.08),
+            ),
+            blurRadius: inline ? 10 : 16,
+            offset: Offset(0, inline ? 2 : 5),
           ),
         ],
       ),
@@ -351,9 +404,7 @@ class _MiniPlayerGlassShell extends StatelessWidget {
         height: MiniPlayer.playerHeight,
         width: double.infinity,
         child: AdaptiveGlass(
-          shape: LiquidRoundedSuperellipse(
-            borderRadius: MiniPlayer._borderRadius,
-          ),
+          shape: LiquidRoundedSuperellipse(borderRadius: radius),
           settings: settings,
           // Match the dock's tier instead of hardcoding standard: the Lab's
           // quality selector now controls every glass surface in the app.
@@ -361,7 +412,7 @@ class _MiniPlayerGlassShell extends StatelessWidget {
           useOwnLayer: true,
           clipBehavior: Clip.antiAlias,
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(MiniPlayer._borderRadius),
+            borderRadius: BorderRadius.circular(radius),
             child: child,
           ),
         ),

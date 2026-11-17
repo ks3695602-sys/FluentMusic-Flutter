@@ -69,56 +69,56 @@ class GlassLabPage extends StatelessWidget {
             children: [
               GlassListTile(
                 leading: const Icon(
-                  CupertinoIcons.sparkles,
-                  color: Color(0xFF0A84FF),
-                ),
-                title: Text(
-                  'iOS 27',
-                  style: TextStyle(
-                    color: titleColor,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                subtitle: Text(
-                  'Clear glass, soft frost, zero rainbow fringes',
-                  style: TextStyle(color: subtitleColor, fontSize: 12.5),
-                ),
-                trailing: config == GlassConfig.ios27
-                    ? const Icon(
-                        CupertinoIcons.checkmark_circle_fill,
-                        color: Color(0xFF0A84FF),
-                      )
-                    : null,
-                onTap: () {
-                  controller.applyIos27();
-                  showToast(context, 'iOS 27 glass applied ✨');
-                },
-              ),
-              GlassListTile(
-                leading: const Icon(
                   CupertinoIcons.drop_fill,
                   color: Color(0xFF30D158),
                 ),
                 title: Text(
-                  'Clear Lens',
+                  'Clear Glass',
                   style: TextStyle(
                     color: titleColor,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 subtitle: Text(
-                  'Zero frost, deepest bend, strong edge rim',
+                  'Refraction Friendly · zero frost, razor-clear lens',
                   style: TextStyle(color: subtitleColor, fontSize: 12.5),
                 ),
-                trailing: config == GlassConfig.clearLens
+                trailing: config == GlassConfig.clearGlass
                     ? const Icon(
                         CupertinoIcons.checkmark_circle_fill,
                         color: Color(0xFF30D158),
                       )
                     : null,
                 onTap: () {
-                  controller.applyClearLens();
-                  showToast(context, 'Clear Lens applied 💧');
+                  controller.applyClearGlass();
+                  showToast(context, 'Clear Glass applied 💧');
+                },
+              ),
+              GlassListTile(
+                leading: const Icon(
+                  CupertinoIcons.sparkles,
+                  color: Color(0xFF0A84FF),
+                ),
+                title: Text(
+                  'Balanced Glass',
+                  style: TextStyle(
+                    color: titleColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                subtitle: Text(
+                  'Default · soft frost, balanced clarity',
+                  style: TextStyle(color: subtitleColor, fontSize: 12.5),
+                ),
+                trailing: config == GlassConfig.balancedGlass
+                    ? const Icon(
+                        CupertinoIcons.checkmark_circle_fill,
+                        color: Color(0xFF0A84FF),
+                      )
+                    : null,
+                onTap: () {
+                  controller.applyBalancedGlass();
+                  showToast(context, 'Balanced Glass applied ✨');
                 },
               ),
               GlassListTile(
@@ -127,52 +127,25 @@ class GlassLabPage extends StatelessWidget {
                   color: Color(0xFFFF9F0A),
                 ),
                 title: Text(
-                  'Soft Frost',
+                  'Frosted',
                   style: TextStyle(
                     color: titleColor,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 subtitle: Text(
-                  'Milky diffusion for light pages and busy artwork',
+                  'Visibility at Its Peak · maximum legibility',
                   style: TextStyle(color: subtitleColor, fontSize: 12.5),
                 ),
-                trailing: config == GlassConfig.softFrost
+                trailing: config == GlassConfig.frostedGlass
                     ? const Icon(
                         CupertinoIcons.checkmark_circle_fill,
                         color: Color(0xFFFF9F0A),
                       )
                     : null,
                 onTap: () {
-                  controller.applySoftFrost();
-                  showToast(context, 'Soft Frost applied ☁️');
-                },
-              ),
-              GlassListTile(
-                leading: const Icon(
-                  CupertinoIcons.arrow_counterclockwise,
-                  color: Color(0xFFBF5AF2),
-                ),
-                title: Text(
-                  'Classic',
-                  style: TextStyle(
-                    color: titleColor,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                subtitle: Text(
-                  'Tinted glass with the old dispersion fringes',
-                  style: TextStyle(color: subtitleColor, fontSize: 12.5),
-                ),
-                trailing: config == GlassConfig.classic
-                    ? const Icon(
-                        CupertinoIcons.checkmark_circle_fill,
-                        color: Color(0xFFBF5AF2),
-                      )
-                    : null,
-                onTap: () {
-                  controller.applyClassic();
-                  showToast(context, 'Classic glass restored 🕰️');
+                  controller.applyFrostedGlass();
+                  showToast(context, 'Frosted Glass applied ☁️');
                 },
               ),
             ],

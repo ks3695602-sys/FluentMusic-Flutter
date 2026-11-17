@@ -42,6 +42,53 @@ class GlassConfigController extends ChangeNotifier {
   /// Hive key holding the exported JSON map.
   static const String storageKey = 'glassConfig';
 
+  /// Hive key recording which preset vocabulary the saved config uses.
+  ///
+  /// Version 1 is the retired iOS 27 / Clear Lens / Soft Frost / Classic set;
+  /// version 2 is Clear Glass / Balanced Glass / Frosted.
+  static const String schemaKey = 'glassConfigSchema';
+  static const int schemaVersion = 2;
+
+  /// Retired built-in presets. Kept privately so an upgrade can move a stored
+  /// built-in look onto its closest replacement without resurrecting the old
+  /// names in the Lab.
+  static const GlassConfig _legacyIos27 = GlassConfig(
+    chromaticAberration: 0.12,
+    tint: 0.00,
+    refraction: 1.35,
+    thickness: 56,
+    frost: 2,
+    blur: 9,
+    saturation: 1.6,
+  );
+  static const GlassConfig _legacyClearLens = GlassConfig(
+    chromaticAberration: 0.20,
+    tint: 0.00,
+    refraction: 1.45,
+    thickness: 60,
+    frost: 0,
+    blur: 10,
+    saturation: 1.7,
+  );
+  static const GlassConfig _legacySoftFrost = GlassConfig(
+    chromaticAberration: 0.06,
+    tint: 0.06,
+    refraction: 1.22,
+    thickness: 38,
+    frost: 12,
+    blur: 7,
+    saturation: 1.3,
+  );
+  static const GlassConfig _legacyClassic = GlassConfig(
+    chromaticAberration: 0.30,
+    tint: 0.24,
+    refraction: 1.20,
+    thickness: 30,
+    frost: 0,
+    blur: 3.5,
+    saturation: 0.7,
+  );
+
   GlassConfig _config;
   bool _loaded = false;
 
@@ -115,17 +162,14 @@ class GlassConfigController extends ChangeNotifier {
   void setDynamicTint(bool value) =>
       update(_config.copyWith(dynamicTint: value));
 
-  /// Applies the primary iOS 27 clear-lens preset.
-  void applyIos27() => update(GlassConfig.ios27);
+  /// Applies the Clear Glass (Refraction Friendly) preset.
+  void applyClearGlass() => update(GlassConfig.clearGlass);
 
-  /// Applies the maximum-clarity lens preset.
-  void applyClearLens() => update(GlassConfig.clearLens);
+  /// Applies the Balanced Glass (Default) preset.
+  void applyBalancedGlass() => update(GlassConfig.balancedGlass);
 
-  /// Applies the soft milky-glass preset.
-  void applySoftFrost() => update(GlassConfig.softFrost);
-
-  /// Applies the classic dispersion-heavy preset.
-  void applyClassic() => update(GlassConfig.classic);
+  /// Applies the Frosted (Visibility at Its Peak) preset.
+  void applyFrostedGlass() => update(GlassConfig.frostedGlass);
 
   /// Pass `null` to restore the package capsule radius.
   void setBarRadius(double? value) =>
@@ -135,7 +179,7 @@ class GlassConfigController extends ChangeNotifier {
   void setIndicatorRadius(double? value) =>
       update(_config.copyWith(indicatorRadius: value));
 
-  /// Restores the iOS 27 calibrated defaults.
+  /// Restores the Balanced Glass (Default) preset.
   void reset() => update(GlassConfig.defaults);
 
   /// Pretty JSON for the Lab "copy" action.
@@ -167,16 +211,44 @@ class GlassConfigController extends ChangeNotifier {
     _loaded = true;
     try {
       if (!Hive.isBoxOpen(boxName)) return;
-      final stored = Hive.box(boxName).get(storageKey);
+      final box = Hive.box(boxName);
+      final storedSchema = box.get(schemaKey);
+      var needsWrite = false;
+
+      final stored = box.get(storageKey);
       if (stored is Map) {
         _config = GlassConfig.fromJson(stored);
       } else if (stored is String) {
         _config = GlassConfig.fromJsonString(stored);
       }
+
+      // Only migrate configurations written by the retired preset set. A
+      // custom tuning survives untouched, which is why this is gated on the
+      // schema key instead of comparing every load.
+      if (storedSchema is! int || storedSchema < schemaVersion) {
+        final migrated = _migrateLegacyPreset(_config);
+        if (migrated != _config) {
+          _config = migrated;
+          needsWrite = true;
+        }
+        unawaited(box.put(schemaKey, schemaVersion));
+      }
+
+      if (needsWrite) unawaited(_persist());
     } catch (error, stackTrace) {
       debugPrint('GlassConfigController: failed to load config: $error');
       debugPrint('$stackTrace');
     }
+  }
+
+  /// Maps a retired built-in look onto its closest new preset.
+  static GlassConfig _migrateLegacyPreset(GlassConfig config) {
+    if (config == _legacyIos27) return GlassConfig.balancedGlass;
+    if (config == _legacyClearLens) return GlassConfig.clearGlass;
+    if (config == _legacySoftFrost || config == _legacyClassic) {
+      return GlassConfig.frostedGlass;
+    }
+    return config;
   }
 
   Future<void> _persist() async {

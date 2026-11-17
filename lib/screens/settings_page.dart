@@ -64,7 +64,7 @@ class SettingsPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  'FluentMusic 1.5.3 · iOS 27 glass edition',
+                  'FluentMusic 1.5.3 · Balanced Glass edition',
                   style: TextStyle(
                     fontSize: 13,
                     color: subtitleColor,

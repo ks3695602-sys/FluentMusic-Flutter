@@ -21,9 +21,9 @@ Brightness resolveSheetBrightness(BuildContext context, [Brightness? override]) 
 
 /// Explicit glass material for modal sheets.
 ///
-/// The app's global tint is intentionally clear on iOS 27, which makes a sheet
-/// almost invisible over bright artwork. Sheets are the one surface that needs
-/// its own readable film, so they get a fixed light/dark tint here.
+/// The app's global tint is intentionally near-clear by default, which makes a
+/// sheet almost invisible over bright artwork. Sheets are the one surface that
+/// needs its own readable film, so they get a fixed light/dark tint here.
 LiquidGlassSettings glassSheetSettings(
   BuildContext context, {
   Brightness? brightness,

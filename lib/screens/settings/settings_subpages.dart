@@ -329,7 +329,7 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
                   style: TextStyle(color: titleColor),
                 ),
                 subtitle: Text(
-                  'iOS 27 preset, 7 optics sliders, glass + dock colours',
+                  'Clear, Balanced & Frosted presets, plus optics sliders',
                   style: TextStyle(color: subtitleColor, fontSize: 12),
                 ),
                 trailing: Icon(

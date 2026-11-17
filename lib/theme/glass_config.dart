@@ -36,18 +36,22 @@ const Object _unset = Object();
 /// happens in [clamped] so a malformed import can never push the shader into
 /// an invalid state.
 class GlassConfig {
-  /// Creates a glass configuration.
+  /// Creates a glass configuration seeded with the Balanced preset values.
+  ///
+  /// These constructor defaults are the app's shipping look, so a config
+  /// decoded without a full field set can never fall back to a preset that no
+  /// longer exists.
   const GlassConfig({
     this.pinchStrength = 0.40,
     this.expansionH = 12,
     this.expansionV = 8,
-    this.chromaticAberration = 0.12,
+    this.chromaticAberration = 0.03,
     this.tint = 0.00,
-    this.refraction = 1.35,
-    this.thickness = 56.0,
-    this.frost = 2.0,
-    this.blur = 9.0,
-    this.saturation = 1.6,
+    this.refraction = 1.20,
+    this.thickness = 60.0,
+    this.frost = 0.4,
+    this.blur = 5.7,
+    this.saturation = 1.7,
     this.tintColor = 0xFFFFFFFF,
     this.dockTintColor,
     this.dockTint,
@@ -56,49 +60,37 @@ class GlassConfig {
     this.indicatorRadius,
   });
 
-  /// iOS 27 calibrated defaults: a clear lens with a thin rim, heavy blur and
-  /// almost no frost. `null` radius means "let the package decide" (capsule
-  /// bar, automatic indicator radius).
-  static const GlassConfig defaults = GlassConfig();
-
-  /// Maximum-clarity lens for dark, artwork-heavy pages. No frost, the
-  /// deepest refraction the shader supports, and a visible edge fringe.
-  static const GlassConfig clearLens = GlassConfig(
-    chromaticAberration: 0.20,
+  /// Clear Glass: zero frost, the shallowest blur and a razor-clear lens.
+  /// Best on dark, artwork-heavy pages where the backdrop should stay legible.
+  static const GlassConfig clearGlass = GlassConfig(
+    chromaticAberration: 0.03,
     tint: 0.00,
-    refraction: 1.45,
+    refraction: 1.20,
     thickness: 60,
-    frost: 0,
-    blur: 10,
+    frost: 0.0,
+    blur: 1.9,
     saturation: 1.7,
   );
 
-  /// Soft milky glass for light pages where contrast matters more than
-  /// refraction.
-  static const GlassConfig softFrost = GlassConfig(
-    chromaticAberration: 0.06,
-    tint: 0.06,
-    refraction: 1.22,
-    thickness: 38,
-    frost: 12,
-    blur: 7,
-    saturation: 1.3,
-  );
+  /// Balanced Glass (Default): a little frost and blur for legibility without
+  /// losing the refraction that makes the dock read as a lens.
+  static const GlassConfig balancedGlass = GlassConfig();
 
-  /// The original `v1.x` look: no frost, muted colours and visible rainbow
-  /// fringes. Kept as a one-tap comparison preset in the Glass Lab.
-  static const GlassConfig classic = GlassConfig(
-    chromaticAberration: 0.30,
-    tint: 0.24,
+  /// Frosted: maximum visibility on bright or busy artwork. The heavier frost,
+  /// stronger fringe and full blur make labels readable first, glassy second.
+  static const GlassConfig frostedGlass = GlassConfig(
+    chromaticAberration: 0.28,
+    tint: 0.01,
     refraction: 1.20,
-    thickness: 30,
-    frost: 0,
-    blur: 3.5,
-    saturation: 0.7,
+    thickness: 60,
+    frost: 13.5,
+    blur: 10.0,
+    saturation: 1.7,
   );
 
-  /// Explicit alias for the primary iOS 27 look.
-  static const GlassConfig ios27 = GlassConfig();
+  /// Shipping default. Balanced wins on real devices: readable over pale
+  /// artwork while keeping the lens visible.
+  static const GlassConfig defaults = balancedGlass;
 
   /// Minimum/maximum accepted values (also used by the Lab sliders).
   static const double pinchStrengthMin = 0.0;
