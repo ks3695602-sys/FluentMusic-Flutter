@@ -58,9 +58,17 @@ class _SyncedLyricsViewState extends State<SyncedLyricsView>
     _offset = Duration(milliseconds: lyricsOffsetMs.value);
     lyricsOffsetMs.addListener(_onOffsetChanged);
     final applePreset = LyricPresets.appleMusic;
+    // The player sits on bright, blurred artwork. A soft drop shadow keeps
+    // both the active line and its neighbours legible without boxing the
+    // lyrics in another surface.
+    const lyricShadows = <Shadow>[
+      Shadow(color: Color(0x66000000), blurRadius: 14, offset: Offset(0, 2)),
+    ];
     _lyricPreset = applePreset.copyWith(
+      textStyle: applePreset.textStyle.copyWith(shadows: lyricShadows),
       activeTextStyle: applePreset.activeTextStyle.copyWith(
         fontSize: (applePreset.textStyle.fontSize ?? 32) * 1.06,
+        shadows: lyricShadows,
       ),
     );
     _controller = LyricController();

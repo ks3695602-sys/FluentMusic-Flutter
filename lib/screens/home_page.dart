@@ -562,7 +562,9 @@ class _HomeHeaderDelegate extends SliverPersistentHeaderDelegate {
   final Color iconBorderColor;
   final VoidCallback onProfileTap;
 
-  static const double _maxExtent = 108;
+  // Keep the large title close to the hero card. The old 108 px header left a
+  // blank band above the title on every tunnel/punch-hole Android phone.
+  static const double _maxExtent = 88;
   static const double _minExtent = 56;
 
   @override
@@ -580,7 +582,7 @@ class _HomeHeaderDelegate extends SliverPersistentHeaderDelegate {
     final t = (shrinkOffset / (_maxExtent - _minExtent)).clamp(0.0, 1.0);
     final titleColor = isDark ? CupertinoColors.white : const Color(0xFF1C1C1E);
     final surface = isDark ? const Color(0xFF120D1A) : const Color(0xFFF7F7FA);
-    final titleSize = ui.lerpDouble(32, 19, t)!;
+    final titleSize = ui.lerpDouble(30, 19, t)!;
     final titleWeight = t > 0.55 ? FontWeight.w700 : FontWeight.w800;
 
     final content = Container(
@@ -591,7 +593,7 @@ class _HomeHeaderDelegate extends SliverPersistentHeaderDelegate {
           Align(
             alignment: Alignment.bottomLeft,
             child: Padding(
-              padding: const EdgeInsets.only(bottom: 14),
+              padding: const EdgeInsets.only(bottom: 12),
               child: Text(
                 'Listen Now',
                 style: TextStyle(

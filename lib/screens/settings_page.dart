@@ -80,14 +80,14 @@ class SettingsPage extends StatelessWidget {
             children: [
               _SettingsTile(
                 title: 'Account',
-                subtitle: 'Optional sign-in for playlist and library sync',
+                subtitle: 'Optional sign-in for library sync',
                 icon: CupertinoIcons.person_fill,
                 tint: const Color(0xFFFF453A),
                 onTap: () => open(const AccountSettingsPage()),
               ),
               _SettingsTile(
                 title: 'Listening Stats',
-                subtitle: 'Top songs, artists and playback history',
+                subtitle: 'Top songs, artists and history',
                 icon: CupertinoIcons.chart_bar_fill,
                 tint: const Color(0xFFFF9F0A),
                 onTap: () => open(const ListeningStatsSettingsPage()),
@@ -100,14 +100,14 @@ class SettingsPage extends StatelessWidget {
             children: [
               _SettingsTile(
                 title: 'Appearance',
-                subtitle: 'Themes, layout and the Glass Lab tuner',
+                subtitle: 'Themes, layout and Glass Lab',
                 icon: CupertinoIcons.paintbrush_fill,
                 tint: const Color(0xFFBF5AF2),
                 onTap: () => open(const AppearanceSettingsPage()),
               ),
               _SettingsTile(
                 title: 'Playback',
-                subtitle: 'Audio behaviour, crossfade and background play',
+                subtitle: 'Crossfade and background play',
                 icon: CupertinoIcons.music_note_2,
                 tint: const Color(0xFF0A84FF),
                 onTap: () => open(const PlaybackSettingsPage()),
@@ -134,21 +134,21 @@ class SettingsPage extends StatelessWidget {
             children: [
               _SettingsTile(
                 title: 'Content',
-                subtitle: 'Language, country and recommendations',
+                subtitle: 'Language, country, recommendations',
                 icon: CupertinoIcons.globe,
                 tint: const Color(0xFF32D74B),
                 onTap: () => open(const ContentSettingsPage()),
               ),
               _SettingsTile(
                 title: 'Behaviour',
-                subtitle: 'History, defaults and privacy behaviour',
+                subtitle: 'History, defaults and privacy',
                 icon: CupertinoIcons.slider_horizontal_3,
                 tint: const Color(0xFFEAB308),
                 onTap: () => open(const BehaviorSettingsPage()),
               ),
               _SettingsTile(
                 title: 'Android Auto',
-                subtitle: 'Driving playback, browsing and data use',
+                subtitle: 'Driving playback and data use',
                 icon: CupertinoIcons.car_fill,
                 tint: const Color(0xFF30D158),
                 onTap: () => open(const AndroidAutoSettingsPage()),

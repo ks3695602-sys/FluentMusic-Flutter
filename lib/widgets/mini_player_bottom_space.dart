@@ -20,25 +20,48 @@
  */
 
 import 'package:flutter/cupertino.dart';
+import 'package:musify/main.dart' show audioHandler;
 
-/// Adds comfortable scrollable space for the floating mini player and bottom dock.
+/// Reserves room only when the dock actually carries its mini-player
+/// accessory. The safe-area inset is added explicitly because the dock floats
+/// over the page body instead of shrinking it.
 class MiniPlayerBottomSpace extends StatelessWidget {
   const MiniPlayerBottomSpace({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const SizedBox(height: 150);
+    return StreamBuilder(
+      stream: audioHandler.mediaItem,
+      initialData: audioHandler.mediaItem.value,
+      builder: (context, snapshot) => SizedBox(
+        height: _bottomSpace(context, snapshot.data != null),
+      ),
+    );
   }
 }
 
-/// Adds comfortable sliver scrollable space for the floating mini player and bottom dock.
+/// Sliver equivalent of [MiniPlayerBottomSpace].
 class SliverMiniPlayerBottomSpace extends StatelessWidget {
   const SliverMiniPlayerBottomSpace({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const SliverToBoxAdapter(
-      child: SizedBox(height: 150),
+    return SliverToBoxAdapter(
+      child: StreamBuilder(
+        stream: audioHandler.mediaItem,
+        initialData: audioHandler.mediaItem.value,
+        builder: (context, snapshot) => SizedBox(
+          height: _bottomSpace(context, snapshot.data != null),
+        ),
+      ),
     );
   }
+}
+
+double _bottomSpace(BuildContext context, bool hasMiniPlayer) {
+  final safeBottom = MediaQuery.paddingOf(context).bottom;
+  // Dock only (64 px bar + 16 px padding) without a track, dock plus the
+  // 64 px accessory strip with one. Both leave a small visual gap above the
+  // floating glass so the last row never touches it.
+  return (hasMiniPlayer ? 150.0 : 88.0) + safeBottom;
 }

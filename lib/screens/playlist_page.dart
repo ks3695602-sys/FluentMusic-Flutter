@@ -44,6 +44,7 @@ import 'package:musify/utilities/playlist_utils.dart';
 import 'package:musify/utilities/song_filtering.dart';
 import 'package:musify/utilities/sort_utils.dart';
 import 'package:musify/widgets/edit_playlist_dialog.dart';
+import 'package:musify/widgets/glass/glass_sheet_style.dart';
 import 'package:musify/widgets/mini_player_bottom_space.dart';
 import 'package:musify/widgets/playlist_hero_artwork.dart';
 import 'package:musify/widgets/playlist_page/add_songs_sheet.dart';
@@ -251,7 +252,9 @@ class _PlaylistPageState extends State<PlaylistPage> {
                           semanticLabel: 'Playlist options',
                           buttonWidth: 44,
                           buttonHeight: 44,
-                          menuWidth: 248,
+                          menuWidth: 300,
+                          maxStackHeight: MediaQuery.sizeOf(context).height * 0.62,
+                          settings: glassSheetSettings(context),
                           items: [
                             const GlassMenuLabel(title: 'Playlist'),
                             if (widget.playlistId != null &&
@@ -266,8 +269,8 @@ class _PlaylistPageState extends State<PlaylistPage> {
                                 subtitle: isPlaylistAlreadyLiked(
                                   _resolvedPlaylistId ?? '',
                                 )
-                                    ? 'Tap to un-heart the whole thing'
-                                    : 'Heart it, no emotional damage',
+                                    ? 'Tap to unlike this playlist'
+                                    : 'Save to your library',
                                 icon: Icon(
                                   isPlaylistAlreadyLiked(
                                     _resolvedPlaylistId ?? '',
@@ -333,7 +336,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
                                       ))
                                     GlassMenuItem(
                                       title: 'Remove Offline Copy',
-                                      subtitle: 'Free up storage, lose no playlists',
+                                      subtitle: 'Frees storage on this device',
                                       icon: const Icon(
                                         CupertinoIcons.trash,
                                       ),

@@ -31,6 +31,7 @@ import 'package:musify/utilities/flutter_bottom_sheet.dart';
 import 'package:musify/utilities/flutter_toast.dart';
 import 'package:musify/utilities/mediaitem.dart';
 import 'package:musify/utilities/playlist_dialogs.dart';
+import 'package:musify/widgets/glass/glass_sheet_style.dart';
 import 'package:musify/widgets/queue_list_view.dart';
 
 class BottomActionsRow extends StatelessWidget {
@@ -85,12 +86,14 @@ class BottomActionsRow extends StatelessWidget {
             semanticLabel: 'Audio output',
             buttonWidth: 44,
             buttonHeight: 44,
-            menuWidth: 240,
+            menuWidth: 300,
+            maxStackHeight: MediaQuery.sizeOf(context).height * 0.62,
+            settings: glassSheetSettings(context, brightness: Brightness.dark),
             items: [
               const GlassMenuLabel(title: 'Audio output'),
               GlassMenuItem(
                 title: 'System Default Output',
-                subtitle: 'Playback follows your device audio route',
+                subtitle: 'Follows device audio route',
                 icon: const Icon(CupertinoIcons.speaker_2_fill),
                 isSelected: true,
                 semanticsSelected: true,
@@ -102,13 +105,13 @@ class BottomActionsRow extends StatelessWidget {
               ),
               GlassMenuItem(
                 title: 'Audio Quality',
-                subtitle: 'Streamed as provided; no resampling claim',
+                subtitle: 'Source stream, unchanged',
                 icon: const Icon(CupertinoIcons.music_note),
                 onTap: () {},
                 submenu: [
                   GlassMenuItem(
                     title: 'Source Audio',
-                    subtitle: 'Whatever the stream ships, untouched',
+                    subtitle: 'Unmodified source stream',
                     icon: const Icon(CupertinoIcons.waveform),
                     isSelected: true,
                     semanticsSelected: true,
@@ -120,7 +123,7 @@ class BottomActionsRow extends StatelessWidget {
                   ),
                   GlassMenuItem(
                     title: 'No Upscaling',
-                    subtitle: 'We never pretend 128 kbps is hi-res audio',
+                    subtitle: 'Played at source quality',
                     icon: const Icon(CupertinoIcons.info_circle),
                     onTap: () => showToast(
                       context,
@@ -133,7 +136,7 @@ class BottomActionsRow extends StatelessWidget {
               const GlassMenuDivider(),
               GlassMenuItem(
                 title: 'Connection Info',
-                subtitle: 'Output switching follows the OS, not the app',
+                subtitle: 'Set by system audio route',
                 icon: const Icon(CupertinoIcons.antenna_radiowaves_left_right),
                 onTap: () => showToast(
                   context,

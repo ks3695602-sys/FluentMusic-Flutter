@@ -498,7 +498,8 @@ class _MobileLayout extends StatelessWidget {
       buttonWidth: 36,
       buttonHeight: 36,
       menuWidth: 300,
-      maxStackHeight: 520,
+      maxStackHeight: MediaQuery.sizeOf(context).height * 0.62,
+      settings: glassSheetSettings(context, brightness: Brightness.dark),
       items: [
         const GlassMenuLabel(title: 'Now playing'),
         GlassMenuItem(
@@ -510,10 +511,10 @@ class _MobileLayout extends StatelessWidget {
           ),
         ),
         GlassMenuItem(
-          title: isOffline ? 'Saved for Offline' : 'Download for Offline',
+          title: isOffline ? 'Downloaded' : 'Save Offline',
           subtitle: isOffline
-              ? 'Already on this device — no data needed'
-              : 'Keep it local, dodge the buffering',
+              ? 'On this device'
+              : 'Available without data',
           icon: Icon(
             isOffline
                 ? CupertinoIcons.check_mark_circled_solid
@@ -542,7 +543,7 @@ class _MobileLayout extends StatelessWidget {
         const GlassMenuDivider(),
         GlassMenuItem(
           title: 'Playback',
-          subtitle: 'Timer, lyric sync and speed',
+          subtitle: 'Timer, lyrics & speed',
           icon: const Icon(CupertinoIcons.slider_horizontal_3),
           onTap: () {},
           submenu: [
@@ -553,13 +554,13 @@ class _MobileLayout extends StatelessWidget {
             ),
             GlassMenuItem(
               title: 'Lyrics Timing',
-              subtitle: 'Nudge karaoke lines ±250 ms',
+              subtitle: 'Offset lines by ±250 ms',
               icon: const Icon(CupertinoIcons.music_note_list),
               onTap: () => _showLyricsOffsetSheet(context),
             ),
             GlassMenuItem(
               title: 'Speed & Pitch',
-              subtitle: 'Nightcore mode lives here',
+              subtitle: 'Change speed and pitch',
               icon: const Icon(CupertinoIcons.speedometer),
               onTap: () => _showPlaybackSpeedSheet(context),
             ),
@@ -732,9 +733,10 @@ class _MobileLayout extends StatelessWidget {
 
     return GlassModalSheet.show<void>(
       context: context,
-      // A taller glass stop instead of the opaque `large` detent: the panel
-      // needs room for three presets rows but should still read as glass.
-      detents: const {GlassSheetDetent.medium},
+      // This panel includes two sliders, presets and a footer. Start expanded
+      // so Done is immediately visible instead of below the medium detent.
+      initialState: GlassSheetState.full,
+      detents: const {GlassSheetDetent.medium, GlassSheetDetent.large},
       halfSize: 0.68,
       settings: glassSheetSettings(context, brightness: brightness),
       builder: (sheetContext) => StatefulBuilder(
@@ -758,120 +760,133 @@ class _MobileLayout extends StatelessWidget {
             data: parentTheme.copyWith(brightness: brightness),
             child: SafeArea(
               top: false,
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
-                child: GlassControlPanel(
-                  title: 'Speed & Pitch',
-                  subtitle:
-                      'Applied live. Tap a value badge to reset that control.',
-                  children: [
-                    GlassSegmentedControl(
-                      segments: const [
-                        GlassSegment(label: 'Speed'),
-                        GlassSegment(label: 'Pitch'),
-                        GlassSegment(label: 'Both'),
-                      ],
-                      selectedIndex: mode,
-                      activeSelectedColor: const Color(0xFF0A84FF),
-                      selectedTextStyle: const TextStyle(
-                        color: CupertinoColors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      unselectedTextStyle: TextStyle(
-                        color: controlColors.subtitle,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      onSegmentSelected: (index) {
-                        setSheetState(() => mode = index);
-                      },
-                    ),
-                    const SizedBox(height: 18),
-                    if (mode != 1)
-                      GlassControlSlider(
-                        label: 'Speed',
-                        valueLabel: '${speed.toStringAsFixed(2)}x',
-                        value: speed,
-                        min: 0.5,
-                        max: 2.0,
-                        divisions: 30,
-                        accent: const Color(0xFF0A84FF),
-                        onChanged: (value) {
-                          setSheetState(() => speed = value);
-                          unawaited(audioHandler.setSpeed(value));
-                        },
-                        onReset: () => applyFromSheet(1.0, pitch),
-                      ),
-                    if (mode != 0)
-                      GlassControlSlider(
-                        label: 'Pitch',
-                        valueLabel: pitch.toStringAsFixed(2),
-                        value: pitch,
-                        min: 0.5,
-                        max: 2.0,
-                        divisions: 150,
-                        accent: const Color(0xFFFF9500),
-                        onChanged: (value) {
-                          setSheetState(() => pitch = value);
-                          unawaited(audioHandler.setPitch(value));
-                        },
-                        onReset: () => applyFromSheet(speed, 1.0),
-                      ),
-                    const SizedBox(height: 4),
-                    GlassControlPresets(
-                      presets: const [
-                        'Normal',
-                        '1.25x',
-                        '1.50x',
-                        '0.85x',
-                        'Nightcore',
-                        'Reset all',
-                      ],
-                      onSelected: (label) {
-                        if (label == '1.25x') {
-                          applyFromSheet(1.25, 1.0);
-                        } else if (label == '1.50x') {
-                          applyFromSheet(1.5, 1.0);
-                        } else if (label == '0.85x') {
-                          applyFromSheet(0.85, 0.85);
-                        } else if (label == 'Nightcore') {
-                          applyFromSheet(1.3, 1.3);
-                        } else {
-                          applyFromSheet(1.0, 1.0);
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 14),
-                    Text(
-                      'Speed and pitch stay applied while the queue keeps '
-                      'playing. Pitch is unaffected by speed unless you move '
-                      'it yourself.',
-                      style: TextStyle(
-                        fontSize: 12,
-                        height: 1.35,
-                        color: controlColors.subtitle,
-                      ),
-                    ),
-                  ],
-                  footer: Row(
-                    children: [
-                      Expanded(
-                        child: CupertinoButton(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          borderRadius: BorderRadius.circular(14),
-                          color: controlColors.badge,
-                          onPressed: () => Navigator.pop(sheetContext),
-                          child: Text(
-                            'Done',
-                            style: TextStyle(
+              child: Column(
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
+                      child: GlassControlPanel(
+                        title: 'Speed & Pitch',
+                        subtitle:
+                            'Applied live. Tap a value badge to reset that control.',
+                        children: [
+                          GlassSegmentedControl(
+                            segments: const [
+                              GlassSegment(label: 'Speed'),
+                              GlassSegment(label: 'Pitch'),
+                              GlassSegment(label: 'Both'),
+                            ],
+                            selectedIndex: mode,
+                            indicatorColor: brightness == Brightness.dark
+                                ? const Color(0xFF3A3A3C)
+                                : const Color(0xFFE5E5EA),
+                            backgroundColor: brightness == Brightness.dark
+                                ? const Color(0xFF1C1C1E)
+                                : const Color(0xFFF2F2F7),
+                            selectedTextStyle: TextStyle(
+                              color: brightness == Brightness.dark
+                                  ? CupertinoColors.white
+                                  : const Color(0xFF1C1C1E),
                               fontWeight: FontWeight.w600,
-                              color: controlColors.title,
                             ),
+                            unselectedTextStyle: TextStyle(
+                              color: controlColors.subtitle,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            onSegmentSelected: (index) {
+                              setSheetState(() => mode = index);
+                            },
+                          ),
+                          const SizedBox(height: 18),
+                          if (mode != 1)
+                            GlassControlSlider(
+                              label: 'Speed',
+                              valueLabel: '${speed.toStringAsFixed(2)}x',
+                              value: speed,
+                              min: 0.5,
+                              max: 2.0,
+                              divisions: 30,
+                              accent: const Color(0xFF0A84FF),
+                              onChanged: (value) {
+                                setSheetState(() => speed = value);
+                                unawaited(audioHandler.setSpeed(value));
+                              },
+                              onReset: () => applyFromSheet(1.0, pitch),
+                            ),
+                          if (mode != 0)
+                            GlassControlSlider(
+                              label: 'Pitch',
+                              valueLabel: pitch.toStringAsFixed(2),
+                              value: pitch,
+                              min: 0.5,
+                              max: 2.0,
+                              divisions: 150,
+                              accent: const Color(0xFFFF9500),
+                              onChanged: (value) {
+                                setSheetState(() => pitch = value);
+                                unawaited(audioHandler.setPitch(value));
+                              },
+                              onReset: () => applyFromSheet(speed, 1.0),
+                            ),
+                          const SizedBox(height: 4),
+                          GlassControlPresets(
+                            presets: const [
+                              'Normal',
+                              '1.25x',
+                              '1.50x',
+                              '0.85x',
+                              'Nightcore',
+                              'Reset all',
+                            ],
+                            onSelected: (label) {
+                              if (label == '1.25x') {
+                                applyFromSheet(1.25, 1.0);
+                              } else if (label == '1.50x') {
+                                applyFromSheet(1.5, 1.0);
+                              } else if (label == '0.85x') {
+                                applyFromSheet(0.85, 0.85);
+                              } else if (label == 'Nightcore') {
+                                applyFromSheet(1.3, 1.3);
+                              } else {
+                                applyFromSheet(1.0, 1.0);
+                              }
+                            },
+                          ),
+                          const SizedBox(height: 14),
+                          Text(
+                            'Speed and pitch stay applied while the queue '
+                            'keeps playing. Pitch is unaffected by speed '
+                            'unless you move it yourself.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              height: 1.35,
+                              color: controlColors.subtitle,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: CupertinoButton(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        borderRadius: BorderRadius.circular(14),
+                        color: controlColors.badge,
+                        onPressed: () => Navigator.pop(sheetContext),
+                        child: Text(
+                          'Done',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: controlColors.title,
                           ),
                         ),
                       ),
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
           );

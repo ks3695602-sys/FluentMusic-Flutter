@@ -37,6 +37,7 @@ import 'package:musify/services/settings_manager.dart';
 import 'package:musify/utilities/app_utils.dart';
 import 'package:musify/utilities/flutter_toast.dart';
 import 'package:musify/services/playlist_download_service.dart';
+import 'package:musify/widgets/glass/glass_sheet_style.dart';
 import 'package:musify/widgets/glass/glass_toast.dart';
 import 'package:musify/widgets/now_playing/bottom_actions_row.dart';
 import 'package:musify/widgets/now_playing/marquee_text_widget.dart';
@@ -148,7 +149,9 @@ class NowPlayingControls extends StatelessWidget {
                     semanticLabel: 'More options',
                     buttonWidth: 38,
                     buttonHeight: 38,
-                    menuWidth: 248,
+                    menuWidth: 300,
+                    maxStackHeight: MediaQuery.sizeOf(context).height * 0.62,
+                    settings: glassSheetSettings(context, brightness: Brightness.dark),
                     items: [
                       const GlassMenuLabel(title: 'Now playing'),
                       GlassMenuItem(
@@ -165,13 +168,13 @@ class NowPlayingControls extends StatelessWidget {
                         title: isSongAlreadyOffline(
                           metadata.extras?['ytid']?.toString(),
                         )
-                            ? 'Saved for Offline'
-                            : 'Download for Offline',
+                            ? 'Downloaded'
+                            : 'Save Offline',
                         subtitle: isSongAlreadyOffline(
                           metadata.extras?['ytid']?.toString(),
                         )
-                            ? 'Tap to free up storage'
-                            : 'One tap, zero spinner anxiety',
+                            ? 'On this device'
+                            : 'Available without data',
                         isSelected: isSongAlreadyOffline(
                           metadata.extras?['ytid']?.toString(),
                         ),
@@ -214,7 +217,7 @@ class NowPlayingControls extends StatelessWidget {
                       const GlassMenuDivider(),
                       GlassMenuItem(
                         title: 'Playback',
-                        subtitle: 'Timer and playback behaviour',
+                        subtitle: 'Sleep timer',
                         icon: const Icon(CupertinoIcons.slider_horizontal_3),
                         onTap: () {},
                         submenu: [
@@ -225,19 +228,25 @@ class NowPlayingControls extends StatelessWidget {
                           ),
                         ],
                       ),
-                      const GlassMenuDivider(),
-                      if (_canOpenArtist(metadata))
-                        GlassMenuItem(
-                          title: 'Go to Artist',
-                          icon: const Icon(
-                            CupertinoIcons.person_crop_circle,
-                          ),
-                          onTap: () => _openArtistPage(context, metadata),
-                        ),
                       GlassMenuItem(
-                        title: 'Copy Title & Artist',
-                        icon: const Icon(CupertinoIcons.doc_on_doc),
-                        onTap: () => _copyNowPlayingSong(context, metadata),
+                        title: 'Track',
+                        icon: const Icon(CupertinoIcons.info_circle),
+                        onTap: () {},
+                        submenu: [
+                          if (_canOpenArtist(metadata))
+                            GlassMenuItem(
+                              title: 'Go to Artist',
+                              icon: const Icon(
+                                CupertinoIcons.person_crop_circle,
+                              ),
+                              onTap: () => _openArtistPage(context, metadata),
+                            ),
+                          GlassMenuItem(
+                            title: 'Copy Title & Artist',
+                            icon: const Icon(CupertinoIcons.doc_on_doc),
+                            onTap: () => _copyNowPlayingSong(context, metadata),
+                          ),
+                        ],
                       ),
                     ],
                   ),

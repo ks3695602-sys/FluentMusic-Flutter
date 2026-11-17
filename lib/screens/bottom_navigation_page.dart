@@ -188,6 +188,14 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
                         builder: (context, snapshot) {
                           final isMiniPlayerVisible = snapshot.data ?? false;
                           final searchExpanded = _isSearchActive;
+                          final pageKeyboardOpen =
+                              MediaQuery.viewInsetsOf(context).bottom > 0;
+                          if (pageKeyboardOpen && !searchExpanded) {
+                            // A page-owned search/rename field gets the full
+                            // keyboard viewport; reserve dock morph for its
+                            // own search action.
+                            return const SizedBox.shrink();
+                          }
 
                           return GlassTabBar.searchable(
                             isSearchActive: searchExpanded,

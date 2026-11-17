@@ -1,5 +1,35 @@
 # Changelog
 
+## 1.5.3+17 - UI recovery, account shelves and a calmer player
+
+### Player and sheets
+- Speed & Pitch opens expanded with a pinned Done button, so presets and both sliders stay reachable instead of hiding below the sheet fold.
+- The segmented control uses the painted sheet variant for its track, indicator and labels, keeping contrast correct in light and dark themes.
+- Player overflow menus are wider, capped at 62% of the screen, and grouped into Playback and Track submenus with short, readable labels.
+- The menu glass now carries an explicit readable tint instead of relying on the clear global iOS 27 tint over bright artwork.
+- Synced lyrics add a soft shadow so the active line and its neighbours stay legible on pale artwork.
+
+### Layout and navigation
+- Home's large title is shorter, reducing the empty band above the hero card on tall status-bar phones.
+- Settings subtitles are shortened to fit the two-line row, so labels no longer truncate mid-word.
+- Mini-player bottom spacing follows the dock: 150 px plus the safe-area inset while a track is loaded, and a compact 88 px when the dock is alone.
+- The floating dock hides while a page-owned text field has the keyboard, leaving the field and results unobstructed.
+- Settings-style subpages keep the dock-aware body layout, with 40 px back buttons and no content hidden behind the bars.
+
+### Account and Home
+- Signed-in YouTube Music library sync reads playlists, liked songs and listening history through InnerTube and merges them with the local library.
+- Home gains account-powered Listen again, Speed dial and Forgotten favourites shelves alongside the local hero and rails.
+- Offline and anonymous playback paths are unchanged; the signed-in playback experiment remains off by default and flag-gated.
+
+### Performance
+- Now Playing no longer stacks multiple live backdrop-blur passes over the lower third of the artwork.
+- Player headers only pay for their blur while collapsing, and the mini-player dock uses a single glass surface.
+
+### Known limitations
+- YouTube Music InnerTube library shapes still need verification against a live signed-in account; no endpoint is treated as stable yet.
+- Signed-in audio playback can still fall back to the anonymous stream because YouTube requires a poToken/BotGuard proof.
+- Two-device Supabase sync and lyrics availability remain manual/upstream-dependent, as before.
+
 ## 1.5.1+15 - Light-mode and menu polish
 
 ### Fixed from the v1.5.0 recording
