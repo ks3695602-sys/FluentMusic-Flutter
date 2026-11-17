@@ -115,8 +115,14 @@ class GlassConfigController extends ChangeNotifier {
   void setDynamicTint(bool value) =>
       update(_config.copyWith(dynamicTint: value));
 
-  /// Applies the iOS 27 image-2 preset.
+  /// Applies the primary iOS 27 clear-lens preset.
   void applyIos27() => update(GlassConfig.ios27);
+
+  /// Applies the maximum-clarity lens preset.
+  void applyClearLens() => update(GlassConfig.clearLens);
+
+  /// Applies the soft milky-glass preset.
+  void applySoftFrost() => update(GlassConfig.softFrost);
 
   /// Applies the classic dispersion-heavy preset.
   void applyClassic() => update(GlassConfig.classic);

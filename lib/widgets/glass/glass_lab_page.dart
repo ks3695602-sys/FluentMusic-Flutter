@@ -21,6 +21,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show Colors, Theme;
 import 'package:flutter/services.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
+import 'package:musify/services/settings_manager.dart';
 import 'package:musify/theme/glass_config.dart';
 import 'package:musify/theme/glass_config_controller.dart';
 import 'package:musify/utilities/flutter_toast.dart';
@@ -91,6 +92,60 @@ class GlassLabPage extends StatelessWidget {
                 onTap: () {
                   controller.applyIos27();
                   showToast(context, 'iOS 27 glass applied ✨');
+                },
+              ),
+              GlassListTile(
+                leading: const Icon(
+                  CupertinoIcons.drop_fill,
+                  color: Color(0xFF30D158),
+                ),
+                title: Text(
+                  'Clear Lens',
+                  style: TextStyle(
+                    color: titleColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                subtitle: Text(
+                  'Zero frost, deepest bend, strong edge rim',
+                  style: TextStyle(color: subtitleColor, fontSize: 12.5),
+                ),
+                trailing: config == GlassConfig.clearLens
+                    ? const Icon(
+                        CupertinoIcons.checkmark_circle_fill,
+                        color: Color(0xFF30D158),
+                      )
+                    : null,
+                onTap: () {
+                  controller.applyClearLens();
+                  showToast(context, 'Clear Lens applied 💧');
+                },
+              ),
+              GlassListTile(
+                leading: const Icon(
+                  CupertinoIcons.cloud_fill,
+                  color: Color(0xFFFF9F0A),
+                ),
+                title: Text(
+                  'Soft Frost',
+                  style: TextStyle(
+                    color: titleColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                subtitle: Text(
+                  'Milky diffusion for light pages and busy artwork',
+                  style: TextStyle(color: subtitleColor, fontSize: 12.5),
+                ),
+                trailing: config == GlassConfig.softFrost
+                    ? const Icon(
+                        CupertinoIcons.checkmark_circle_fill,
+                        color: Color(0xFFFF9F0A),
+                      )
+                    : null,
+                onTap: () {
+                  controller.applySoftFrost();
+                  showToast(context, 'Soft Frost applied ☁️');
                 },
               ),
               GlassListTile(
@@ -352,6 +407,49 @@ class GlassLabPage extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           GlassGroupedSection(
+            header: _sectionHeader('GLASS QUALITY', subtitleColor),
+            surfaceStyle: GlassSurfaceStyle.solid,
+            children: [
+              ValueListenableBuilder<String>(
+                valueListenable: liquidGlassQualitySetting,
+                builder: (context, quality, _) => _qualityTile(
+                  context: context,
+                  id: 'premium',
+                  current: quality,
+                  title: 'Premium',
+                  subtitle: 'Full shader: refraction, rim and dispersion',
+                  icon: CupertinoIcons.sparkles,
+                  color: const Color(0xFF0A84FF),
+                ),
+              ),
+              ValueListenableBuilder<String>(
+                valueListenable: liquidGlassQualitySetting,
+                builder: (context, quality, _) => _qualityTile(
+                  context: context,
+                  id: 'standard',
+                  current: quality,
+                  title: 'Standard',
+                  subtitle: 'Lighter shader, still refracts the backdrop',
+                  icon: CupertinoIcons.slider_horizontal_3,
+                  color: const Color(0xFFFF9F0A),
+                ),
+              ),
+              ValueListenableBuilder<String>(
+                valueListenable: liquidGlassQualitySetting,
+                builder: (context, quality, _) => _qualityTile(
+                  context: context,
+                  id: 'minimal',
+                  current: quality,
+                  title: 'Minimal',
+                  subtitle: 'Blur only, for low-end GPUs and long lists',
+                  icon: CupertinoIcons.minus_circle,
+                  color: const Color(0xFF8E8E93),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          GlassGroupedSection(
             header: _sectionHeader('RENDER PIPELINE', subtitleColor),
             surfaceStyle: GlassSurfaceStyle.solid,
             children: [
@@ -428,6 +526,40 @@ class GlassLabPage extends StatelessWidget {
           letterSpacing: 0.6,
         ),
       ),
+    );
+  }
+
+  Widget _qualityTile({
+    required BuildContext context,
+    required String id,
+    required String current,
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color color,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final titleColor = isDark ? Colors.white : const Color(0xFF1C1C1E);
+    final subtitleColor = isDark ? Colors.white60 : const Color(0xFF636366);
+    final selected = current == id;
+
+    return GlassListTile(
+      leading: Icon(icon, color: color),
+      title: Text(
+        title,
+        style: TextStyle(color: titleColor, fontWeight: FontWeight.w600),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: TextStyle(color: subtitleColor, fontSize: 12.5),
+      ),
+      trailing: selected
+          ? Icon(CupertinoIcons.checkmark_circle_fill, color: color)
+          : null,
+      onTap: () {
+        setLiquidGlassQuality(id);
+        showToast(context, '$title quality selected');
+      },
     );
   }
 

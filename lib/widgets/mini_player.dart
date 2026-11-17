@@ -19,8 +19,6 @@
  *     please visit: https://github.com/gokadzev/Musify
  */
 
-import 'dart:math' as math;
-
 import 'package:audio_service/audio_service.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/cupertino.dart';
@@ -329,25 +327,23 @@ class _MiniPlayerGlassShell extends StatelessWidget {
     final base = getEffectiveDockGlassSettings(isDark: isDark);
     final configured = base.glassColor;
 
-    final tint = configured.a < 0.20
-        ? (isDark ? const Color(0xFF1C1C1E) : CupertinoColors.white)
-              .withValues(alpha: isDark ? 0.72 : 0.88)
-        : configured.withValues(alpha: configured.a.clamp(0.42, 0.86));
+    // Keep the pill genuinely clear. The old code forced 42-88% opacity
+    // whenever the Lab tint was low, which turned the accessory into a grey
+    // slab and hid the artwork refraction the dock was showing.
+    final tint = configured.a < 0.06
+        ? configured.withValues(alpha: isDark ? 0.10 : 0.12)
+        : configured.withValues(alpha: configured.a.clamp(0.06, 0.30));
 
-    final settings = base.copyWith(
-      blur: math.max(base.blur, 14),
-      frost: math.max(base.frost, 12),
-      glassColor: tint,
-    );
+    final settings = base.copyWith(glassColor: tint);
 
     return DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(MiniPlayer._borderRadius),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.32 : 0.10),
-            blurRadius: 18,
-            offset: const Offset(0, 6),
+            color: Colors.black.withValues(alpha: isDark ? 0.26 : 0.08),
+            blurRadius: 16,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
@@ -359,10 +355,9 @@ class _MiniPlayerGlassShell extends StatelessWidget {
             borderRadius: MiniPlayer._borderRadius,
           ),
           settings: settings,
-          // Live backdrop filter rather than the premium texture path: the
-          // accessory sits inside the dock's glass group, so a texture capture
-          // would sample the bar instead of the page behind the pill.
-          quality: GlassQuality.standard,
+          // Match the dock's tier instead of hardcoding standard: the Lab's
+          // quality selector now controls every glass surface in the app.
+          quality: parseGlassQuality(liquidGlassQualitySetting.value),
           useOwnLayer: true,
           clipBehavior: Clip.antiAlias,
           child: ClipRRect(

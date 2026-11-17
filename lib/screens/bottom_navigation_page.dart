@@ -121,7 +121,12 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
                   !_isSearchActive;
 
               return GlassScaffold(
-                contentAwareBrightness: true,
+                // The bottom fade was washing the dock's backdrop grey, which
+                // killed the rim/refraction that makes the glass read as a
+                // lens. Let the capsule sample the real page artwork instead.
+                contentAwareBrightness: false,
+                edgeFade: true,
+                bottomEdgeFade: false,
                 statusBarStyle: isLight
                     ? GlassStatusBarStyle.dark
                     : GlassStatusBarStyle.light,
@@ -234,13 +239,17 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
                             labelFontSize: 10,
                             iconSize: 26,
                             iconLabelSpacing: 0,
-                            quality: GlassQuality.premium,
+                            quality: parseGlassQuality(
+                              liquidGlassQualitySetting.value,
+                            ),
                             interactionBehavior:
                                 GlassInteractionBehavior.full,
                             pressScale: 0.96,
                             // Dynamic tint OFF freezes the dock to the chosen
-                            // colour; ON lets it sample the backdrop.
-                            adaptiveBrightness: glassConfig.dynamicTint,
+                            // colour; ON lets it sample the backdrop. The
+                            // content-aware scope is off, so keep this tied to
+                            // the explicit toggle instead of a grey wash.
+                            adaptiveBrightness: false,
                             barBorderRadius: glassConfig.barRadius ??
                                 GlassDefaults.capsuleRadius,
                             indicatorBorderRadius:

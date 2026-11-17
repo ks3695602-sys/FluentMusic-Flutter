@@ -383,12 +383,11 @@ void main() async {
           return LiquidGlassWidgets.wrap(
             brightnessResolver: Theme.maybeBrightnessOf,
             theme: glassTheme,
-            adaptiveQuality: true,
-            adaptiveConfig: const GlassAdaptiveScopeConfig(
-              minQuality: GlassQuality.premium,
-              initialQuality: GlassQuality.premium,
-            ),
-            respectSystemAccessibility: true,
+            // The Glass Lab quality selector is authoritative. Runtime frame
+            // probes and reduce-transparency used to silently demote premium
+            // mid-session, which made the dock/pill look inconsistent.
+            adaptiveQuality: false,
+            respectSystemAccessibility: false,
             child: const Musify(),
           );
         },

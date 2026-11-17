@@ -218,6 +218,24 @@ GlassQuality parseGlassQuality(String q) {
   }
 }
 
+/// Persists the explicit glass quality tier and refreshes the global theme.
+///
+/// The Glass Lab quality selector owns this value; the adaptive scope no
+/// longer overrides it, so what the user picks is what every surface renders.
+void setLiquidGlassQuality(String quality) {
+  final normalized = switch (quality) {
+    'standard' => 'standard',
+    'minimal' => 'minimal',
+    _ => 'premium',
+  };
+  if (liquidGlassQualitySetting.value == normalized) return;
+  liquidGlassQualitySetting.value = normalized;
+  if (Hive.isBoxOpen('settings')) {
+    Hive.box('settings').put('liquidGlassQuality', normalized).ignore();
+  }
+  updateLiquidGlassTheme();
+}
+
 /// Resolves the shared glass theme from the Glass Lab config.
 ///
 /// The tint colour is stored as `0xAARRGGBB`; its alpha is the separate

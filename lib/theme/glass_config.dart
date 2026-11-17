@@ -41,13 +41,13 @@ class GlassConfig {
     this.pinchStrength = 0.40,
     this.expansionH = 12,
     this.expansionV = 8,
-    this.chromaticAberration = 0.00,
+    this.chromaticAberration = 0.12,
     this.tint = 0.00,
-    this.refraction = 1.15,
-    this.thickness = 30.0,
-    this.frost = 14.0,
-    this.blur = 4.0,
-    this.saturation = 1.4,
+    this.refraction = 1.35,
+    this.thickness = 56.0,
+    this.frost = 2.0,
+    this.blur = 9.0,
+    this.saturation = 1.6,
     this.tintColor = 0xFFFFFFFF,
     this.dockTintColor,
     this.dockTint,
@@ -56,9 +56,34 @@ class GlassConfig {
     this.indicatorRadius,
   });
 
-  /// iOS 27 calibrated defaults. `null` radius means "let the package decide"
-  /// (capsule bar, automatic indicator radius).
+  /// iOS 27 calibrated defaults: a clear lens with a thin rim, heavy blur and
+  /// almost no frost. `null` radius means "let the package decide" (capsule
+  /// bar, automatic indicator radius).
   static const GlassConfig defaults = GlassConfig();
+
+  /// Maximum-clarity lens for dark, artwork-heavy pages. No frost, the
+  /// deepest refraction the shader supports, and a visible edge fringe.
+  static const GlassConfig clearLens = GlassConfig(
+    chromaticAberration: 0.20,
+    tint: 0.00,
+    refraction: 1.45,
+    thickness: 60,
+    frost: 0,
+    blur: 10,
+    saturation: 1.7,
+  );
+
+  /// Soft milky glass for light pages where contrast matters more than
+  /// refraction.
+  static const GlassConfig softFrost = GlassConfig(
+    chromaticAberration: 0.06,
+    tint: 0.06,
+    refraction: 1.22,
+    thickness: 38,
+    frost: 12,
+    blur: 7,
+    saturation: 1.3,
+  );
 
   /// The original `v1.x` look: no frost, muted colours and visible rainbow
   /// fringes. Kept as a one-tap comparison preset in the Glass Lab.
@@ -72,7 +97,7 @@ class GlassConfig {
     saturation: 0.7,
   );
 
-  /// Explicit alias for the image-2 look.
+  /// Explicit alias for the primary iOS 27 look.
   static const GlassConfig ios27 = GlassConfig();
 
   /// Minimum/maximum accepted values (also used by the Lab sliders).
