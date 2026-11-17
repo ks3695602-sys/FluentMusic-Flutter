@@ -26,6 +26,7 @@ import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:musify/screens/playlist_page.dart';
 import 'package:musify/screens/user_songs_page.dart';
 import 'package:musify/theme/glass_config_controller.dart';
+import 'package:musify/theme/player_style.dart';
 import 'package:musify/utilities/language_utils.dart';
 
 // Preferences
@@ -123,6 +124,21 @@ final appleMusicLyricsEnabled = ValueNotifier<bool>(
 final liquidGlassQualitySetting = ValueNotifier<String>(
   Hive.box('settings').get('liquidGlassQuality', defaultValue: 'premium'),
 );
+
+/// How Now Playing stages the artwork. Defaults to the original full-bleed
+/// immersive look, so existing installs see no change after upgrading.
+final playerStyleSetting = ValueNotifier<PlayerStyle>(
+  PlayerStyle.fromStorage(Hive.box('settings').get('playerStyle')),
+);
+
+/// Persists and broadcasts a new Now Playing presentation.
+void setPlayerStyle(PlayerStyle style) {
+  if (playerStyleSetting.value == style) return;
+  playerStyleSetting.value = style;
+  if (Hive.isBoxOpen('settings')) {
+    Hive.box('settings').put('playerStyle', style.storageValue).ignore();
+  }
+}
 
 final liquidGlassBlurSetting = ValueNotifier<double>(
   (Hive.box('settings').get('liquidGlassBlur', defaultValue: 4.0) as num).toDouble(),

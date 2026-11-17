@@ -116,6 +116,12 @@ class MusifyAudioHandler extends BaseAudioHandler implements AndroidAutoHost {
   bool sleepTimerExpired = false;
   bool sleepTimerEndOfSong = false;
 
+  // Explore/Shorts preview state. Previews stream the full song and simply
+  // pause at the limit, so "Play Full Song" can upgrade in place without a
+  // second resolve or buffer.
+  StreamSubscription<Duration>? _previewStopSubscription;
+  Duration? _previewLimit;
+
   // Background stream preload state.
   int _activePreloadCount = 0;
   final Set<String> _preloadingYtIds = <String>{};
@@ -1783,6 +1789,7 @@ class MusifyAudioHandler extends BaseAudioHandler implements AndroidAutoHost {
   @override
   Future<void> stop() async {
     _debounceTimer?.cancel();
+    _clearPreviewStop();
     _completionEventPending = false;
     _currentLoadingIndex = -1;
     _currentLoadingTransitionId = -1;
@@ -1904,12 +1911,84 @@ class MusifyAudioHandler extends BaseAudioHandler implements AndroidAutoHost {
     return transitionId != null && transitionId != _currentLoadingTransitionId;
   }
 
+  /// Plays a short preview of [song] for Explore / Shorts.
+  ///
+  /// The preview uses the normal full stream; [positionStream] simply pauses
+  /// playback once [maxDuration] is reached. Keeping the resolved source alive
+  /// means [playFullSong] can continue from the same buffer instead of
+  /// resolving and buffering the track a second time.
+  Future<bool> playPreviewSong(
+    Map song, {
+    Duration maxDuration = const Duration(seconds: 30),
+  }) async {
+    final previewSong = cloneMap(song)
+      ..['isPreview'] = true
+      ..['isLive'] = false;
+    final success = await playSong(previewSong);
+    if (!success) return false;
+    _armPreviewStop(maxDuration);
+    return true;
+  }
+
+  void _armPreviewStop(Duration maxDuration) {
+    _previewStopSubscription?.cancel();
+    _previewLimit = maxDuration;
+    _previewStopSubscription = audioPlayer.positionStream.listen(
+      (position) {
+        if (position < maxDuration) return;
+        _previewStopSubscription?.cancel();
+        _previewStopSubscription = null;
+        unawaited(audioPlayer.pause());
+        unawaited(audioPlayer.seek(maxDuration));
+      },
+      onError: (Object error, StackTrace stackTrace) {
+        logger.log(
+          'Preview position stream error',
+          error: error,
+          stackTrace: stackTrace,
+        );
+      },
+    );
+  }
+
+  void _clearPreviewStop() {
+    _previewStopSubscription?.cancel();
+    _previewStopSubscription = null;
+    _previewLimit = null;
+  }
+
+  /// Upgrades the current preview into normal full-song playback.
+  ///
+  /// The preview stream is already the full track, so this clears the preview
+  /// flag, rewinds if the preview had already stopped at its limit, and
+  /// resumes. No queue or stream resolution work is needed.
+  Future<void> playFullSong() async {
+    final limit = _previewLimit;
+    _clearPreviewStop();
+
+    final current = mediaItem.valueOrNull;
+    if (current != null && current.extras?['isPreview'] == true) {
+      final extras = Map<String, dynamic>.from(
+        current.extras ?? const <String, dynamic>{},
+      )..remove('isPreview');
+      mediaItem.add(current.copyWith(extras: extras));
+    }
+
+    if (limit != null && audioPlayer.position >= limit) {
+      await audioPlayer.seek(Duration.zero);
+    }
+    await play();
+  }
+
   Future<bool> playSong(
     Map song, {
     String? mediaId,
     int? transitionId,
     bool playWhenReady = true,
   }) async {
+    // Any regular song change ends a preview. playPreviewSong re-arms the
+    // stop timer after playSong succeeds.
+    _clearPreviewStop();
     try {
       final songData = cloneMap(song);
 

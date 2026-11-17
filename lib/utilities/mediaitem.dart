@@ -36,6 +36,7 @@ Map mediaItemToMap(MediaItem mediaItem) {
     'highResImage': extras?['highResImage'] ?? mediaItem.artUri.toString(),
     'lowResImage': extras?['lowResImage'],
     'isLive': extras?['isLive'] ?? false,
+    if (extras?['isPreview'] == true) 'isPreview': true,
     if (mediaItem.duration case final duration?) 'duration': duration.inSeconds,
   };
 }
@@ -63,6 +64,7 @@ MediaItem mapToMediaItem(Map song) {
       'artistId': song['artistId'],
       'videoAuthor': song['videoAuthor'],
       'isLive': song['isLive'],
+      'isPreview': song['isPreview'] == true,
       'highResImage': song['highResImage'],
       'artWorkPath':
           (isOffline ? offlineSong['artworkPath'] : song['highResImage'])

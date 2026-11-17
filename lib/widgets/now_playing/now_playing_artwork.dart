@@ -30,6 +30,7 @@ import 'package:musify/extensions/l10n.dart';
 import 'package:musify/services/common_services.dart';
 import 'package:musify/services/lyrics/lyrics_models.dart';
 import 'package:musify/services/settings_manager.dart';
+import 'package:musify/theme/player_style.dart';
 import 'package:musify/utilities/async_loader.dart';
 import 'package:musify/widgets/flip_card.dart';
 import 'package:musify/widgets/now_playing/synced_lyrics_view.dart';
@@ -41,10 +42,12 @@ class NowPlayingArtwork extends StatelessWidget {
     required this.size,
     required this.metadata,
     required this.lyricsController,
+    required this.playerStyle,
   });
   final Size size;
   final MediaItem metadata;
   final FlipCardController lyricsController;
+  final PlayerStyle playerStyle;
 
   @override
   Widget build(BuildContext context) {
@@ -63,6 +66,8 @@ class NowPlayingArtwork extends StatelessWidget {
         : screenWidth * 0.65;
 
     const borderRadius = 28.0;
+    final isVinyl = playerStyle == PlayerStyle.vinyl;
+    final artworkRadius = isVinyl ? imageSize / 2 : borderRadius;
 
     return FlipCard(
       rotateSide: RotateSide.right,
@@ -70,25 +75,36 @@ class NowPlayingArtwork extends StatelessWidget {
           !offlineMode.value && !(metadata.extras?['isLive'] ?? false),
       controller: lyricsController,
       frontWidget: _ArtworkHero(
-        borderRadius: borderRadius,
-        child: Stack(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(borderRadius),
-              child: SongArtworkWidget(
-                metadata: metadata,
-                size: imageSize,
-                errorWidgetIconSize: size.width / 8,
-                borderRadius: borderRadius,
+        borderRadius: artworkRadius,
+        child: isVinyl
+            ? Stack(
+                children: [
+                  _VinylRecord(size: imageSize, metadata: metadata),
+                  Positioned(
+                    right: 10,
+                    bottom: 10,
+                    child: _AudioQualityBadge(metadata: metadata),
+                  ),
+                ],
+              )
+            : Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(borderRadius),
+                    child: SongArtworkWidget(
+                      metadata: metadata,
+                      size: imageSize,
+                      errorWidgetIconSize: size.width / 8,
+                      borderRadius: borderRadius,
+                    ),
+                  ),
+                  Positioned(
+                    right: 10,
+                    bottom: 10,
+                    child: _AudioQualityBadge(metadata: metadata),
+                  ),
+                ],
               ),
-            ),
-            Positioned(
-              right: 10,
-              bottom: 10,
-              child: _AudioQualityBadge(metadata: metadata),
-            ),
-          ],
-        ),
       ),
       backWidget: GlassContainer.card(
         surfaceStyle: GlassSurfaceStyle.solid,
@@ -100,6 +116,110 @@ class NowPlayingArtwork extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Artwork presented as the label of a vinyl record.
+///
+/// The disc itself is painted with a radial gradient and concentric grooves,
+/// with the song artwork in the centre label. It is deliberately static: the
+/// Now Playing screen already owns enough animation, and a static record keeps
+/// the stage free of per-frame repaints.
+class _VinylRecord extends StatelessWidget {
+  const _VinylRecord({required this.size, required this.metadata});
+
+  final double size;
+  final MediaItem metadata;
+
+  @override
+  Widget build(BuildContext context) {
+    final labelSize = size * 0.42;
+
+    return SizedBox(
+      width: size,
+      height: size,
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: RadialGradient(
+            colors: [
+              Color(0xFF1D1D20),
+              Color(0xFF0C0C0D),
+              Color(0xFF000000),
+            ],
+            stops: [0.0, 0.68, 1.0],
+          ),
+        ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Positioned.fill(
+              child: CustomPaint(painter: const _VinylGroovePainter()),
+            ),
+            ClipOval(
+              child: SizedBox(
+                width: labelSize,
+                height: labelSize,
+                child: SongArtworkWidget(
+                  metadata: metadata,
+                  size: labelSize,
+                  borderRadius: labelSize / 2,
+                ),
+              ),
+            ),
+            // Spindle hole.
+            Container(
+              width: size * 0.036,
+              height: size * 0.036,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF050505),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.24),
+                  width: 1,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _VinylGroovePainter extends CustomPainter {
+  const _VinylGroovePainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = size.center(Offset.zero);
+    final maxRadius = size.shortestSide / 2;
+    final minRadius = maxRadius * 0.46;
+    final groove = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.8;
+
+    for (var radius = minRadius; radius < maxRadius; radius += maxRadius * 0.018) {
+      final t = (radius - minRadius) / (maxRadius - minRadius);
+      groove.color = Colors.white.withValues(alpha: 0.025 + (t * 0.07));
+      canvas.drawCircle(center, radius, groove);
+    }
+
+    // A single soft sheen band reads as light catching the vinyl without
+    // forcing a blur pass.
+    final sheen = Paint()
+      ..shader = SweepGradient(
+        colors: [
+          Colors.white.withValues(alpha: 0),
+          Colors.white.withValues(alpha: 0.06),
+          Colors.white.withValues(alpha: 0),
+        ],
+        stops: const [0.0, 0.5, 1.0],
+      ).createShader(Offset.zero & size);
+    canvas.drawCircle(center, maxRadius, sheen);
+  }
+
+  @override
+  bool shouldRepaint(covariant _VinylGroovePainter oldDelegate) => false;
 }
 
 /// Shared transition + entrance motion for the player artwork.
@@ -194,7 +314,7 @@ class _ArtworkHeroState extends State<_ArtworkHero>
               },
             );
           },
-      child: _shell(context, widget.child),
+      child: _shell(context, RepaintBoundary(child: widget.child)),
     );
 
     return AnimatedBuilder(
@@ -202,6 +322,10 @@ class _ArtworkHeroState extends State<_ArtworkHero>
       child: child,
       builder: (context, animatedChild) {
         final t = _curve.value;
+        // Drop the opacity/transform wrappers once the entrance settles. At
+        // rest they would otherwise keep a transformed layer alive for the
+        // whole session.
+        if (t >= 1.0) return animatedChild!;
         return Opacity(
           opacity: t,
           child: Transform.scale(

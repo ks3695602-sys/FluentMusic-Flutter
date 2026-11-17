@@ -17,9 +17,11 @@
 
 import 'dart:io';
 import 'package:flutter/cupertino.dart';
+import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/material.dart' show Colors, Theme;
 import 'package:material_ui/material_ui.dart' show ThemeMode;
 import 'package:musify/theme/app_themes.dart';
+import 'package:musify/theme/player_style.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:musify/constants/app_constants.dart';
@@ -33,6 +35,7 @@ import 'package:musify/utilities/flutter_toast.dart';
 import 'package:musify/utilities/language_utils.dart';
 import 'package:musify/widgets/glass/glass_lab_page.dart';
 import 'package:musify/widgets/mini_player_bottom_space.dart';
+import 'package:musify/widgets/now_playing/player_style_sheet.dart';
 
 Widget buildGlassBackButton(BuildContext context) {
   final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -403,6 +406,53 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
                     },
                   ),
                 ),
+              ),
+              ValueListenableBuilder<PlayerStyle>(
+                valueListenable: playerStyleSetting,
+                builder: (_, style, __) {
+                  return GlassListTile(
+                    leading: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF34C759).withValues(alpha: 0.18),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        FluentIcons.music_note_2_24_filled,
+                        color: Color(0xFF34C759),
+                      ),
+                    ),
+                    title: Text(
+                      'Player Style',
+                      style: TextStyle(color: titleColor),
+                    ),
+                    subtitle: Text(
+                      style.description,
+                      style: TextStyle(color: subtitleColor, fontSize: 12),
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          style.label,
+                          style: TextStyle(
+                            color: subtitleColor,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          CupertinoIcons.chevron_forward,
+                          color: subtitleColor,
+                          size: 16,
+                        ),
+                      ],
+                    ),
+                    onTap: () => showPlayerStyleSheet(context),
+                  );
+                },
               ),
             ],
           ),

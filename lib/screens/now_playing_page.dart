@@ -33,6 +33,7 @@ import 'package:musify/services/common_services.dart';
 import 'package:musify/services/data_manager.dart';
 import 'package:musify/services/playlist_download_service.dart';
 import 'package:musify/services/settings_manager.dart';
+import 'package:musify/theme/player_style.dart';
 import 'package:musify/utilities/flutter_toast.dart';
 import 'package:musify/utilities/mediaitem.dart';
 import 'package:musify/utilities/playlist_dialogs.dart';
@@ -42,6 +43,7 @@ import 'package:musify/widgets/glass/glass_sheet_style.dart';
 import 'package:musify/widgets/now_playing/bottom_actions_row.dart';
 import 'package:musify/widgets/now_playing/now_playing_artwork.dart';
 import 'package:musify/widgets/now_playing/now_playing_controls.dart';
+import 'package:musify/widgets/now_playing/player_style_sheet.dart';
 import 'package:musify/widgets/now_playing/song_like_button.dart';
 import 'package:musify/widgets/playback_icon_button.dart';
 import 'package:musify/widgets/position_slider.dart';
@@ -81,105 +83,98 @@ class _NowPlayingPageState extends State<NowPlayingPage> {
         final metadata = snapshot.data!;
 
         final artworkUrl = metadata.artUri?.toString();
+        final pageGlassTheme =
+            GlassTheme.maybeOf(context)?.data ?? GlassThemeData.fallback();
 
-        return Stack(
-          children: [
-            Positioned.fill(
-              child: _FullBleedArtworkBackground(artworkUrl: artworkUrl),
-            ),
-            // Graduated frost under the transport controls. The artwork bed
-            // behind this stack is already blurred once at sigma 70, so a live
-            // `ProgressiveBlur` (two more shader BackdropFilter passes over the
-            // whole lower third) only bought a per-frame GPU bill on device.
-            // A static gradient gives the same soft landing for free.
-            const Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              height: 260,
-              child: IgnorePointer(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.bottomCenter,
-                      end: Alignment.topCenter,
-                      colors: [
-                        Color(0x40000000),
-                        Color(0x1F000000),
-                        Color(0x00000000),
-                      ],
-                      stops: [0.0, 0.45, 1.0],
-                    ),
+        return ValueListenableBuilder<PlayerStyle>(
+          valueListenable: playerStyleSetting,
+          builder: (context, playerStyle, _) {
+            final body = isLargeScreen
+                ? _DesktopLayout(
+                    metadata: metadata,
+                    size: size,
+                    adjustedIconSize: baseIconSize,
+                    adjustedMiniIconSize: miniIconSize,
+                    lyricsController: _lyricsController,
+                    playerStyle: playerStyle,
+                  )
+                : _MobileLayout(
+                    metadata: metadata,
+                    size: size,
+                    adjustedIconSize: baseIconSize,
+                    adjustedMiniIconSize: miniIconSize,
+                    isLargeScreen: isLargeScreen,
+                    lyricsController: _lyricsController,
+                    playerStyle: playerStyle,
+                  );
+
+            return Stack(
+              children: [
+                Positioned.fill(
+                  child: _PlayerBackdrop(
+                    style: playerStyle,
+                    artworkUrl: artworkUrl,
                   ),
                 ),
-              ),
-            ),
-            ValueListenableBuilder<bool>(
-              valueListenable: _lyricsController.isFlipped,
-              builder: (context, isLyricsMode, _) {
-                // The player always sits on its own artwork under dark scrims.
-                // Pin the glass chrome dark locally so a light app theme never
-                // paints white-on-white header or menu glass over the art.
-                final pageGlassTheme =
-                    GlassTheme.maybeOf(context)?.data ??
-                    GlassThemeData.fallback();
-                return GlassTheme(
-                  data: pageGlassTheme.copyWith(brightness: Brightness.dark),
-                  child: GlassScaffold(
-                  contentAwareBrightness: true,
-                  backgroundColor: Colors.transparent,
-                  appBar: isLyricsMode
-                      ? null
-                      : GlassAppBar(
-                          leading: GlassIconButton(
-                            icon: const Icon(CupertinoIcons.chevron_down),
-                            onPressed: () => Navigator.pop(context),
-                          ),
-                          title: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 36,
-                                height: 5,
-                                margin: const EdgeInsets.only(bottom: 6),
-                                decoration: BoxDecoration(
-                                  color: CupertinoColors.white.withValues(alpha: 0.35),
-                                  borderRadius: BorderRadius.circular(2.5),
+                ValueListenableBuilder<bool>(
+                  valueListenable: _lyricsController.isFlipped,
+                  // The body handles the flip itself. Passing the same widget
+                  // instance keeps the scaffold from rebuilding every control
+                  // when the lyrics card turns over.
+                  child: body,
+                  builder: (context, isLyricsMode, child) {
+                    // The player always sits on its own artwork under dark
+                    // scrims. Pin the glass chrome dark locally so a light app
+                    // theme never paints white-on-white header or menu glass
+                    // over the art.
+                    return GlassTheme(
+                      data: pageGlassTheme.copyWith(brightness: Brightness.dark),
+                      child: GlassScaffold(
+                        // Brightness is pinned dark below, so sampling the
+                        // backdrop every scroll frame would only burn frames.
+                        contentAwareBrightness: false,
+                        backgroundColor: Colors.transparent,
+                        appBar: isLyricsMode
+                            ? null
+                            : GlassAppBar(
+                                leading: GlassIconButton(
+                                  icon: const Icon(CupertinoIcons.chevron_down),
+                                  onPressed: () => Navigator.pop(context),
+                                ),
+                                title: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: 36,
+                                      height: 5,
+                                      margin: const EdgeInsets.only(bottom: 6),
+                                      decoration: BoxDecoration(
+                                        color: CupertinoColors.white.withValues(
+                                          alpha: 0.35,
+                                        ),
+                                        borderRadius: BorderRadius.circular(2.5),
+                                      ),
+                                    ),
+                                    Text(
+                                      metadata.title,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                              Text(
-                                metadata.title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                  body: isLargeScreen
-                      ? _DesktopLayout(
-                          metadata: metadata,
-                          size: size,
-                          adjustedIconSize: baseIconSize,
-                          adjustedMiniIconSize: miniIconSize,
-                          lyricsController: _lyricsController,
-                        )
-                      : _MobileLayout(
-                          metadata: metadata,
-                          size: size,
-                          adjustedIconSize: baseIconSize,
-                          adjustedMiniIconSize: miniIconSize,
-                          isLargeScreen: isLargeScreen,
-                          lyricsController: _lyricsController,
-                        ),
-                  ),
-                );
-              },
-            ),
-          ],
+                        body: child!,
+                      ),
+                    );
+                  },
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -193,12 +188,14 @@ class _DesktopLayout extends StatelessWidget {
     required this.adjustedIconSize,
     required this.adjustedMiniIconSize,
     required this.lyricsController,
+    required this.playerStyle,
   });
   final MediaItem metadata;
   final Size size;
   final double adjustedIconSize;
   final double adjustedMiniIconSize;
   final FlipCardController lyricsController;
+  final PlayerStyle playerStyle;
 
   @override
   Widget build(BuildContext context) {
@@ -217,6 +214,7 @@ class _DesktopLayout extends StatelessWidget {
                       size: size,
                       metadata: metadata,
                       lyricsController: lyricsController,
+                      playerStyle: playerStyle,
                     ),
                   ),
                 ),
@@ -231,6 +229,7 @@ class _DesktopLayout extends StatelessWidget {
                       metadata: metadata,
                     ),
                   ),
+                _PlayFullSongButton(metadata: metadata),
                 BottomActionsRow(
                   metadata: metadata,
                   iconSize: adjustedMiniIconSize,
@@ -256,6 +255,7 @@ class _MobileLayout extends StatelessWidget {
     required this.adjustedMiniIconSize,
     required this.isLargeScreen,
     required this.lyricsController,
+    required this.playerStyle,
   });
   final MediaItem metadata;
   final Size size;
@@ -263,6 +263,7 @@ class _MobileLayout extends StatelessWidget {
   final double adjustedMiniIconSize;
   final bool isLargeScreen;
   final FlipCardController lyricsController;
+  final PlayerStyle playerStyle;
 
   @override
   Widget build(BuildContext context) {
@@ -376,6 +377,7 @@ class _MobileLayout extends StatelessWidget {
                 // Bottom: Position slider + compact playback controls + 3-item trio
                 const PositionSlider(),
                 _buildCompactControls(context),
+                _PlayFullSongButton(metadata: metadata),
                 BottomActionsRow(
                   metadata: metadata,
                   iconSize: adjustedMiniIconSize,
@@ -402,6 +404,7 @@ class _MobileLayout extends StatelessWidget {
                     size: size,
                     metadata: metadata,
                     lyricsController: lyricsController,
+                    playerStyle: playerStyle,
                   ),
                 ),
               ),
@@ -416,6 +419,7 @@ class _MobileLayout extends StatelessWidget {
                     metadata: metadata,
                   ),
                 ),
+              _PlayFullSongButton(metadata: metadata),
               BottomActionsRow(
                 metadata: metadata,
                 iconSize: adjustedMiniIconSize,
@@ -503,6 +507,12 @@ class _MobileLayout extends StatelessWidget {
       settings: glassSheetSettings(context, brightness: Brightness.dark),
       items: [
         const GlassMenuLabel(title: 'Now playing'),
+        GlassMenuItem(
+          title: 'Player Style',
+          subtitle: playerStyleSetting.value.label,
+          icon: const Icon(CupertinoIcons.paintbrush),
+          onTap: () => showPlayerStyleSheet(context),
+        ),
         GlassMenuItem(
           title: 'Add to Playlist',
           icon: const Icon(CupertinoIcons.plus_rectangle_on_rectangle),
@@ -941,6 +951,7 @@ class _MobileLayout extends StatelessWidget {
                 size: size,
                 metadata: metadata,
                 lyricsController: lyricsController,
+                playerStyle: playerStyle,
               ),
             ),
           ),
@@ -960,6 +971,7 @@ class _MobileLayout extends StatelessWidget {
                       metadata: metadata,
                     ),
                   ),
+                _PlayFullSongButton(metadata: metadata),
                 BottomActionsRow(
                   metadata: metadata,
                   iconSize: adjustedMiniIconSize,
@@ -1094,6 +1106,179 @@ class _FullBleedArtworkBackground extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// The full-bleed backdrop for the active [PlayerStyle].
+///
+/// Immersive keeps the original blurred artwork bed. Midnight and Vinyl paint
+/// a static stage instead, which removes the huge artwork blur from the frame
+/// budget while keeping the glass controls readable.
+class _PlayerBackdrop extends StatelessWidget {
+  const _PlayerBackdrop({required this.style, required this.artworkUrl});
+
+  final PlayerStyle style;
+  final String? artworkUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        if (style == PlayerStyle.immersive)
+          _FullBleedArtworkBackground(artworkUrl: artworkUrl)
+        else
+          _PlayerStageBackground(style: style),
+
+        // Graduated frost under the transport controls. The artwork bed is
+        // already blurred once at sigma 70, so a live `ProgressiveBlur` (two
+        // more shader BackdropFilter passes over the whole lower third) only
+        // bought a per-frame GPU bill on device. A static gradient gives the
+        // same soft landing for free.
+        Align(
+          alignment: Alignment.bottomCenter,
+          child: IgnorePointer(
+            child: SizedBox(
+              height: 260,
+              width: double.infinity,
+              child: const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [
+                      Color(0x40000000),
+                      Color(0x1F000000),
+                      Color(0x00000000),
+                    ],
+                    stops: [0.0, 0.45, 1.0],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Static stage used by [PlayerStyle.midnight] and [PlayerStyle.vinyl].
+///
+/// No images, no live blur: a deep vertical gradient plus one accent glow.
+class _PlayerStageBackground extends StatelessWidget {
+  const _PlayerStageBackground({required this.style});
+
+  final PlayerStyle style;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = Theme.of(context).colorScheme.primary;
+    final isVinyl = style == PlayerStyle.vinyl;
+
+    return RepaintBoundary(
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: isVinyl
+                ? const [
+                    Color(0xFF241A12),
+                    Color(0xFF0C0805),
+                    Color(0xFF000000),
+                  ]
+                : const [
+                    Color(0xFF13131B),
+                    Color(0xFF08080C),
+                    Color(0xFF000000),
+                  ],
+            stops: const [0.0, 0.5, 1.0],
+          ),
+        ),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Positioned(
+              top: -140,
+              left: -100,
+              right: -100,
+              height: 560,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: RadialGradient(
+                    colors: [
+                      accent.withValues(alpha: isVinyl ? 0.30 : 0.22),
+                      accent.withValues(alpha: 0.0),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            // Top scrim keeps the status bar and header legible.
+            const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color(0xB3000000), Color(0x00000000)],
+                  stops: [0.0, 0.42],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Shown while a Shorts/Explore preview is playing in the normal player.
+///
+/// The preview is already the full stream, so upgrading does not reload the
+/// track: it clears the preview flag, rewinds when the clip had stopped at its
+/// limit, and resumes.
+class _PlayFullSongButton extends StatelessWidget {
+  const _PlayFullSongButton({required this.metadata});
+
+  final MediaItem metadata;
+
+  @override
+  Widget build(BuildContext context) {
+    if (metadata.extras?['isPreview'] != true) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: GlassButton.custom(
+        onTap: () {
+          HapticFeedback.lightImpact();
+          unawaited(audioHandler.playFullSong());
+        },
+        height: 38,
+        width: 188,
+        shape: const LiquidRoundedRectangle(borderRadius: 19),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            Icon(
+              CupertinoIcons.play_fill,
+              size: 13,
+              color: CupertinoColors.white,
+            ),
+            SizedBox(width: 6),
+            Text(
+              'Play Full Song',
+              style: TextStyle(
+                color: CupertinoColors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                letterSpacing: -0.1,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
