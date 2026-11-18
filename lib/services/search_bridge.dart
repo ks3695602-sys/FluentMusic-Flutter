@@ -17,50 +17,59 @@
 
 import 'package:flutter/foundation.dart';
 
-/// Bridge between the inline search field inside the bottom bar and the real
-/// [SearchPage].
+/// Bridge between the inline search field inside the bottom bar and the
+/// Explore tab that renders its results.
 ///
-/// The bar owns its own TextField (it lives in the tab bar), while the search
-/// results page owns its own controller. This tiny hand-off keeps both in sync
-/// without a global router dependency:
+/// The bar owns its own TextField (it lives in the tab bar), while Explore owns
+/// the result state. This tiny hand-off keeps both in sync without a global
+/// router dependency:
 ///
 /// 1. Bar submits a query → [submit] stores it as pending.
-/// 2. SearchPage listens to [request]; on every tick it calls [takePending].
-/// 3. If SearchPage was not built yet (cold branch), the pending query stays
+/// 2. Explore listens to [request]; on every tick it calls [takePending].
+/// 3. If Explore was not built yet (cold branch), the pending query stays
 ///    queued and is consumed on first frame.
+/// 4. Dismissing the bar calls [requestClear], which puts Explore back on its
+///    discovery feed.
 class InlineSearchBridge {
   InlineSearchBridge._();
 
   /// Bumped once per submitted query. Listeners read from [takePending].
   static final ValueNotifier<int> request = ValueNotifier<int>(0);
 
-  /// Bumped when the shell switches to the Search tab, so the page can put the
-  /// caret in its own field. Kept separate from [request] because focusing must
-  /// not start a search.
-  static final ValueNotifier<int> focusRequest = ValueNotifier<int>(0);
+  /// Bumped when the bar closes so Explore can drop the old results.
+  static final ValueNotifier<int> clearRequest = ValueNotifier<int>(0);
 
   static String? _pendingQuery;
   static String _lastQuery = '';
-  static bool _pendingFocus = false;
+  static bool _pendingClear = false;
+
+  /// Bumped when a page wants the dock to leave its searchable state, e.g.
+  /// "Back to Explore" inside the results page.
+  static final ValueNotifier<int> collapseRequest = ValueNotifier<int>(0);
 
   /// Last query that was submitted through the bar (handy for "recent search").
   static String get lastQuery => _lastQuery;
 
-  /// Queues a focus request and notifies the search page. If the page is cold,
-  /// it consumes the request on its first frame.
-  static void requestFieldFocus() {
-    _pendingFocus = true;
-    focusRequest.value++;
+  /// Queues a clear request and notifies Explore. If the page is cold, it
+  /// consumes the request on its first frame.
+  static void requestClear() {
+    _pendingClear = true;
+    clearRequest.value++;
   }
 
-  /// Returns whether a focus request is queued, and clears it.
-  static bool takeFocusRequest() {
-    final pending = _pendingFocus;
-    _pendingFocus = false;
+  /// Asks the dock to collapse its inline search field.
+  static void requestCollapse() {
+    collapseRequest.value++;
+  }
+
+  /// Returns whether a clear request is queued, and clears it.
+  static bool takeClearRequest() {
+    final pending = _pendingClear;
+    _pendingClear = false;
     return pending;
   }
 
-  /// Queues [query] and notifies the search page. Empty queries are ignored.
+  /// Queues [query] and notifies Explore. Empty queries are ignored.
   static void submit(String query) {
     final trimmed = query.trim();
     if (trimmed.isEmpty) return;

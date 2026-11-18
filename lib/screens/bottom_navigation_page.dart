@@ -69,11 +69,26 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
       );
 
   @override
+  void initState() {
+    super.initState();
+    InlineSearchBridge.collapseRequest.addListener(_handleCollapseRequest);
+  }
+
+  @override
   void dispose() {
+    InlineSearchBridge.collapseRequest.removeListener(_handleCollapseRequest);
     _inlineSearchController.dispose();
     _inlineSearchFocusNode.dispose();
     _dockMinimizeController.dispose();
     super.dispose();
+  }
+
+  /// A page asked the dock to leave its searchable state (for example the
+  /// "Back to Explore" button on the results page).
+  void _handleCollapseRequest() {
+    if (!mounted || !_isSearchActive) return;
+    setState(() => _isSearchActive = false);
+    _inlineSearchFocusNode.unfocus();
   }
 
   @override
@@ -87,6 +102,7 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
         if (_isSearchActive) {
           setState(() => _isSearchActive = false);
           _inlineSearchFocusNode.unfocus();
+          InlineSearchBridge.requestClear();
         }
         if (currentIndex != 0) {
           widget.child.goBranch(0);
@@ -278,11 +294,9 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
                               expandWhenActive: true,
                               // Floating search pill: tap → the dock morphs
                               // into a searchable bar and grabs the keyboard.
-                              // Explore already has the full search page, so
-                              // the pill would be a second door to the same
-                              // room.
-                              showPill:
-                                  _getCurrentIndex(items, isOfflineMode) != 1,
+                              // Explore shows the pill too, since its feed has
+                              // no in-page text field of its own.
+                              showPill: !isOfflineMode,
                               autoFocusOnExpand: true,
                               hintText: context.l10n?.search ?? 'Search',
                               textInputAction: TextInputAction.search,
@@ -300,7 +314,10 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
                                   }
                                 } else {
                                   _inlineSearchFocusNode.unfocus();
-                                  if (widget.child.currentIndex == 1) {
+                                  // Explore keeps working as the landing tab:
+                                  // closing search just restores its feed.
+                                  InlineSearchBridge.requestClear();
+                                  if (widget.child.currentIndex != 1) {
                                     widget.child.goBranch(0);
                                   }
                                 }
@@ -362,6 +379,11 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
     final query = value.trim();
     if (query.isEmpty) return;
     InlineSearchBridge.submit(query);
+    // Collapse back to the pill so the results page (and its mini player) gets
+    // the full height as soon as the query is handed over.
+    if (_isSearchActive) {
+      setState(() => _isSearchActive = false);
+    }
     FocusScope.of(context).unfocus();
     if (widget.child.currentIndex != 1) {
       widget.child.goBranch(1);
@@ -402,12 +424,6 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
       }
 
       _previousShellIndex = item.shellIndex;
-
-      // Landing on Search should put the caret in the field, without opening
-      // the dock's separate inline bar.
-      if (item.shellIndex == 1) {
-        InlineSearchBridge.requestFieldFocus();
-      }
     }
   }
 
