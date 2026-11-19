@@ -60,6 +60,9 @@ class PoTokenService {
   static const _initTimeout = Duration(seconds: 45);
   static const _tokenTtl = Duration(minutes: 20);
 
+  /// How long a failed minter is left alone before it is retried.
+  static const _failureTtl = Duration(minutes: 5);
+
   final http.Client _http = http.Client();
 
   _BotGuardMinter? _minter;
@@ -68,6 +71,13 @@ class PoTokenService {
   String? _visitorData;
   String? _playerRequestToken;
   DateTime? _playerRequestTokenAt;
+
+  /// When minting failed, the web rungs stop asking for a while.
+  ///
+  /// Three web identities sit in the ladder. Without this brake a broken
+  /// minter would make each of them wait out the full token budget before the
+  /// native clients were even tried.
+  DateTime? _unavailableUntil;
 
   final Map<String, ({String token, DateTime at})> _streamingTokens = {};
 
@@ -108,14 +118,21 @@ class PoTokenService {
   Future<PoTokenPair?> tokensFor(String videoId) async {
     if (!isSupported) return null;
 
+    final blocked = _unavailableUntil;
+    if (blocked != null && DateTime.now().isBefore(blocked)) return null;
+
     final visitor = await visitorData();
-    if (visitor == null || visitor.isEmpty) return null;
+    if (visitor == null || visitor.isEmpty) {
+      _unavailableUntil = DateTime.now().add(_failureTtl);
+      return null;
+    }
 
     try {
       final results = await Future.wait<String>([
         _sessionToken(visitor),
         _videoToken(videoId),
       ]);
+      _unavailableUntil = null;
       return PoTokenPair(
         playerRequestToken: results[0],
         streamingToken: results[1],
@@ -123,6 +140,7 @@ class PoTokenService {
       );
     } catch (error) {
       logger.log('PO token generation failed for $videoId', error: error);
+      _unavailableUntil = DateTime.now().add(_failureTtl);
       return null;
     }
   }
