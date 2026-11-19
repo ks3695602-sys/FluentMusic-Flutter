@@ -87,8 +87,15 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
   /// "Back to Explore" button on the results page).
   void _handleCollapseRequest() {
     if (!mounted || !_isSearchActive) return;
-    setState(() => _isSearchActive = false);
+    _setSearchActive(false);
     _inlineSearchFocusNode.unfocus();
+  }
+
+  /// Keeps the dock state and the Explore landing bridge in lockstep.
+  void _setSearchActive(bool active) {
+    if (_isSearchActive == active) return;
+    setState(() => _isSearchActive = active);
+    InlineSearchBridge.setActive(active);
   }
 
   @override
@@ -100,7 +107,7 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
 
         final currentIndex = widget.child.currentIndex;
         if (_isSearchActive) {
-          setState(() => _isSearchActive = false);
+          _setSearchActive(false);
           _inlineSearchFocusNode.unfocus();
           InlineSearchBridge.requestClear();
         }
@@ -224,7 +231,7 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
                                 _getCurrentIndex(items, isOfflineMode),
                             onTabSelected: (index) {
                               if (_isSearchActive) {
-                                setState(() => _isSearchActive = false);
+                                _setSearchActive(false);
                                 _inlineSearchFocusNode.unfocus();
                               }
                               _onTabTapped(index, items);
@@ -303,7 +310,7 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
                               onSubmitted: _submitInlineSearch,
                               onSearchToggle: (active) {
                                 if (active && isOfflineMode) return;
-                                setState(() => _isSearchActive = active);
+                                _setSearchActive(active);
                                 if (active) {
                                   closeCurrentBottomSheet();
                                   if (_dockMinimizeController.minimized) {
@@ -382,7 +389,7 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
     // Collapse back to the pill so the results page (and its mini player) gets
     // the full height as soon as the query is handed over.
     if (_isSearchActive) {
-      setState(() => _isSearchActive = false);
+      _setSearchActive(false);
     }
     FocusScope.of(context).unfocus();
     if (widget.child.currentIndex != 1) {
@@ -395,7 +402,7 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
 
     // Offline mode has no search branch, so collapse the inline field first.
     if (isOfflineMode && _isSearchActive) {
-      setState(() => _isSearchActive = false);
+      _setSearchActive(false);
     }
 
     final currentRoute = GoRouterState.of(context).matchedLocation;

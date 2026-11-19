@@ -341,8 +341,13 @@ class _ArtworkHeroState extends State<_ArtworkHero>
 
 /// Fetches and caches lyrics lazily per song.
 class LyricsViewWidget extends StatefulWidget {
-  const LyricsViewWidget({super.key, required this.metadata});
+  const LyricsViewWidget({
+    super.key,
+    required this.metadata,
+    this.showProvider = false,
+  });
   final MediaItem metadata;
+  final bool showProvider;
 
   @override
   State<LyricsViewWidget> createState() => _LyricsViewWidgetState();
@@ -373,6 +378,7 @@ class _LyricsViewWidgetState extends State<LyricsViewWidget> {
       widget.metadata.title,
       duration: widget.metadata.duration,
       album: widget.metadata.album,
+      videoId: widget.metadata.extras?['ytid']?.toString(),
     );
   }
 
@@ -416,7 +422,10 @@ class _LyricsViewWidgetState extends State<LyricsViewWidget> {
           valueListenable: syncedLyricsEnabled,
           builder: (context, syncedEnabled, _) {
             if (lyrics.isSynced && syncedEnabled) {
-              return SyncedLyricsView(lyrics: lyrics);
+              return SyncedLyricsView(
+                lyrics: lyrics,
+                showProvider: widget.showProvider,
+              );
             }
 
             return SingleChildScrollView(

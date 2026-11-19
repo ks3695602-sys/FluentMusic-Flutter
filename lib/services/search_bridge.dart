@@ -39,6 +39,19 @@ class InlineSearchBridge {
   /// Bumped when the bar closes so Explore can drop the old results.
   static final ValueNotifier<int> clearRequest = ValueNotifier<int>(0);
 
+  /// Whether the dock's inline search field is currently expanded.
+  ///
+  /// Explore uses this to show a recent-search landing instead of the feed
+  /// while the user is typing, so the first keystroke never lands on top of a
+  /// fully loaded discovery page.
+  static final ValueNotifier<bool> active = ValueNotifier<bool>(false);
+
+  /// Updates [active] without notifying when the value is unchanged.
+  static void setActive(bool value) {
+    if (active.value == value) return;
+    active.value = value;
+  }
+
   static String? _pendingQuery;
   static String _lastQuery = '';
   static bool _pendingClear = false;

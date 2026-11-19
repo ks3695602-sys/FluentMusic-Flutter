@@ -313,9 +313,13 @@ class _SearchPageState extends State<SearchPage> {
               .where((item) => item.isNotEmpty)
               .take(8)
               .toList(growable: false);
-          return ExploreFeedView(
-            recentSearches: recent,
-            onSearch: (query) => unawaited(_submitSearch(query)),
+          return ValueListenableBuilder<bool>(
+            valueListenable: InlineSearchBridge.active,
+            builder: (context, searchActive, _) => ExploreFeedView(
+              recentSearches: recent,
+              onSearch: (query) => unawaited(_submitSearch(query)),
+              searchActive: searchActive,
+            ),
           );
         },
       );

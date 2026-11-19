@@ -43,7 +43,7 @@ class FlipCard extends StatefulWidget {
     required this.controller,
     required this.rotateSide,
     this.onTapFlipping = false,
-    this.animationDuration = const Duration(milliseconds: 800),
+    this.animationDuration = const Duration(milliseconds: 420),
   });
 
   final Widget frontWidget;
@@ -100,6 +100,11 @@ class _FlipCardState extends State<FlipCard>
     if (_animationController.isAnimating) return;
     _startAngle = _targetAngle;
     _targetAngle = _targetAngle == 0 ? math.pi : 0;
+    final reduceMotion =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    _animationController.duration = reduceMotion
+        ? Duration.zero
+        : widget.animationDuration;
     await _animationController.forward(from: 0);
   }
 

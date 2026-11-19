@@ -43,6 +43,7 @@ import 'package:musify/widgets/glass/glass_sheet_style.dart';
 import 'package:musify/widgets/now_playing/bottom_actions_row.dart';
 import 'package:musify/widgets/now_playing/now_playing_artwork.dart';
 import 'package:musify/widgets/now_playing/now_playing_controls.dart';
+import 'package:musify/widgets/now_playing/player_lyric_preview.dart';
 import 'package:musify/widgets/now_playing/player_style_sheet.dart';
 import 'package:musify/widgets/now_playing/song_like_button.dart';
 import 'package:musify/widgets/playback_icon_button.dart';
@@ -276,7 +277,16 @@ class _MobileLayout extends StatelessWidget {
   }
 
   Widget _buildPortraitLayout(BuildContext context) {
+    return ValueListenableBuilder<String>(
+      valueListenable: appStyleSetting,
+      builder: (context, appStyle, _) =>
+          _buildPortraitContent(context, appStyle),
+    );
+  }
+
+  Widget _buildPortraitContent(BuildContext context, String appStyle) {
     final isLive = metadata.extras?['isLive'] ?? false;
+    final isMornye = appStyle != 'material';
 
     return ValueListenableBuilder<bool>(
       valueListenable: lyricsController.isFlipped,
@@ -371,7 +381,10 @@ class _MobileLayout extends StatelessWidget {
 
                 // Center: Expansive Word-by-Word Apple Karaoke Lyrics (Image 3)
                 Expanded(
-                  child: LyricsViewWidget(metadata: metadata),
+                  child: LyricsViewWidget(
+                    metadata: metadata,
+                    showProvider: true,
+                  ),
                 ),
 
                 // Bottom: Position slider + compact playback controls + 3-item trio
@@ -397,6 +410,7 @@ class _MobileLayout extends StatelessWidget {
           child: Column(
             children: [
               const SizedBox(height: 8),
+              if (isMornye) _PlayingFromPill(metadata: metadata),
               Expanded(
                 flex: 5,
                 child: Center(
@@ -408,6 +422,11 @@ class _MobileLayout extends StatelessWidget {
                   ),
                 ),
               ),
+              if (isMornye)
+                PlayerLyricPreview(
+                  metadata: metadata,
+                  onTap: lyricsController.flipcard,
+                ),
               if (!isLive)
                 Expanded(
                   flex: 4,
@@ -426,6 +445,7 @@ class _MobileLayout extends StatelessWidget {
                 isLargeScreen: isLargeScreen,
                 lyricsController: lyricsController,
               ),
+              if (isMornye) _DeviceFooter(metadata: metadata),
               const SizedBox(height: 16),
             ],
           ),
@@ -1106,6 +1126,91 @@ class _FullBleedArtworkBackground extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Small capsule above the artwork that says where playback came from.
+class _PlayingFromPill extends StatelessWidget {
+  const _PlayingFromPill({required this.metadata});
+
+  final MediaItem metadata;
+
+  @override
+  Widget build(BuildContext context) {
+    final rawSource = metadata.extras?['source']?.toString().trim();
+    final source = rawSource != null && rawSource.isNotEmpty
+        ? rawSource
+        : streamingSourceSetting.value;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+        decoration: BoxDecoration(
+          color: CupertinoColors.white.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: CupertinoColors.white.withValues(alpha: 0.12),
+            width: 0.7,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              CupertinoIcons.device_phone_portrait,
+              size: 12,
+              color: CupertinoColors.white.withValues(alpha: 0.55),
+            ),
+            const SizedBox(width: 6),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 220),
+              child: Text(
+                'Playing from $source',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: CupertinoColors.white.withValues(alpha: 0.72),
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.1,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Quiet source/quality footer under the action row.
+class _DeviceFooter extends StatelessWidget {
+  const _DeviceFooter({required this.metadata});
+
+  final MediaItem metadata;
+
+  @override
+  Widget build(BuildContext context) {
+    final raw = metadata.extras?['source']?.toString().trim();
+    final source = raw != null && raw.isNotEmpty
+        ? raw
+        : streamingSourceSetting.value;
+    final quality = audioQualitySetting.value.toUpperCase();
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Text(
+        '$source · $quality audio',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: CupertinoColors.white.withValues(alpha: 0.28),
+          fontSize: 10.5,
+          fontWeight: FontWeight.w500,
+          letterSpacing: 0.2,
+        ),
       ),
     );
   }

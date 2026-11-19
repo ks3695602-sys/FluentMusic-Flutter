@@ -67,6 +67,7 @@ class LyricsManager {
     String title, {
     Duration? duration,
     String? album,
+    String? videoId,
   }) async {
     final lyrics = await fetchLyricsResult(
       TrackInfo(
@@ -74,6 +75,7 @@ class LyricsManager {
         artist: artistName,
         album: album,
         duration: duration,
+        videoId: videoId,
       ),
     );
     if (lyrics == null) return null;
@@ -89,16 +91,29 @@ class LyricsManager {
     final variants = buildSearchVariants(track);
     if (variants.isEmpty) return null;
 
-    final cacheKey = _cacheKey(variants.first);
+    final cacheKey = _cacheKey(variants.first, track.videoId);
     final cached = _readCache(cacheKey);
     if (cached != null) return cached.value;
 
-    final result = await _search(variants);
+    final result = await _search(variants, track);
     _writeCache(cacheKey, result);
     return result;
   }
 
-  Future<Lyrics?> _search(List<TrackInfo> variants) async {
+  Future<Lyrics?> _search(
+    List<TrackInfo> variants,
+    TrackInfo track,
+  ) async {
+    // 0. Unison (video-id exact, word/syllable synchronized). A synced entry
+    //    wins immediately because it is keyed on this exact upload; a plain
+    //    one is held back until every synced provider has been asked.
+    Lyrics? unisonPlain;
+    final unison = await _fetchFromUnison(track);
+    if (unison != null) {
+      if (unison.isSynced) return unison;
+      unisonPlain = unison;
+    }
+
     // 1. Priority 1: YouLyPlus (Word/Syllable synchronized lyrics)
     for (final variant in variants.take(2)) {
       final youly = await _fetchFromYouLyPlus(variant);
@@ -121,6 +136,10 @@ class LyricsManager {
       if (lrclib != null) return lrclib;
     }
 
+    // Unison's unsynced entry still beats anonymous scrapers: it is tied to
+    // the exact video and carries the required submitter credit.
+    if (unisonPlain != null) return unisonPlain;
+
     // 4. Priority 4: Plain-text scrapers (un-synced fallback)
     for (final variant in variants.take(2)) {
       final pending = <Future<Lyrics?>>[
@@ -134,6 +153,75 @@ class LyricsManager {
       }
     }
     return null;
+  }
+
+  // ----------------------------------------------------------------- Unison
+
+  /// Looks a track up on Unison, the crowdsourced database Better Lyrics reads
+  /// from.
+  ///
+  /// The lookup is keyed on the YouTube video id, so it needs no fuzzy
+  /// matching. Unison requires attribution: the returned [Lyrics.credit] says
+  /// "Lyrics from Unison" and names the submitter. See
+  /// `THIRD_PARTY_NOTICES.md`.
+  Future<Lyrics?> _fetchFromUnison(TrackInfo track) async {
+    final videoId = track.videoId?.trim();
+    if (videoId == null || videoId.isEmpty) return null;
+
+    try {
+      final uri = Uri.https('unison.betterlyrics.org', '/lyrics', {
+        'v': videoId,
+      });
+      final response = await _get(uri);
+      if (response.statusCode != 200) return null;
+
+      final body = utf8.decode(response.bodyBytes, allowMalformed: true);
+      final json = jsonDecode(body);
+      if (json is! Map || json['success'] != true) return null;
+
+      final data = json['data'];
+      if (data is! Map) return null;
+
+      final raw = (data['lyrics'] ?? '').toString();
+      if (raw.trim().isEmpty) return null;
+
+      final format = (data['format'] ?? '').toString().toLowerCase();
+      final syncType = (data['syncType'] ?? '').toString().toLowerCase();
+
+      List<LyricLine>? synced;
+      if (format == 'ttml' || raw.trimLeft().startsWith('<tt')) {
+        final lines = parseTtml(raw);
+        if (lines.isNotEmpty) synced = lines;
+      } else if (format == 'lrc' ||
+          syncType == 'richsync' ||
+          syncType == 'linesync') {
+        final lines = parseLrc(raw);
+        if (lines.isNotEmpty) synced = lines;
+      }
+
+      final plain = synced != null
+          ? synced.map((l) => l.text).join('\n')
+          : raw.trim();
+
+      final submitter = data['submitter'];
+      final displayName = submitter is Map
+          ? (submitter['displayName'] ?? '').toString().trim()
+          : '';
+      final credit = displayName.isEmpty
+          ? 'Lyrics from Unison'
+          : 'Lyrics from Unison · submitted by $displayName';
+
+      final lyrics = Lyrics(
+        source: 'Unison',
+        plain: plain.isEmpty ? null : plain,
+        synced: synced,
+        credit: credit,
+      );
+      return lyrics.isEmpty ? null : lyrics;
+    } catch (e, st) {
+      _logError('Unison lookup failed', e, st);
+      return null;
+    }
   }
 
   // ------------------------------------------------------------- YouLyPlus
@@ -404,9 +492,11 @@ class LyricsManager {
     );
   }
 
-  String _cacheKey(TrackInfo t) {
+  String _cacheKey(TrackInfo t, [String? videoId]) {
     final seconds = t.duration?.inSeconds ?? 0;
-    return '${foldDiacritics(t.artist)}|${foldDiacritics(t.title)}|$seconds';
+    final id = (videoId ?? t.videoId)?.trim();
+    final idPart = (id == null || id.isEmpty) ? '' : '|$id';
+    return '${foldDiacritics(t.artist)}|${foldDiacritics(t.title)}|$seconds$idPart';
   }
 
   _CacheEntry? _readCache(String key) {

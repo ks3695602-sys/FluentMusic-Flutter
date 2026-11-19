@@ -275,6 +275,55 @@ void main() {
       expect(result.synced!.length, 2);
     });
 
+    test('uses Unison for the exact video id and keeps submitter credit',
+        () async {
+      final client = MockClient((request) async {
+        expect(request.url.host, 'unison.betterlyrics.org');
+        expect(request.url.queryParameters['v'], 'abc123');
+        return _json({
+          'success': true,
+          'data': {
+            'format': 'lrc',
+            'syncType': 'linesync',
+            'lyrics': '[00:01.00]hello\n[00:05.00]world',
+            'submitter': {'keyId': 'k', 'displayName': 'boidu'},
+          },
+        });
+      });
+
+      final result = await LyricsManager(client: client).fetchLyricsResult(
+        const TrackInfo(title: 'Song', artist: 'Artist', videoId: 'abc123'),
+      );
+
+      expect(result, isNotNull);
+      expect(result!.source, 'Unison');
+      expect(result.isSynced, isTrue);
+      expect(result.synced!.length, 2);
+      expect(result.attribution, 'Lyrics from Unison · submitted by boidu');
+    });
+
+    test('keeps the Unison credit without a submitter name', () async {
+      final client = MockClient((request) async {
+        return _json({
+          'success': true,
+          'data': {
+            'format': 'plain',
+            'syncType': 'plain',
+            'lyrics': 'just words',
+          },
+        });
+      });
+
+      final result = await LyricsManager(client: client).fetchLyricsResult(
+        const TrackInfo(title: 'Song', artist: 'Artist', videoId: 'abc123'),
+      );
+
+      expect(result, isNotNull);
+      expect(result!.isSynced, isFalse);
+      expect(result.text, 'just words');
+      expect(result.attribution, 'Lyrics from Unison');
+    });
+
     test('falls back to lyrics.ovh and keeps fetchLyrics format', () async {
       final client = MockClient((request) async {
         if (request.url.host == 'api.lyrics.ovh') {

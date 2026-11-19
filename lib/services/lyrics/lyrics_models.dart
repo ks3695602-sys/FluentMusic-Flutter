@@ -28,6 +28,7 @@ class TrackInfo {
     required this.artist,
     this.album,
     this.duration,
+    this.videoId,
   });
 
   final String title;
@@ -35,12 +36,20 @@ class TrackInfo {
   final String? album;
   final Duration? duration;
 
-  TrackInfo copyWith({String? title, String? artist}) => TrackInfo(
-    title: title ?? this.title,
-    artist: artist ?? this.artist,
-    album: album,
-    duration: duration,
-  );
+  /// YouTube video id, when the caller has one.
+  ///
+  /// Providers that key on the exact upload (Unison) use it to skip a fuzzy
+  /// title/artist search, so the lookup cannot drift to a live or remix cut.
+  final String? videoId;
+
+  TrackInfo copyWith({String? title, String? artist, String? videoId}) =>
+      TrackInfo(
+        title: title ?? this.title,
+        artist: artist ?? this.artist,
+        album: album,
+        duration: duration,
+        videoId: videoId ?? this.videoId,
+      );
 }
 
 /// One timed word/syllable of an enhanced synchronized (LRC) lyrics file.
@@ -198,12 +207,25 @@ String wrapLongLyricTokens(
 /// [plain] is always usable text. [synced] is only set by providers that
 /// return timestamps (e.g. LRCLIB) and is sorted by start time.
 class Lyrics {
-  const Lyrics({required this.source, this.plain, this.synced});
+  const Lyrics({
+    required this.source,
+    this.plain,
+    this.synced,
+    this.credit,
+  });
 
   /// Human readable provider name, e.g. `lrclib.net`.
   final String source;
   final String? plain;
   final List<LyricLine>? synced;
+
+  /// Full attribution line the provider requires, when its licence asks for
+  /// more than a plain source name (Unison: "Lyrics from Unison · submitted
+  /// by …"). Null for providers that only need the source named.
+  final String? credit;
+
+  /// Text to show wherever lyrics are credited.
+  String get attribution => credit ?? 'Lyrics by $source';
 
   bool get isSynced => synced != null && synced!.isNotEmpty;
   bool get hasWordSync => synced?.any((l) => l.hasWordSync) ?? false;

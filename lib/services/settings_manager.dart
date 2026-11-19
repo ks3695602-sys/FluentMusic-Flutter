@@ -125,6 +125,50 @@ final liquidGlassQualitySetting = ValueNotifier<String>(
   Hive.box('settings').get('liquidGlassQuality', defaultValue: 'premium'),
 );
 
+/// Base presentation used by the player and lyrics surfaces.
+///
+/// `mornye` is the BitChord-style stage: lyric preview on the player, the
+/// full-screen word-sweep lyrics mode and the glass transport stack.
+/// `material` keeps the older plain stage for anyone who prefers it.
+final appStyleSetting = ValueNotifier<String>(
+  Hive.box('settings').get('appStyle', defaultValue: 'mornye'),
+);
+
+/// Persists the base app style. Unknown values fall back to `mornye`.
+void setAppStyle(String style) {
+  final normalized = style == 'material' ? 'material' : 'mornye';
+  if (appStyleSetting.value == normalized) return;
+  appStyleSetting.value = normalized;
+  if (Hive.isBoxOpen('settings')) {
+    Hive.box('settings').put('appStyle', normalized).ignore();
+  }
+}
+
+/// Global glow strength for every liquid-glass surface.
+///
+/// `off` removes interaction glow entirely, `subtle` keeps a restrained
+/// specular halo, and `dhruv` pushes blur, spread and opacity for the
+/// signature glow. Buttons, icon buttons, menus and sheets all resolve
+/// their glow from [getEffectiveGlassTheme], so one value drives the app.
+final glowModeSetting = ValueNotifier<String>(
+  Hive.box('settings').get('glowMode', defaultValue: 'subtle'),
+);
+
+/// Persists the glow mode and refreshes the shared glass theme.
+void setGlowMode(String mode) {
+  final normalized = switch (mode) {
+    'off' => 'off',
+    'dhruv' => 'dhruv',
+    _ => 'subtle',
+  };
+  if (glowModeSetting.value == normalized) return;
+  glowModeSetting.value = normalized;
+  if (Hive.isBoxOpen('settings')) {
+    Hive.box('settings').put('glowMode', normalized).ignore();
+  }
+  updateLiquidGlassTheme();
+}
+
 /// How Now Playing stages the artwork. Defaults to the original full-bleed
 /// immersive look, so existing installs see no change after upgrading.
 final playerStyleSetting = ValueNotifier<PlayerStyle>(
@@ -184,6 +228,22 @@ final resumeOnVolumeRaise = ValueNotifier<bool>(
 final ytMusicSignedInPlayback = ValueNotifier<bool>(
   Hive.box('settings').get('ytMusicSignedInPlayback', defaultValue: false),
 );
+
+/// Last-resort stream resolution through the Cobalt bridge.
+///
+/// Every InnerTube client is tried first; this is only reached when all of
+/// them refused the track. The request carries the public video id and no
+/// account data, and the returned URL is short-lived.
+final remoteStreamFallbackEnabled = ValueNotifier<bool>(
+  Hive.box('settings').get('remoteStreamFallbackEnabled', defaultValue: true),
+);
+
+void setRemoteStreamFallback(bool value) {
+  remoteStreamFallbackEnabled.value = value;
+  if (Hive.isBoxOpen('settings')) {
+    Hive.box('settings').put('remoteStreamFallbackEnabled', value).ignore();
+  }
+}
 
 final saveSearchHistoryEnabled = ValueNotifier<bool>(
   Hive.box('settings').get('saveSearchHistoryEnabled', defaultValue: true),
@@ -269,9 +329,34 @@ GlassThemeData getEffectiveGlassTheme() {
     saturation: saturation,
   );
 
+  // One glow palette for every glass surface. The raw tint stays readable
+  // as the glow hue; only alpha, blur, spread and opacity change per mode.
+  final glowHue = Color(config.tintColor);
+  final glowColors = switch (glowModeSetting.value) {
+    'off' => GlassGlowColors(
+        primary: glowHue.withValues(alpha: 0),
+        glowBlurRadius: 0,
+        glowSpreadRadius: 0,
+        glowOpacity: 0,
+      ),
+    'dhruv' => GlassGlowColors(
+        primary: glowHue.withValues(alpha: 0.8),
+        glowBlurRadius: 16,
+        glowSpreadRadius: 0.2,
+        glowOpacity: 1,
+      ),
+    _ => GlassGlowColors(
+        primary: glowHue.withValues(alpha: 0.35),
+        glowBlurRadius: 6,
+        glowSpreadRadius: 0.05,
+        glowOpacity: 0.8,
+      ),
+  };
+
   GlassThemeVariant tune(GlassThemeVariant variant) {
     final settings = variant.settings ?? const GlassThemeSettings();
     return variant.copyWith(
+      glowColors: glowColors,
       settings: settings.copyWith(
         glassColor: tintColor,
         frost: config.frost,
@@ -427,6 +512,8 @@ void reloadSettingsFromStorage() {
     'liquidGlassQuality',
     defaultValue: 'premium',
   );
+  glowModeSetting.value = settings.get('glowMode', defaultValue: 'subtle');
+  appStyleSetting.value = settings.get('appStyle', defaultValue: 'mornye');
   liquidGlassBlurSetting.value = (settings.get(
     'liquidGlassBlur',
     defaultValue: 4.0,

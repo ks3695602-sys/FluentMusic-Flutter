@@ -36,6 +36,7 @@ import 'package:musify/services/lyrics_manager.dart';
 import 'package:musify/services/playlists_manager.dart';
 import 'package:musify/services/proxy_manager.dart';
 import 'package:musify/services/settings_manager.dart';
+import 'package:musify/services/stream_fallback.dart';
 import 'package:musify/services/ytmusic_playback_service.dart';
 import 'package:musify/utilities/app_utils.dart';
 import 'package:musify/utilities/formatter.dart';
@@ -97,7 +98,7 @@ void reloadSongLibraryStateFromStorage() {
 }
 
 // Timeouts and durations used across manifest fetching and cache validation.
-const Duration _manifestTimeout = Duration(seconds: 30);
+const Duration _manifestTimeout = Duration(seconds: 45);
 const Duration _cacheValidationDuration = Duration(hours: 1);
 
 /// Fetches a stream manifest for a song, honoring proxy settings.
@@ -164,10 +165,13 @@ Future<String?> _getCachedSongUrl(
 /// Checks if a cached URL still responds successfully.
 Future<bool> _validateCachedUrl(String songId, String cachedUrl) async {
   try {
-    final response = await http.head(
-      Uri.parse(cachedUrl),
-      headers: streamPlaybackHeaders(songId),
-    );
+    final uri = Uri.parse(cachedUrl);
+    // A bridge URL is not minted by an InnerTube client, so sending a
+    // YouTube client's headers with it is pointless and can confuse the host.
+    final headers = uri.host.endsWith('googlevideo.com')
+        ? streamPlaybackHeaders(songId)
+        : null;
+    final response = await http.head(uri, headers: headers);
     return response.statusCode >= 200 && response.statusCode < 300;
   } catch (_) {
     return false;
@@ -823,6 +827,13 @@ Future<String?> fetchSongStreamUrl(
     // Get fresh URL, reusing the stream already resolved for this song.
     final selectedStream = await fetchBestAudioStream(songId);
     if (selectedStream == null) {
+      // Every InnerTube client refused this track. The Cobalt bridge is the
+      // last resort, and only the public video id is sent to it.
+      final remoteUrl = await resolveRemoteAudioUrl(songId);
+      if (remoteUrl != null) {
+        unawaited(addOrUpdateData<String>('cache', cacheKey, remoteUrl));
+        return remoteUrl;
+      }
       logger.log('fetchSongStreamUrl: no audio streams for $songId');
       return null;
     }
@@ -871,26 +882,37 @@ String formatPlainLyrics(Lyrics result) {
       .replaceAll(RegExp(r'<[^>]+>'), '')
       .replaceAll(RegExp(r'\[\d{1,3}:\d{1,2}(?:[.:]\d{1,3})?\]'), '')
       .trim();
-  return '$cleanText\n\n© ${result.source}'
+  final attribution = result.credit ?? '© ${result.source}';
+  return '$cleanText\n\n$attribution'
       .replaceAll(RegExp(r'\n{4,}'), '\n\n')
       .replaceAll(RegExp(r'\n{3}'), '\n\n');
 }
 
 /// Fetches lyrics for a song, keeping timestamps when the provider has them.
+///
+/// [videoId] is the YouTube id of the upload; providers keyed on the exact
+/// video (Unison) use it for a precise lookup instead of a title search.
 Future<Lyrics?> getSongLyricsResult(
   String? artist,
   String title, {
   Duration? duration,
   String? album,
+  String? videoId,
 }) async {
   if (artist == null) return null;
-  final key = '$artist - $title';
+  final key = '$artist - $title - ${videoId ?? ''}';
   if (lastFetchedLyrics == key) return _lastLyricsResult;
 
   lyrics.value = null;
   final requestId = ++_lyricsRequestCounter;
   final result = await LyricsManager().fetchLyricsResult(
-    TrackInfo(title: title, artist: artist, album: album, duration: duration),
+    TrackInfo(
+      title: title,
+      artist: artist,
+      album: album,
+      duration: duration,
+      videoId: videoId,
+    ),
   );
   if (result == null) return null;
 
@@ -908,12 +930,14 @@ Future<String?> getSongLyrics(
   String title, {
   Duration? duration,
   String? album,
+  String? videoId,
 }) async {
   final result = await getSongLyricsResult(
     artist,
     title,
     duration: duration,
     album: album,
+    videoId: videoId,
   );
   return result == null ? null : formatPlainLyrics(result);
 }

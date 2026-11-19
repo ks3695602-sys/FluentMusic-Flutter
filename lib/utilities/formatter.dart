@@ -21,6 +21,8 @@
 
 import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 
+import 'package:musify/utilities/artist_names.dart';
+
 const _noiseTerms =
     'official music video|official lyric video|official lyrics video|'
     'official video|official 4k video|official audio|lyric video|'
@@ -69,7 +71,9 @@ Map<String, dynamic> returnSongLayout(
 }) {
   // Split only on the first ' - ' so dashes inside the title are preserved.
   final sep = song.title.indexOf(' - ');
-  final artist = sep != -1 ? song.title.substring(0, sep) : song.author;
+  final artist = formatArtistNames(
+    sep != -1 ? song.title.substring(0, sep) : song.author,
+  );
   final rawTitle = sep != -1 ? song.title.substring(sep + 3) : song.title;
   final title = formatSongTitle(rawTitle);
 

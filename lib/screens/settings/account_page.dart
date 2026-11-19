@@ -453,7 +453,8 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
     bool isDark,
   ) {
     return <Widget>[
-      _section(
+      if (!session.isLocal)
+        _section(
         'SYNC',
         isDark,
         children: <Widget>[

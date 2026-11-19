@@ -321,6 +321,9 @@ class ProxyManager {
         ytClient,
         songId,
         timeout: Duration(seconds: timeoutSeconds),
+        // The probe uses the direct network, so it would reject a manifest
+        // that only this proxy can reach.
+        verifyAudio: false,
       );
       _workingProxies.add(proxy);
       return manifest;

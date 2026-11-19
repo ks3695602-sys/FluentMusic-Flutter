@@ -349,6 +349,67 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
             ],
           ),
 
+          // 2b. APP STYLE — Mornye base by default.
+          GlassGroupedSection(
+            header: Text(
+              'APP STYLE',
+              style: TextStyle(
+                color: subtitleColor,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.7,
+              ),
+            ),
+            surfaceStyle: GlassSurfaceStyle.solid,
+            children: [
+              ValueListenableBuilder<String>(
+                valueListenable: appStyleSetting,
+                builder: (context, appStyle, _) => GlassListTile(
+                  leading: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0A84FF).withValues(alpha: 0.16),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      CupertinoIcons.music_albums_fill,
+                      color: Color(0xFF0A84FF),
+                    ),
+                  ),
+                  title: Text(
+                    'App Style',
+                    style: TextStyle(color: titleColor),
+                  ),
+                  subtitle: Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: GlassSegmentedControl(
+                      segments: const [
+                        GlassSegment(label: 'Mornye'),
+                        GlassSegment(label: 'Material'),
+                      ],
+                      selectedTextStyle: TextStyle(
+                        color: isDark ? Colors.white : const Color(0xFF1C1C1E),
+                        fontWeight: FontWeight.w600,
+                      ),
+                      unselectedTextStyle: TextStyle(
+                        color: isDark
+                            ? Colors.white70
+                            : const Color(0xFF3C3C43),
+                      ),
+                      selectedIndex: appStyle == 'material' ? 1 : 0,
+                      onSegmentSelected: (index) {
+                        setAppStyle(index == 1 ? 'material' : 'mornye');
+                        setState(() {});
+                      },
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+
           // 3. THEME & DISPLAY
           GlassGroupedSection(
             header: Text(
@@ -749,6 +810,45 @@ class PlaybackSettingsPage extends StatelessWidget {
                   onTap: () {
                     Navigator.of(context).push(
                       CupertinoPageRoute(builder: (_) => const EqualizerPage()),
+                    );
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            GlassGroupedSection(
+              surfaceStyle: GlassSurfaceStyle.solid,
+              header: Text(
+                'STREAMING FALLBACK',
+                style: TextStyle(
+                  color: subtitleColor,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              children: [
+                ValueListenableBuilder<bool>(
+                  valueListenable: remoteStreamFallbackEnabled,
+                  builder: (_, remoteFallback, __) {
+                    return GlassListTile(
+                      leading: const Icon(
+                        CupertinoIcons.antenna_radiowaves_left_right,
+                        color: Color(0xFF5856D6),
+                      ),
+                      title: Text(
+                        'Remote Last Resort',
+                        style: TextStyle(color: titleColor),
+                      ),
+                      subtitle: Text(
+                        'If every YouTube client refuses a track, ask a '
+                        'public bridge for a temporary audio URL. Only the '
+                        'video id is sent, never account data.',
+                        style: TextStyle(color: subtitleColor, fontSize: 12),
+                      ),
+                      trailing: GlassSwitch(
+                        value: remoteFallback,
+                        onChanged: setRemoteStreamFallback,
+                      ),
                     );
                   },
                 ),

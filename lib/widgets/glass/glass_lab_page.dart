@@ -423,6 +423,49 @@ class GlassLabPage extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           GlassGroupedSection(
+            header: _sectionHeader('GLOW', subtitleColor),
+            surfaceStyle: GlassSurfaceStyle.solid,
+            children: [
+              ValueListenableBuilder<String>(
+                valueListenable: glowModeSetting,
+                builder: (context, mode, _) => _glowTile(
+                  context: context,
+                  id: 'off',
+                  current: mode,
+                  title: 'Off',
+                  subtitle: 'No interaction glow — battery saver friendly',
+                  icon: CupertinoIcons.moon,
+                  color: const Color(0xFF8E8E93),
+                ),
+              ),
+              ValueListenableBuilder<String>(
+                valueListenable: glowModeSetting,
+                builder: (context, mode, _) => _glowTile(
+                  context: context,
+                  id: 'subtle',
+                  current: mode,
+                  title: 'Subtle',
+                  subtitle: 'Soft specular halo on buttons and menus',
+                  icon: CupertinoIcons.sun_min,
+                  color: const Color(0xFF0A84FF),
+                ),
+              ),
+              ValueListenableBuilder<String>(
+                valueListenable: glowModeSetting,
+                builder: (context, mode, _) => _glowTile(
+                  context: context,
+                  id: 'dhruv',
+                  current: mode,
+                  title: 'Dhruv Mode',
+                  subtitle: 'Wide, bright glow across every glass surface',
+                  icon: CupertinoIcons.sparkles,
+                  color: const Color(0xFFFF375F),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          GlassGroupedSection(
             header: _sectionHeader('RENDER PIPELINE', subtitleColor),
             surfaceStyle: GlassSurfaceStyle.solid,
             children: [
@@ -532,6 +575,40 @@ class GlassLabPage extends StatelessWidget {
       onTap: () {
         setLiquidGlassQuality(id);
         showToast(context, '$title quality selected');
+      },
+    );
+  }
+
+  Widget _glowTile({
+    required BuildContext context,
+    required String id,
+    required String current,
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color color,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final titleColor = isDark ? Colors.white : const Color(0xFF1C1C1E);
+    final subtitleColor = isDark ? Colors.white60 : const Color(0xFF636366);
+    final selected = current == id;
+
+    return GlassListTile(
+      leading: Icon(icon, color: color),
+      title: Text(
+        title,
+        style: TextStyle(color: titleColor, fontWeight: FontWeight.w600),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: TextStyle(color: subtitleColor, fontSize: 12.5),
+      ),
+      trailing: selected
+          ? Icon(CupertinoIcons.checkmark_circle_fill, color: color)
+          : null,
+      onTap: () {
+        setGlowMode(id);
+        showToast(context, '$title glow selected');
       },
     );
   }

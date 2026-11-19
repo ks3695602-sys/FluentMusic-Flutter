@@ -40,11 +40,16 @@ class ExploreFeedView extends StatefulWidget {
   const ExploreFeedView({
     required this.recentSearches,
     required this.onSearch,
+    this.searchActive = false,
     super.key,
   });
 
   final List<String> recentSearches;
   final ValueChanged<String> onSearch;
+
+  /// When the dock's inline search field is open, Explore becomes a landing
+  /// surface (recent searches + moods) instead of the discovery feed.
+  final bool searchActive;
 
   @override
   State<ExploreFeedView> createState() => _ExploreFeedViewState();
@@ -120,8 +125,142 @@ class _ExploreFeedViewState extends State<ExploreFeedView> {
     );
   }
 
+  /// Landing surface shown while the dock's search field is open.
+  ///
+  /// Keeping the discovery feed underneath made the first keystroke feel like
+  /// a tab switch; the search field now gets a dedicated recent/mood landing.
+  Widget _buildSearchLanding(BuildContext context) {
+    final isDark = CupertinoTheme.of(context).brightness == Brightness.dark;
+    final titleColor = isDark ? CupertinoColors.white : const Color(0xFF1C1C1E);
+    final subColor = isDark
+        ? CupertinoColors.white.withValues(alpha: 0.62)
+        : const Color(0xFF636366);
+    final topPadding = MediaQuery.paddingOf(context).top;
+    final recent = widget.recentSearches.take(8).toList(growable: false);
+
+    return CustomScrollView(
+      physics: const AlwaysScrollableScrollPhysics(
+        parent: BouncingScrollPhysics(),
+      ),
+      slivers: [
+        SliverPadding(
+          padding: EdgeInsets.fromLTRB(20, topPadding + 14, 20, 0),
+          sliver: SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Search',
+                  style: TextStyle(
+                    fontSize: 34,
+                    fontWeight: FontWeight.bold,
+                    color: titleColor,
+                    letterSpacing: -0.8,
+                    height: 1.05,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  'Find songs, artists, albums and playlists.',
+                  style: TextStyle(fontSize: 14, color: subColor),
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (recent.isNotEmpty)
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+            sliver: SliverToBoxAdapter(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Recent searches',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: subColor,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  for (final query in recent)
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => widget.onSearch(query),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 9),
+                        child: Row(
+                          children: [
+                            Icon(
+                              CupertinoIcons.clock,
+                              size: 16,
+                              color: subColor,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                query,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w500,
+                                  color: titleColor,
+                                ),
+                              ),
+                            ),
+                            Icon(
+                              CupertinoIcons.arrow_up_left,
+                              size: 15,
+                              color: subColor,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 40),
+          sliver: SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Browse moods',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: subColor,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final mood in exploreMoods)
+                      _MoodChip(
+                        mood: mood,
+                        onTap: () => showExploreMoodSheet(context, mood),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (widget.searchActive) return _buildSearchLanding(context);
+
     final feed = _feed;
 
     if (feed == null) {
@@ -237,13 +376,30 @@ class _ExploreFeedViewState extends State<ExploreFeedView> {
                         final query = widget.recentSearches[index];
                         return GestureDetector(
                           onTap: () => widget.onSearch(query),
-                          child: GlassContainer(
-                            shape: const LiquidRoundedRectangle(
-                              borderRadius: 19,
-                            ),
+                          child: Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 13,
                               vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? CupertinoColors.white.withValues(
+                                      alpha: 0.08,
+                                    )
+                                  : CupertinoColors.black.withValues(
+                                      alpha: 0.05,
+                                    ),
+                              borderRadius: BorderRadius.circular(19),
+                              border: Border.all(
+                                color: isDark
+                                    ? CupertinoColors.white.withValues(
+                                        alpha: 0.10,
+                                      )
+                                    : CupertinoColors.black.withValues(
+                                        alpha: 0.06,
+                                      ),
+                                width: 0.7,
+                              ),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
@@ -537,7 +693,7 @@ class _ShortsCard extends StatelessWidget {
             song['image'] ??
             song['lowResImage'])
         ?.toString();
-    final category = song['exploreCategory']?.toString() ?? 'New';
+    final category = song['exploreCategory']?.toString().trim() ?? '';
 
     void handleTap() {
       final box = context.findRenderObject() as RenderBox?;
@@ -571,6 +727,7 @@ class _ShortsCard extends StatelessWidget {
                 CachedNetworkImage(
                   imageUrl: image,
                   fit: BoxFit.cover,
+                  memCacheWidth: 420,
                   fadeInDuration: const Duration(milliseconds: 200),
                   placeholder: (_, __) => const ColoredBox(
                     color: Color(0xFF1C1C1E),
@@ -600,33 +757,34 @@ class _ShortsCard extends StatelessWidget {
                   ),
                 ),
               ),
-              Positioned(
-                top: 10,
-                left: 10,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: CupertinoColors.black.withValues(alpha: 0.34),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: CupertinoColors.white.withValues(alpha: 0.22),
-                      width: 0.7,
+              if (category.isNotEmpty)
+                Positioned(
+                  top: 10,
+                  left: 10,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
                     ),
-                  ),
-                  child: Text(
-                    category.toUpperCase(),
-                    style: TextStyle(
-                      color: CupertinoColors.white.withValues(alpha: 0.92),
-                      fontSize: 8,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.8,
+                    decoration: BoxDecoration(
+                      color: CupertinoColors.black.withValues(alpha: 0.34),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: CupertinoColors.white.withValues(alpha: 0.22),
+                        width: 0.7,
+                      ),
+                    ),
+                    child: Text(
+                      category.toUpperCase(),
+                      style: TextStyle(
+                        color: CupertinoColors.white.withValues(alpha: 0.92),
+                        fontSize: 8,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.8,
+                      ),
                     ),
                   ),
                 ),
-              ),
               Center(
                 child: Container(
                   width: 44,
@@ -718,6 +876,7 @@ class _FeaturedBanner extends StatelessWidget {
               CachedNetworkImage(
                 imageUrl: image,
                 fit: BoxFit.cover,
+                memCacheWidth: 760,
                 fadeInDuration: const Duration(milliseconds: 200),
                 placeholder: (_, __) => const ColoredBox(
                   color: Color(0xFF1C1C1E),
@@ -815,9 +974,20 @@ class _MoodChip extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap,
-      child: GlassContainer(
-        shape: const LiquidRoundedRectangle(borderRadius: 20),
+      child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isDark
+              ? CupertinoColors.white.withValues(alpha: 0.08)
+              : CupertinoColors.black.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isDark
+                ? CupertinoColors.white.withValues(alpha: 0.10)
+                : CupertinoColors.black.withValues(alpha: 0.06),
+            width: 0.7,
+          ),
+        ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [

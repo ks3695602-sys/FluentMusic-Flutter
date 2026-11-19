@@ -19,6 +19,8 @@
  *     please visit: https://github.com/gokadzev/Musify
  */
 
+import 'package:musify/utilities/artist_names.dart';
+
 /// Categories that seed the Explore Shorts carousel.
 const exploreShortCategories = <String>['New', 'Trending', 'Evergreen'];
 
@@ -72,7 +74,7 @@ Map<String, dynamic>? normalizeExploreSong(dynamic raw, {String? category}) {
 
   song['ytid'] = ytid;
   song['title'] = title;
-  song['artist'] = artist.isEmpty ? 'Unknown artist' : artist;
+  song['artist'] = artist.isEmpty ? 'Unknown artist' : formatArtistNames(artist);
   song['highResImage'] = image;
   song['lowResImage'] = lowRes ?? image;
   song['image'] = song['image'] ?? image;

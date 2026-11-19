@@ -259,6 +259,7 @@ class _ShortsViewerPageState extends State<ShortsViewerPage> {
   Widget build(BuildContext context) {
     final bottomPadding = MediaQuery.paddingOf(context).bottom;
     final topPadding = MediaQuery.paddingOf(context).top;
+    final category = _song['exploreCategory']?.toString().trim() ?? '';
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light.copyWith(
@@ -303,9 +304,8 @@ class _ShortsViewerPageState extends State<ShortsViewerPage> {
                       semanticLabel: 'Close shorts',
                     ),
                     const Spacer(),
-                    _CategoryBadge(
-                      label: _song['exploreCategory']?.toString() ?? 'Shorts',
-                    ),
+                    if (category.isNotEmpty)
+                      _CategoryBadge(label: category),
                   ],
                 ),
               ),

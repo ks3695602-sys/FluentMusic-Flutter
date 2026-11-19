@@ -27,7 +27,6 @@ import 'package:musify/main.dart';
 import 'package:musify/services/common_services.dart';
 import 'package:musify/services/playlist_download_service.dart';
 import 'package:musify/services/settings_manager.dart';
-import 'package:musify/utilities/flutter_bottom_sheet.dart';
 import 'package:musify/utilities/flutter_toast.dart';
 import 'package:musify/utilities/mediaitem.dart';
 import 'package:musify/utilities/playlist_dialogs.dart';
@@ -157,9 +156,17 @@ class BottomActionsRow extends StatelessWidget {
               color: CupertinoColors.white,
             ),
             onPressed: () {
-              showCustomBottomSheet(
-                context,
-                const QueueWidget(isBottomSheet: true),
+              GlassModalSheet.show<void>(
+                context: context,
+                useRootNavigator: true,
+                halfSize: 0.68,
+                fullSize: 0.92,
+                enableInteractionGlow: true,
+                detents: const {
+                  GlassSheetDetent.medium,
+                  GlassSheetDetent.large,
+                },
+                builder: (_) => const QueueWidget(isBottomSheet: true),
               );
             },
           ),
