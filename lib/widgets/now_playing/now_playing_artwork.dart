@@ -384,8 +384,6 @@ class _LyricsViewWidgetState extends State<LyricsViewWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     Widget unavailable() => Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -393,7 +391,7 @@ class _LyricsViewWidgetState extends State<LyricsViewWidget> {
           Icon(
             FluentIcons.text_quote_24_regular,
             size: 48,
-            color: colorScheme.onSecondaryContainer.withValues(alpha: 0.5),
+            color: CupertinoColors.white.withValues(alpha: 0.45),
           ),
           const SizedBox(height: 16),
           Text(
@@ -401,7 +399,9 @@ class _LyricsViewWidgetState extends State<LyricsViewWidget> {
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w500,
-              color: colorScheme.onSecondaryContainer,
+              // The player stage is always dark, whatever the app theme is,
+              // so a theme colour would vanish into the artwork here.
+              color: CupertinoColors.white.withValues(alpha: 0.72),
             ),
             textAlign: TextAlign.center,
           ),
@@ -436,7 +436,7 @@ class _LyricsViewWidgetState extends State<LyricsViewWidget> {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w500,
-                  color: colorScheme.onSecondaryContainer,
+                  color: CupertinoColors.white.withValues(alpha: 0.88),
                   height: 1.6,
                 ),
                 textAlign: TextAlign.center,

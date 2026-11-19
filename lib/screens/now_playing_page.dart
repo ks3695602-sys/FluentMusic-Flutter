@@ -315,16 +315,14 @@ class _MobileLayout extends StatelessWidget {
                     ),
                   ),
 
-                  // Image 3 Apple Karaoke Top Bar: Dismiss down + 44x44 thumbnail + title/artist + star + more
+                  // Reference top bar: thumbnail + title/artist + like.
+                  // No dismiss chevron here; the grabber above already does
+                  // that job. The menu lives on the floating rail, so the
+                  // header stays as quiet as the screenshot.
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4),
                     child: Row(
                       children: [
-                        GlassIconButton(
-                          icon: const Icon(CupertinoIcons.chevron_down, size: 20, color: CupertinoColors.white),
-                          onPressed: () => Navigator.pop(context),
-                        ),
-                        const SizedBox(width: 8),
                         GestureDetector(
                           onTap: lyricsController.flipcard,
                           child: ClipRRect(
@@ -340,45 +338,45 @@ class _MobileLayout extends StatelessWidget {
                             ),
                           ),
                         ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: lyricsController.flipcard,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                metadata.title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: CupertinoColors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: -0.2,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: lyricsController.flipcard,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  metadata.title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: CupertinoColors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: -0.2,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                metadata.artist ?? '',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: CupertinoColors.white.withValues(alpha: 0.65),
-                                  fontSize: 13,
+                                const SizedBox(height: 2),
+                                Text(
+                                  metadata.artist ?? '',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: CupertinoColors.white.withValues(
+                                      alpha: 0.65,
+                                    ),
+                                    fontSize: 13,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                      _buildFavoriteStar(metadata),
-                      const SizedBox(width: 6),
-                      _buildMoreButton(context, metadata),
-                    ],
+                        _buildFavoriteStar(metadata),
+                      ],
+                    ),
                   ),
-                ),
 
                 // Center: Expansive Word-by-Word Apple Karaoke Lyrics (Image 3)
                 Expanded(
@@ -386,8 +384,10 @@ class _MobileLayout extends StatelessWidget {
                     children: [
                       Positioned.fill(
                         child: Padding(
-                          // Keep the words clear of the floating rail.
-                          padding: const EdgeInsets.only(right: 42),
+                          // Keep the words clear of the floating rail: the
+                          // rail is a 38 px circle plus its container padding,
+                          // so 48 px leaves a clean gutter with no collision.
+                          padding: const EdgeInsets.only(right: 48),
                           child: LyricsViewWidget(
                             metadata: metadata,
                             showProvider: true,
@@ -477,41 +477,79 @@ class _MobileLayout extends StatelessWidget {
 
   /// The small floating pill on the right edge of the lyrics stage.
   ///
-  /// Only actions that make sense while reading words: like, add to a
-  /// playlist, and the full menu.
+  /// The same four things the reference shows: the full menu, a white
+  /// "back to the player" key, the sleep timer, and the appearance toggle.
+  /// Like/add/share all live in the menu, so nothing is duplicated here.
   Widget _buildLyricsActionRail(BuildContext context, MediaItem metadata) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 5),
+      padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 4),
       decoration: BoxDecoration(
-        color: CupertinoColors.black.withValues(alpha: 0.24),
-        borderRadius: BorderRadius.circular(26),
+        color: CupertinoColors.black.withValues(alpha: 0.30),
+        borderRadius: BorderRadius.circular(27),
         border: Border.all(
           color: CupertinoColors.white.withValues(alpha: 0.10),
-          width: 0.8,
+          width: 0.7,
         ),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _buildFavoriteStar(metadata),
-          const SizedBox(height: 8),
-          GlassIconButton(
-            size: 36,
-            iconSize: 18,
-            semanticLabel: 'Add to playlist',
-            icon: const Icon(
-              CupertinoIcons.text_badge_plus,
-              color: CupertinoColors.white,
-              size: 18,
-            ),
-            onPressed: () => showAddToPlaylistDialog(
-              context,
-              songs: [mediaItemToMap(metadata)],
-            ),
-          ),
-          const SizedBox(height: 8),
           _buildMoreButton(context, metadata),
+          const SizedBox(height: 9),
+          _railButton(
+            icon: CupertinoIcons.music_note,
+            background: CupertinoColors.white,
+            foreground: CupertinoColors.black,
+            semanticLabel: 'Back to player',
+            onTap: lyricsController.flipcard,
+          ),
+          const SizedBox(height: 9),
+          _railButton(
+            icon: CupertinoIcons.zzz,
+            semanticLabel: 'Sleep timer',
+            onTap: () => showSleepTimerDialog(context),
+          ),
+          const SizedBox(height: 9),
+          _railButton(
+            icon: isDark
+                ? CupertinoIcons.moon_fill
+                : CupertinoIcons.sun_max_fill,
+            semanticLabel: isDark ? 'Switch to light theme' : 'Switch to dark theme',
+            onTap: () {
+              final next = isDark ? ThemeMode.light : ThemeMode.dark;
+              addOrUpdateData<int>('settings', 'themeIndex', next.index);
+              Musify.updateAppState(context, newThemeMode: next);
+            },
+          ),
         ],
+      ),
+    );
+  }
+
+  /// A still, shader-free circle. The lyrics stage sits over an animated
+  /// backdrop, so its permanent chrome must never pay for live glass.
+  Widget _railButton({
+    required IconData icon,
+    required String semanticLabel,
+    required VoidCallback onTap,
+    Color background = const Color(0x24FFFFFF),
+    Color foreground = CupertinoColors.white,
+  }) {
+    return Semantics(
+      button: true,
+      label: semanticLabel,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Container(
+          width: 36,
+          height: 36,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(color: background, shape: BoxShape.circle),
+          child: Icon(icon, size: 18, color: foreground),
+        ),
       ),
     );
   }
@@ -576,6 +614,10 @@ class _MobileLayout extends StatelessWidget {
 
     return DarkGlassMenuTheme(
       child: GlassPullDownButton(
+      // The trigger sits on the lyrics stage, which already composites an
+      // animated mesh and a blurred cover. Minimal quality keeps that trigger
+      // shader-free; the sheet itself still gets full liquid glass.
+      quality: GlassQuality.minimal,
       icon: const Icon(
         CupertinoIcons.ellipsis,
         color: CupertinoColors.white,

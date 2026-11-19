@@ -107,6 +107,7 @@ class _MeshBackdropState extends State<MeshBackdrop>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   ColorScheme? _scheme;
+  bool _reduceMotion = false;
 
   @override
   void initState() {
@@ -114,7 +115,7 @@ class _MeshBackdropState extends State<MeshBackdrop>
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 26),
-    )..repeat();
+    );
     _loadPalette();
   }
 
@@ -123,6 +124,22 @@ class _MeshBackdropState extends State<MeshBackdrop>
     super.didUpdateWidget(oldWidget);
     if (oldWidget.artworkUrl != widget.artworkUrl) {
       _loadPalette();
+    }
+    _syncTicker();
+  }
+
+  /// Runs the clock only while the mesh is actually on screen.
+  ///
+  /// The setting can be switched off, and the user can ask the system for
+  /// reduced motion. In both cases the ticker must stop: an invisible
+  /// animation is pure battery drain, and the player's backdrop is the one
+  /// surface that never gets to be wasteful.
+  void _syncTicker() {
+    final shouldAnimate = widget.enabled && !_reduceMotion;
+    if (shouldAnimate && !_controller.isAnimating) {
+      _controller.repeat();
+    } else if (!shouldAnimate && _controller.isAnimating) {
+      _controller.stop();
     }
   }
 
@@ -141,15 +158,8 @@ class _MeshBackdropState extends State<MeshBackdrop>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Honour "reduce motion": the mesh becomes a still wash and the ticker
-    // stops entirely instead of animating behind an opaque static frame.
-    final reduceMotion =
-        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
-    if (reduceMotion) {
-      _controller.stop();
-    } else if (!_controller.isAnimating) {
-      _controller.repeat();
-    }
+    _reduceMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    _syncTicker();
   }
 
   @override
@@ -177,24 +187,27 @@ class _MeshBackdropState extends State<MeshBackdrop>
             Color.lerp(scheme.primary, scheme.secondary, 0.5)!,
           ];
 
-    final reduceMotion =
-        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    final reduceMotion = _reduceMotion;
     if (reduceMotion) {
       return IgnorePointer(
-        child: Opacity(
-          opacity: widget.opacity,
-          child: CustomPaint(painter: _MeshPainter(colors: colors, t: 0.35)),
+        child: CustomPaint(
+          painter: _MeshPainter(
+            colors: colors,
+            t: 0.35,
+            opacity: widget.opacity,
+          ),
         ),
       );
     }
 
     return IgnorePointer(
-      child: Opacity(
-        opacity: widget.opacity,
-        child: AnimatedBuilder(
-          animation: _controller,
-          builder: (context, _) => CustomPaint(
-            painter: _MeshPainter(colors: colors, t: _controller.value),
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, _) => CustomPaint(
+          painter: _MeshPainter(
+            colors: colors,
+            t: _controller.value,
+            opacity: widget.opacity,
           ),
         ),
       ),
@@ -203,19 +216,25 @@ class _MeshBackdropState extends State<MeshBackdrop>
 }
 
 class _MeshPainter extends CustomPainter {
-  _MeshPainter({required this.colors, required this.t});
+  _MeshPainter({
+    required this.colors,
+    required this.t,
+    required this.opacity,
+  });
 
   final List<Color> colors;
   final double t;
+  final double opacity;
 
   @override
   void paint(Canvas canvas, Size size) {
     if (size.isEmpty) return;
-    final rect = Offset.zero & size;
 
     // Additive light only: the blurred cover stays visible underneath, the
     // mesh just lifts it. No saveLayer and no black fill, so the backdrop the
-    // player already paid for is never thrown away.
+    // player already paid for is never thrown away. The layer's opacity is
+    // folded into the gradients: a full-screen Opacity widget would allocate
+    // a saveLayer on every single frame.
     for (var i = 0; i < colors.length; i++) {
       final phase = t * math.pi * 2 + i * 1.55;
       final speed = 0.7 + i * 0.11;
@@ -226,8 +245,8 @@ class _MeshPainter extends CustomPainter {
 
       final shader = RadialGradient(
         colors: [
-          colors[i].withValues(alpha: 0.55),
-          colors[i].withValues(alpha: 0.20),
+          colors[i].withValues(alpha: 0.55 * opacity),
+          colors[i].withValues(alpha: 0.20 * opacity),
           colors[i].withValues(alpha: 0.0),
         ],
         stops: const [0.0, 0.55, 1.0],
@@ -245,7 +264,9 @@ class _MeshPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _MeshPainter oldDelegate) =>
-      oldDelegate.t != t || oldDelegate.colors != colors;
+      oldDelegate.t != t ||
+      oldDelegate.opacity != opacity ||
+      oldDelegate.colors != colors;
 }
 
 /// The soft coloured light under the player's controls.

@@ -101,9 +101,14 @@ String formatDuration(int audioDurationInSeconds) {
   final minutes = duration.inMinutes.remainder(60);
   final seconds = duration.inSeconds.remainder(60);
 
+  // Apple Music style: "0:16" and "-2:58" for ordinary tracks, "1:02:03"
+  // only once the hour mark is crossed.
   return [
-    if (hours > 0) hours.toString().padLeft(2, '0'),
-    minutes.toString().padLeft(2, '0'),
+    if (hours > 0) hours.toString(),
+    if (hours > 0)
+      minutes.toString().padLeft(2, '0')
+    else
+      minutes.toString(),
     seconds.toString().padLeft(2, '0'),
   ].join(':');
 }

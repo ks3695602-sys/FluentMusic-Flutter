@@ -23,6 +23,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:musify/main.dart';
 import 'package:musify/models/position_data.dart';
+import 'package:musify/services/settings_manager.dart';
 import 'package:musify/utilities/formatter.dart';
 
 PositionData _positionData = PositionData(
@@ -87,23 +88,44 @@ class _PositionSliderState extends State<PositionSlider> {
                 thumbColor: CupertinoColors.white,
                 overlayColor: CupertinoColors.white.withValues(alpha: 0.12),
               ),
-              child: Slider(
-                value: currentValue.clamp(0.0, maxDuration),
-                onChanged: (value) {
-                  setState(() {
-                    _isDragging = true;
-                    _dragValue = value;
-                  });
-                },
-                onChangeEnd: (value) {
-                  audioHandler.seek(Duration(seconds: value.toInt()));
-                  setState(() {
-                    _isDragging = false;
-                  });
-                },
-                max: maxDuration,
-                semanticFormatterCallback: (value) =>
-                    formatDuration(value.toInt()),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Slider(
+                    value: currentValue.clamp(0.0, maxDuration),
+                    onChanged: (value) {
+                      setState(() {
+                        _isDragging = true;
+                        _dragValue = value;
+                      });
+                    },
+                    onChangeEnd: (value) {
+                      audioHandler.seek(Duration(seconds: value.toInt()));
+                      setState(() {
+                        _isDragging = false;
+                      });
+                    },
+                    max: maxDuration,
+                    semanticFormatterCallback: (value) =>
+                        formatDuration(value.toInt()),
+                  ),
+                  // Apple Music keeps a tiny dot at the far end of the track,
+                  // so the whole length of the song is visible even before the
+                  // thumb gets there.
+                  Positioned(
+                    right: 6,
+                    child: IgnorePointer(
+                      child: Container(
+                        width: 4,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: CupertinoColors.white.withValues(alpha: 0.7),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
             _buildPositionRow(context, _positionData),
@@ -134,33 +156,72 @@ class _PositionSliderState extends State<PositionSlider> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(positionText, style: _textStyle),
-          // Only show a badge when playback is actually altered. There is no
-          // "Lossless" stream on YouTube Music, so never claim one.
-          StreamBuilder<double>(
-            stream: audioHandler.audioPlayer.speedStream,
-            initialData: audioHandler.audioPlayer.speed,
-            builder: (context, speedSnapshot) {
-              final speed = speedSnapshot.data ?? 1.0;
-              if ((speed - 1.0).abs() < 0.005) {
-                return const SizedBox.shrink();
-              }
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: CupertinoColors.white.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  '${speed.toStringAsFixed(2)}x',
-                  style: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    color: CupertinoColors.white,
-                    letterSpacing: 0.2,
+          // Centre: the honest quality label, exactly where Apple Music puts
+          // its own chip. It names the tier the stream was requested at; the
+          // measured bitrate stays on the cover badge.
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  StreamBuilder<double>(
+                    stream: audioHandler.audioPlayer.speedStream,
+                    initialData: audioHandler.audioPlayer.speed,
+                    builder: (context, speedSnapshot) {
+                      final speed = speedSnapshot.data ?? 1.0;
+                      if ((speed - 1.0).abs() < 0.005) {
+                        return const SizedBox.shrink();
+                      }
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: CupertinoColors.white.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            '${speed.toStringAsFixed(2)}x',
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: CupertinoColors.white,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                ),
-              );
-            },
+                  ValueListenableBuilder<String>(
+                    valueListenable: audioQualitySetting,
+                    builder: (context, quality, _) {
+                      final label = switch (quality) {
+                        'low' => 'Low quality',
+                        'medium' || 'normal' => 'Normal quality',
+                        _ => 'High quality',
+                      };
+                      return Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            CupertinoIcons.headphones,
+                            size: 13,
+                            color: CupertinoColors.systemGrey2,
+                          ),
+                          const SizedBox(width: 5),
+                          Text(label, style: _textStyle),
+                        ],
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
           ),
           Text(remainingText, style: _textStyle),
         ],

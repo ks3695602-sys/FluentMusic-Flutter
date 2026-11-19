@@ -19,7 +19,6 @@
  */
 
 import 'dart:async';
-import 'dart:ui' as ui;
 
 import 'package:audio_service/audio_service.dart' show PlaybackState;
 import 'package:characters/characters.dart';
@@ -232,22 +231,24 @@ class _SyncedLyricsViewState extends State<SyncedLyricsView>
             ),
             if (widget.showProvider || widget.lyrics.credit != null)
               Positioned(
-                left: 0,
-                right: 0,
+                left: 22,
+                right: 22,
                 bottom: 10,
-                child: Center(
-                  child: Text(
-                    widget.lyrics.attribution,
-                    style: TextStyle(
-                      color: CupertinoColors.white.withValues(alpha: 0.70),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      letterSpacing: 0.1,
-                      decoration: TextDecoration.underline,
-                      decorationColor:
-                          CupertinoColors.white.withValues(alpha: 0.42),
-                      decorationThickness: 1.1,
-                    ),
+                // Left-aligned with the lyric column and underlined, exactly
+                // like the reference. Attribution is not a footnote, it is a
+                // condition of using these lyrics.
+                child: Text(
+                  widget.lyrics.attribution,
+                  textAlign: TextAlign.start,
+                  style: TextStyle(
+                    color: CupertinoColors.white.withValues(alpha: 0.70),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 0.1,
+                    decoration: TextDecoration.underline,
+                    decorationColor:
+                        CupertinoColors.white.withValues(alpha: 0.42),
+                    decorationThickness: 1.1,
                   ),
                 ),
               ),
@@ -337,27 +338,19 @@ class _LyricLineTile extends StatelessWidget {
 
     // Lines melt away with distance instead of all sharing one opacity: the
     // next line stays legible, the one after is a hint, the rest is texture.
+    //
+    // This is deliberately done with opacity and type size alone. A blur per
+    // line looks lovely in a screenshot but allocates one saveLayer for every
+    // visible line, and that is exactly what makes a lyrics screen drop frames
+    // on a phone that is already decoding audio.
     final distance = (index - activeIndex).abs();
     final opacity = switch (distance) {
       0 => 1.0,
-      1 => 0.46,
-      2 => 0.30,
-      _ => 0.18,
+      1 => 0.52,
+      2 => 0.32,
+      3 => 0.22,
+      _ => 0.14,
     };
-    final sigma = switch (distance) {
-      0 => 0.0,
-      1 => 1.1,
-      2 => 1.9,
-      _ => 2.6,
-    };
-
-    Widget content = base;
-    if (sigma > 0) {
-      content = ImageFiltered(
-        imageFilter: ui.ImageFilter.blur(sigmaX: sigma, sigmaY: sigma),
-        child: content,
-      );
-    }
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -368,7 +361,7 @@ class _LyricLineTile extends StatelessWidget {
         curve: Curves.easeOutCubic,
         child: Padding(
           padding: EdgeInsets.symmetric(vertical: _isActive ? 9 : 7),
-          child: content,
+          child: base,
         ),
       ),
     );
@@ -391,7 +384,7 @@ class _LyricText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final style = TextStyle(
-      fontSize: active ? activeFontSize : activeFontSize * 0.72,
+      fontSize: active ? activeFontSize : activeFontSize * 0.76,
       fontWeight: active ? FontWeight.w800 : FontWeight.w600,
       height: 1.28,
       letterSpacing: active ? -0.6 : -0.3,

@@ -99,28 +99,47 @@ class _PlayerLyricPreviewState extends State<PlayerLyricPreview> {
                 data.position + Duration(milliseconds: lyricsOffsetMs.value);
             final lines = lyrics.synced!;
             final index = lyrics.lineIndexAt(position);
+
+            final Widget row;
             if (index < 0) {
-              return _PreviewRow(
+              row = _PreviewRow(
+                key: const ValueKey<int>(-1),
                 onTap: widget.onTap,
                 current: lines.isEmpty ? '' : lines.first.text,
-                next: '',
                 fontSize: widget.fontSize,
                 words: const [],
                 position: position,
               );
+            } else {
+              final current = lines[index];
+              // One line only, exactly like the reference. The next line is a
+              // tap away in the full lyrics screen, not a second row here.
+              row = _PreviewRow(
+                key: ValueKey<int>(index),
+                onTap: widget.onTap,
+                current: current.text,
+                fontSize: widget.fontSize,
+                words: current.words,
+                position: position,
+              );
             }
 
-            final current = lines[index];
-            final next = index + 1 < lines.length ? lines[index + 1] : null;
-            // Keep the previous line visible for a beat after it ends, like
-            // the Mornye hold window, instead of snapping to a blank row.
-            return _PreviewRow(
-              onTap: widget.onTap,
-              current: current.text,
-              next: next?.text ?? '',
-              fontSize: widget.fontSize,
-              words: current.words,
-              position: position,
+            // The row itself updates on every position tick (that is the word
+            // sweep). Only a line change swaps the key, so only a line change
+            // animates: the old line dissolves under the new one instead of
+            // the text snapping.
+            return AnimatedSwitcher(
+              duration: const Duration(milliseconds: 260),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              layoutBuilder: (currentChild, previousChildren) => Stack(
+                alignment: Alignment.centerLeft,
+                children: [
+                  ...previousChildren,
+                  if (currentChild != null) currentChild,
+                ],
+              ),
+              child: row,
             );
           },
         );
@@ -131,9 +150,9 @@ class _PlayerLyricPreviewState extends State<PlayerLyricPreview> {
 
 class _PreviewRow extends StatelessWidget {
   const _PreviewRow({
+    super.key,
     required this.onTap,
     required this.current,
-    required this.next,
     required this.fontSize,
     required this.words,
     required this.position,
@@ -141,7 +160,6 @@ class _PreviewRow extends StatelessWidget {
 
   final VoidCallback onTap;
   final String current;
-  final String next;
   final double fontSize;
   final List<LyricWord> words;
   final Duration position;
@@ -161,38 +179,18 @@ class _PreviewRow extends StatelessWidget {
         child: Row(
           children: [
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _SweptLine(
-                    text: current,
-                    words: words,
-                    position: position,
-                    fontSize: fontSize,
-                    baseColor: bright,
-                    dimColor: dim,
-                  ),
-                  if (next.trim().isNotEmpty) ...[
-                    const SizedBox(height: 3),
-                    Text(
-                      next,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: CupertinoColors.white.withValues(alpha: 0.42),
-                        fontSize: fontSize - 2.5,
-                        fontWeight: FontWeight.w500,
-                        letterSpacing: -0.1,
-                      ),
-                    ),
-                  ],
-                ],
+              child: _SweptLine(
+                text: current,
+                words: words,
+                position: position,
+                fontSize: fontSize,
+                baseColor: bright,
+                dimColor: dim,
               ),
             ),
             const SizedBox(width: 10),
             Icon(
-              CupertinoIcons.chevron_up,
+              CupertinoIcons.chevron_right,
               size: 15,
               color: CupertinoColors.white.withValues(alpha: 0.35),
             ),
