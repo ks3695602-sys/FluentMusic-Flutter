@@ -914,10 +914,9 @@ class PlaybackSettingsPage extends StatelessWidget {
                         style: TextStyle(color: titleColor),
                       ),
                       subtitle: Text(
-                        'When every YouTube identity refuses a track, try a '
-                        'JioSaavn catalogue match while its public endpoint '
-                        'is reachable. Spotify is listed but cannot stream: '
-                        'its audio is DRM-protected.',
+                        'When every YouTube identity refuses a track, search '
+                        'JioSaavn by title and artist. Spotify is listed but '
+                        'cannot stream: its audio is DRM-protected.',
                         style: TextStyle(color: subtitleColor, fontSize: 12),
                       ),
                       trailing: GlassSwitch(

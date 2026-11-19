@@ -46,6 +46,7 @@ dependencies:
   media_kit_libs_linux: ^1.2.1
   media_kit_libs_windows_audio: ^1.0.9
   path_provider: ^2.1.6
+  pointycastle: ^4.0.0
   receive_sharing_intent:
     path: ./packages/receive_sharing_intent
   rxdart: ^0.28.0
