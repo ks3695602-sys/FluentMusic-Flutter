@@ -3,7 +3,6 @@ package com.fluentmusic.app
 import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
-import android.view.WindowManager
 import androidx.core.view.WindowCompat
 import io.flutter.embedding.android.FlutterActivity
 
@@ -43,22 +42,26 @@ class MainActivity : FlutterActivity() {
       windowManager.defaultDisplay
     } ?: return
 
-    val bestMode = currentDisplay.supportedModes.maxByOrNull { it.refreshRate }
+    // Keep the current resolution and pick the fastest mode that shares it,
+    // so asking for a high refresh rate cannot silently change the panel
+    // resolution on devices that expose separate modes for both.
+    val currentMode = currentDisplay.mode
+    val bestMode = currentDisplay.supportedModes
+      .filter {
+        it.physicalWidth == currentMode.physicalWidth &&
+          it.physicalHeight == currentMode.physicalHeight
+      }
+      .maxByOrNull { it.refreshRate }
+      ?: currentDisplay.supportedModes.maxByOrNull { it.refreshRate }
       ?: return
     if (bestMode.refreshRate <= 60f) return
 
     runCatching {
       window.attributes = window.attributes.apply {
         preferredRefreshRate = bestMode.refreshRate
-      }
-    }
-
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-      runCatching {
-        window.setFrameRate(
-          bestMode.refreshRate,
-          WindowManager.LayoutParams.FRAME_RATE_COMPATIBILITY_DEFAULT,
-        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+          preferredDisplayModeId = bestMode.modeId
+        }
       }
     }
   }
