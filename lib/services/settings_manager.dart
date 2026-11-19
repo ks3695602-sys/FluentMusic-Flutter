@@ -264,8 +264,8 @@ void setWebPoTokensEnabled(bool value) {
 /// Besides YouTube, the fallback sources in `services/sources`.
 ///
 /// Today that means a JioSaavn catalogue match, asked only when every YouTube
-/// identity refused the track. Spotify is listed but cannot stream: its audio
-/// is DRM-protected.
+/// identity refused the track, and only while its public endpoint is
+/// reachable. Spotify is listed but cannot stream: its audio is DRM-protected.
 final crossSourceFallbackEnabled = ValueNotifier<bool>(
   Hive.box('settings').get('crossSourceFallbackEnabled', defaultValue: true),
 );
