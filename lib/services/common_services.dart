@@ -36,6 +36,9 @@ import 'package:musify/services/lyrics_manager.dart';
 import 'package:musify/services/playlists_manager.dart';
 import 'package:musify/services/proxy_manager.dart';
 import 'package:musify/services/settings_manager.dart';
+import 'package:musify/services/sources/jiosaavn_source.dart';
+import 'package:musify/services/sources/music_source.dart';
+import 'package:musify/services/sources/spotify_source.dart';
 import 'package:musify/services/stream_fallback.dart';
 import 'package:musify/services/ytmusic_playback_service.dart';
 import 'package:musify/utilities/app_utils.dart';
@@ -779,14 +782,33 @@ Future<AudioOnlyStreamInfo?> fetchBestAudioStream(String? songId) async {
   }
 }
 
+/// Registers the streaming sources that sit beside YouTube.
+///
+/// YouTube Music is the primary source and stays in the InnerTube ladder; the
+/// registry only holds what can be asked after it refuses a track.
+bool _sourcesRegistered = false;
+
+void _ensureSources() {
+  if (_sourcesRegistered) return;
+  _sourcesRegistered = true;
+  SourceRegistry.register(JioSaavnSource());
+  SourceRegistry.register(SpotifySource());
+}
+
 /// Resolves a playable stream URL for a song (cached when possible).
 ///
 /// [skipSignedIn] forces the anonymous resolver. Playback retries use it after
 /// a signed-in URL failed so the retry cannot return the same broken stream.
+///
+/// [title] and [artist] let a fallback source recognise the track when every
+/// YouTube identity has refused it. They are only used after that point.
 Future<String?> fetchSongStreamUrl(
   String songId,
   bool isLive, {
   bool skipSignedIn = false,
+  String? title,
+  String? artist,
+  Duration? duration,
 }) async {
   try {
     if (songId.isEmpty) {
@@ -827,6 +849,25 @@ Future<String?> fetchSongStreamUrl(
     // Get fresh URL, reusing the stream already resolved for this song.
     final selectedStream = await fetchBestAudioStream(songId);
     if (selectedStream == null) {
+      // YouTube refused every identity. An add-on source may still know the
+      // track; only the title and artist leave the device.
+      if (crossSourceFallbackEnabled.value &&
+          title != null &&
+          artist != null &&
+          title.trim().isNotEmpty &&
+          artist.trim().isNotEmpty) {
+        _ensureSources();
+        final bridged = await SourceRegistry.resolveFallback(
+          title: title,
+          artist: artist,
+          duration: duration,
+        );
+        if (bridged != null && bridged.isNotEmpty) {
+          unawaited(addOrUpdateData<String>('cache', cacheKey, bridged));
+          return bridged;
+        }
+      }
+
       // Every InnerTube client refused this track. The Cobalt bridge is the
       // last resort, and only the public video id is sent to it.
       final remoteUrl = await resolveRemoteAudioUrl(songId);

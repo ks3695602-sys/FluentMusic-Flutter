@@ -245,6 +245,53 @@ void setRemoteStreamFallback(bool value) {
   }
 }
 
+/// BotGuard ("WebPO") tokens for YouTube's web clients.
+///
+/// Web clients mint URLs that stop authorising after the first megabyte
+/// unless the request carries a PO token. The token is produced in a headless
+/// WebView; turning this off falls back to the native and TV clients only.
+final webPoTokensEnabled = ValueNotifier<bool>(
+  Hive.box('settings').get('webPoTokensEnabled', defaultValue: true),
+);
+
+void setWebPoTokensEnabled(bool value) {
+  webPoTokensEnabled.value = value;
+  if (Hive.isBoxOpen('settings')) {
+    Hive.box('settings').put('webPoTokensEnabled', value).ignore();
+  }
+}
+
+/// Besides YouTube, the fallback sources in `services/sources`.
+///
+/// Today that means a JioSaavn catalogue match, asked only when every YouTube
+/// identity refused the track. Spotify is listed but cannot stream: its audio
+/// is DRM-protected.
+final crossSourceFallbackEnabled = ValueNotifier<bool>(
+  Hive.box('settings').get('crossSourceFallbackEnabled', defaultValue: true),
+);
+
+void setCrossSourceFallback(bool value) {
+  crossSourceFallbackEnabled.value = value;
+  if (Hive.isBoxOpen('settings')) {
+    Hive.box('settings').put('crossSourceFallbackEnabled', value).ignore();
+  }
+}
+
+/// The drifting colour mesh behind the player.
+///
+/// Off leaves the player on the blurred cover only, which some low-end devices
+/// prefer for battery.
+final playerMeshBackgroundEnabled = ValueNotifier<bool>(
+  Hive.box('settings').get('playerMeshBackgroundEnabled', defaultValue: true),
+);
+
+void setPlayerMeshBackground(bool value) {
+  playerMeshBackgroundEnabled.value = value;
+  if (Hive.isBoxOpen('settings')) {
+    Hive.box('settings').put('playerMeshBackgroundEnabled', value).ignore();
+  }
+}
+
 final saveSearchHistoryEnabled = ValueNotifier<bool>(
   Hive.box('settings').get('saveSearchHistoryEnabled', defaultValue: true),
 );

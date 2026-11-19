@@ -1528,8 +1528,12 @@ class MusifyAudioHandler extends BaseAudioHandler implements AndroidAutoHost {
         preloadUrl = null;
       } else {
         // fetchSongStreamUrl handles caching, freshness checks, and validation
-        preloadUrl = await fetchSongStreamUrl(ytid, nextSong['isLive'] ?? false)
-            .timeout(
+        preloadUrl = await fetchSongStreamUrl(
+          ytid,
+          nextSong['isLive'] ?? false,
+          title: nextSong['title']?.toString(),
+          artist: nextSong['artist']?.toString(),
+        ).timeout(
               const Duration(seconds: 8),
               onTimeout: () {
                 logger.log('Preload timeout for song $ytid');
@@ -2126,6 +2130,8 @@ class MusifyAudioHandler extends BaseAudioHandler implements AndroidAutoHost {
       final onlineUrl = await fetchSongStreamUrl(
         songData['ytid'],
         songData['isLive'] ?? false,
+        title: songData['title']?.toString(),
+        artist: songData['artist']?.toString(),
       );
 
       if (onlineUrl == null || onlineUrl.isEmpty) {
@@ -2144,7 +2150,12 @@ class MusifyAudioHandler extends BaseAudioHandler implements AndroidAutoHost {
       return _getOfflineSongUrl(song);
     }
 
-    return fetchSongStreamUrl(song['ytid'], song['isLive'] ?? false);
+    return fetchSongStreamUrl(
+      song['ytid'],
+      song['isLive'] ?? false,
+      title: song['title']?.toString(),
+      artist: song['artist']?.toString(),
+    );
   }
 
   Future<String?> _getOfflineSongUrl(Map song) async {
@@ -2320,6 +2331,8 @@ class MusifyAudioHandler extends BaseAudioHandler implements AndroidAutoHost {
       songId,
       song['isLive'] ?? false,
       skipSignedIn: true,
+      title: song['title']?.toString(),
+      artist: song['artist']?.toString(),
     );
     if (freshUrl == null || freshUrl.isEmpty) return false;
 

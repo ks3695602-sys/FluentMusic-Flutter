@@ -3,18 +3,78 @@ class YoutubeApiClient {
   final String apiUrl;
   final Map<String, dynamic> headers;
 
-  const YoutubeApiClient(this.payload, this.apiUrl, {this.headers = const {}});
+  /// A BotGuard "WebPO" token bound to the visitor data of the session.
+  ///
+  /// Web clients (`WEB`, `WEB_REMIX`, `MWEB`) accept it as
+  /// `serviceIntegrityDimensions.poToken` on the player request. Without one
+  /// YouTube still answers, but the URLs it mints stop authorising after the
+  /// first megabyte.
+  final String? poToken;
+
+  /// A BotGuard token bound to the **video id**, sent to googlevideo as the
+  /// `pot` query parameter of each stream URL.
+  final String? streamingPoToken;
+
+  /// The visitor identity [poToken] was minted for. The player request has to
+  /// name the same visitor or the token is refused.
+  final String? visitorData;
+
+  const YoutubeApiClient(
+    this.payload,
+    this.apiUrl, {
+    this.headers = const {},
+    this.poToken,
+    this.streamingPoToken,
+    this.visitorData,
+  });
 
   YoutubeApiClient.fromJson(Map<String, dynamic> json)
       : payload = json['payload'],
         apiUrl = json['apiUrl'],
-        headers = json['headers'];
+        headers = json['headers'],
+        poToken = json['poToken'],
+        streamingPoToken = json['streamingPoToken'],
+        visitorData = json['visitorData'];
 
   Map<String, dynamic> toJson() => {
         'payload': payload,
         'apiUrl': apiUrl,
         'headers': headers,
+        if (poToken != null) 'poToken': poToken,
+        if (streamingPoToken != null) 'streamingPoToken': streamingPoToken,
+        if (visitorData != null) 'visitorData': visitorData,
       };
+
+  /// This client, carrying freshly minted BotGuard tokens.
+  YoutubeApiClient withPoToken({
+    required String poToken,
+    String? streamingPoToken,
+    required String visitorData,
+  }) =>
+      YoutubeApiClient(
+        payload,
+        apiUrl,
+        headers: headers,
+        poToken: poToken,
+        streamingPoToken: streamingPoToken,
+        visitorData: visitorData,
+      );
+
+  /// Whether this identity is one of YouTube's BotGuard ("WebPO") clients.
+  bool get isWebPoClient {
+    final context = payload['context'];
+    final client = context is Map ? context['client'] : null;
+    final name = client is Map ? client['clientName'] : null;
+    return name == 'WEB' || name == 'WEB_REMIX' || name == 'MWEB';
+  }
+
+  /// The `clientName` this identity presents.
+  String get clientName {
+    final context = payload['context'];
+    final client = context is Map ? context['client'] : null;
+    final name = client is Map ? client['clientName'] : null;
+    return name is String ? name : 'UNKNOWN';
+  }
 
   // Client definitions are kept in sync with yt-dlp's INNERTUBE_CLIENTS:
   // https://github.com/yt-dlp/yt-dlp/blob/master/yt_dlp/extractor/youtube/_base.py

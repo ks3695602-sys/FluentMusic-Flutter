@@ -28,6 +28,7 @@ import 'package:musify/constants/app_constants.dart';
 import 'package:musify/extensions/l10n.dart';
 import 'package:musify/main.dart';
 import 'package:musify/screens/equalizer_page.dart';
+import 'package:musify/screens/settings/stream_diagnostics_page.dart';
 import 'package:musify/services/data_manager.dart';
 import 'package:musify/services/listening_stats_service.dart';
 import 'package:musify/services/settings_manager.dart';
@@ -848,6 +849,117 @@ class PlaybackSettingsPage extends StatelessWidget {
                       trailing: GlassSwitch(
                         value: remoteFallback,
                         onChanged: setRemoteStreamFallback,
+                      ),
+                    );
+                  },
+                ),
+                ValueListenableBuilder<bool>(
+                  valueListenable: webPoTokensEnabled,
+                  builder: (_, tokensEnabled, __) {
+                    return GlassListTile(
+                      leading: const Icon(
+                        CupertinoIcons.checkmark_shield,
+                        color: Color(0xFF34C759),
+                      ),
+                      title: Text(
+                        'BotGuard Tokens',
+                        style: TextStyle(color: titleColor),
+                      ),
+                      subtitle: Text(
+                        'Let the web clients prove they are a real player. '
+                        'Without this they serve the first megabyte and then '
+                        'refuse the rest.',
+                        style: TextStyle(color: subtitleColor, fontSize: 12),
+                      ),
+                      trailing: GlassSwitch(
+                        value: tokensEnabled,
+                        onChanged: setWebPoTokensEnabled,
+                      ),
+                    );
+                  },
+                ),
+                GlassListTile(
+                  leading: const Icon(
+                    CupertinoIcons.waveform_path_ecg,
+                    color: Color(0xFFFF9500),
+                  ),
+                  title: Text(
+                    'Stream Diagnostics',
+                    style: TextStyle(color: titleColor),
+                  ),
+                  subtitle: Text(
+                    'Which client answered, how fast, and where the byte probe '
+                    'read from.',
+                    style: TextStyle(color: subtitleColor, fontSize: 12),
+                  ),
+                  trailing: GlassListTile.chevron,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      CupertinoPageRoute(
+                        builder: (_) => const StreamDiagnosticsPage(),
+                      ),
+                    );
+                  },
+                ),
+                ValueListenableBuilder<bool>(
+                  valueListenable: crossSourceFallbackEnabled,
+                  builder: (_, crossSource, __) {
+                    return GlassListTile(
+                      leading: const Icon(
+                        CupertinoIcons.arrow_branch,
+                        color: Color(0xFFFF9500),
+                      ),
+                      title: Text(
+                        'Cross-Source Fallback',
+                        style: TextStyle(color: titleColor),
+                      ),
+                      subtitle: Text(
+                        'When every YouTube identity refuses a track, search '
+                        'JioSaavn by title and artist. Spotify is listed but '
+                        'cannot stream: its audio is DRM-protected.',
+                        style: TextStyle(color: subtitleColor, fontSize: 12),
+                      ),
+                      trailing: GlassSwitch(
+                        value: crossSource,
+                        onChanged: setCrossSourceFallback,
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            GlassGroupedSection(
+              surfaceStyle: GlassSurfaceStyle.solid,
+              header: Text(
+                'PLAYER',
+                style: TextStyle(
+                  color: subtitleColor,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              children: [
+                ValueListenableBuilder<bool>(
+                  valueListenable: playerMeshBackgroundEnabled,
+                  builder: (_, meshOn, __) {
+                    return GlassListTile(
+                      leading: const Icon(
+                        CupertinoIcons.circle_grid_hex,
+                        color: Color(0xFFAF52DE),
+                      ),
+                      title: Text(
+                        'Drifting Colour Mesh',
+                        style: TextStyle(color: titleColor),
+                      ),
+                      subtitle: Text(
+                        'Four soft blobs from the cover drift behind the '
+                        'player. Paint only — no blur filter runs per frame.',
+                        style: TextStyle(color: subtitleColor, fontSize: 12),
+                      ),
+                      trailing: GlassSwitch(
+                        value: meshOn,
+                        onChanged: setPlayerMeshBackground,
                       ),
                     );
                   },

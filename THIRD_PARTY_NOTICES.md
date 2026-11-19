@@ -33,6 +33,41 @@ when fetching the media bytes. The Dart implementation in
 included. Because BitChord is GPL-3.0 and FluentMusic is GPL-3.0, the
 obligations are compatible.
 
+The BotGuard (“PO token”) minter in `lib/services/youtube/po_token_service.dart`,
+`lib/services/youtube/po_token_parsing.dart` and `assets/potoken/bgutils.html`
+is a port of BitChord's `PoTokenGenerator`, `PoTokenWebView`, `PoTokenPage`
+and `JavaScriptUtil`. The request flow, the token bindings and the page's
+JavaScript entry points are BitChord's; the transport is Flutter's
+`flutter_inappwebview` bridge instead of Android's `@JavascriptInterface`.
+BitChord's GPL-3.0 notice therefore covers those three files.
+
+## BgUtils
+
+- Upstream: <https://github.com/LuanRT/BgUtils>
+- Licence: MIT
+- Copyright © LuanRT and contributors
+
+The BotGuard page FluentMusic loads is modelled on BgUtils v3.2.0, the
+reference JavaScript implementation of YouTube's BotGuard challenge client.
+The challenge program itself is served by Google and is not redistributed.
+
+## JioSaavn (saavn.dev)
+
+- Service: <https://saavn.dev>
+- Upstream: <https://github.com/sumitkolhe/jiosaavn-api>
+
+When every YouTube identity refuses a track, FluentMusic may ask this public,
+community-run JioSaavn catalogue API for the same song by title and artist.
+Only the search terms leave the device; no account, cookie or listening data
+is sent. The service is unofficial, is not affiliated with JioSaavn, and may
+change or disappear at any time; the switch in **Settings → Playback →
+Cross-Source Fallback** turns it off. Streaming remains subject to JioSaavn's
+own terms.
+
+Spotify is listed in the same settings screen but cannot stream: its audio is
+DRM-protected and only plays through Spotify's own SDK, so FluentMusic does not
+fetch Spotify audio.
+
 ## Unison (Better Lyrics)
 
 - Service: <https://unison.betterlyrics.org>

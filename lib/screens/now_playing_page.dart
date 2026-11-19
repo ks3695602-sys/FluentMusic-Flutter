@@ -44,6 +44,7 @@ import 'package:musify/widgets/now_playing/bottom_actions_row.dart';
 import 'package:musify/widgets/now_playing/now_playing_artwork.dart';
 import 'package:musify/widgets/now_playing/now_playing_controls.dart';
 import 'package:musify/widgets/now_playing/player_lyric_preview.dart';
+import 'package:musify/widgets/now_playing/player_ambience.dart';
 import 'package:musify/widgets/now_playing/player_style_sheet.dart';
 import 'package:musify/widgets/now_playing/song_like_button.dart';
 import 'package:musify/widgets/playback_icon_button.dart';
@@ -381,9 +382,29 @@ class _MobileLayout extends StatelessWidget {
 
                 // Center: Expansive Word-by-Word Apple Karaoke Lyrics (Image 3)
                 Expanded(
-                  child: LyricsViewWidget(
-                    metadata: metadata,
-                    showProvider: true,
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: Padding(
+                          // Keep the words clear of the floating rail.
+                          padding: const EdgeInsets.only(right: 42),
+                          child: LyricsViewWidget(
+                            metadata: metadata,
+                            showProvider: true,
+                          ),
+                        ),
+                      ),
+                      // Floating action rail, as in the reference: the words
+                      // own the stage, the actions stay a thumb away.
+                      Positioned(
+                        right: 0,
+                        top: 0,
+                        bottom: 0,
+                        child: Center(
+                          child: _buildLyricsActionRail(context, metadata),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
 
@@ -451,6 +472,47 @@ class _MobileLayout extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  /// The small floating pill on the right edge of the lyrics stage.
+  ///
+  /// Only actions that make sense while reading words: like, add to a
+  /// playlist, and the full menu.
+  Widget _buildLyricsActionRail(BuildContext context, MediaItem metadata) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 5),
+      decoration: BoxDecoration(
+        color: CupertinoColors.black.withValues(alpha: 0.24),
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(
+          color: CupertinoColors.white.withValues(alpha: 0.10),
+          width: 0.8,
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildFavoriteStar(metadata),
+          const SizedBox(height: 8),
+          GlassIconButton(
+            size: 36,
+            iconSize: 18,
+            semanticLabel: 'Add to playlist',
+            icon: const Icon(
+              CupertinoIcons.text_badge_plus,
+              color: CupertinoColors.white,
+              size: 18,
+            ),
+            onPressed: () => showAddToPlaylistDialog(
+              context,
+              songs: [mediaItemToMap(metadata)],
+            ),
+          ),
+          const SizedBox(height: 8),
+          _buildMoreButton(context, metadata),
+        ],
+      ),
     );
   }
 
@@ -1071,6 +1133,16 @@ class _FullBleedArtworkBackground extends StatelessWidget {
             ),
           ),
 
+          // A drifting colour mesh over the blurred bed, so the player has
+          // depth instead of one flat wash behind the art.
+          ValueListenableBuilder<bool>(
+            valueListenable: playerMeshBackgroundEnabled,
+            builder: (_, meshOn, __) => MeshBackdrop(
+              artworkUrl: url,
+              enabled: meshOn,
+            ),
+          ),
+
           // Sharper artwork, faded in from the blur at both ends.
           ShaderMask(
             blendMode: BlendMode.dstIn,
@@ -1125,6 +1197,10 @@ class _FullBleedArtworkBackground extends StatelessWidget {
               ),
             ),
           ),
+
+          // The status bar area melts into the artwork instead of sitting on
+          // a hard scrim.
+          const ProgressiveTopBlur(),
         ],
       ),
     );
@@ -1236,6 +1312,10 @@ class _PlayerBackdrop extends StatelessWidget {
           _FullBleedArtworkBackground(artworkUrl: artworkUrl)
         else
           _PlayerStageBackground(style: style),
+
+        // The dock borrows the cover's light, so the controls feel like part
+        // of the album instead of a panel laid on top of it.
+        if (style == PlayerStyle.immersive) PlayerDockGlow(artworkUrl: artworkUrl),
 
         // Graduated frost under the transport controls. The artwork bed is
         // already blurred once at sigma 70, so a live `ProgressiveBlur` (two

@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title></title>
+  <script>
+    /*
+     * BotGuard client for minting YouTube PO tokens.
+     *
+     * Adapted from BitChord's `PoTokenPage.kt` (GPL-3.0), itself following
+     * BgUtils v3.2.0. The page never touches the network: the Create and
+     * GenerateIT round trips are made by Dart, and only the challenge program
+     * runs here.
+     *
+     * Flutter talks to this page through the InAppWebView JS bridge instead of
+     * Android's synchronous @JavascriptInterface, so results are reported with
+     * callHandler().
+     */
+
+    var bgVmFunctions = null;
+    var bgVm = null;
+    var bgProgram = null;
+    var poTokenMinter = null;
+
+    function call(name, arg) {
+      try {
+        window.flutter_inappwebview.callHandler(name, arg);
+      } catch (e) {
+        // The bridge is gone; nothing left to report to.
+      }
+    }
+
+    function loadBotGuard(challengeData) {
+      bgVm = window[challengeData.globalName];
+      bgProgram = challengeData.program;
+      bgVmFunctions = null;
+
+      if (!bgVm) {
+        throw new Error('[BotGuardClient]: VM not found in the global object');
+      }
+      if (!bgVm.a) {
+        throw new Error('[BotGuardClient]: Could not load program');
+      }
+
+      var vmFunctionsCallback = function (
+        asyncSnapshotFunction,
+        shutdownFunction,
+        passEventFunction,
+        checkCameraFunction
+      ) {
+        bgVmFunctions = {
+          asyncSnapshotFunction: asyncSnapshotFunction,
+          shutdownFunction: shutdownFunction,
+          passEventFunction: passEventFunction,
+          checkCameraFunction: checkCameraFunction
+        };
+      };
+
+      try {
+        bgVm.a(
+          bgProgram,
+          vmFunctionsCallback,
+          true,
+          undefined,
+          function () { /* no-op */ },
+          [[], []]
+        );
+      } catch (e) {
+        throw new Error('[BotGuardClient]: Failed to execute program: ' + e.message);
+      }
+
+      return new Promise(function (resolve, reject) {
+        var attempts = 0;
+        var maxAttempts = 10000;
+        var checkInterval = setInterval(function () {
+          if (bgVmFunctions && bgVmFunctions.asyncSnapshotFunction) {
+            clearInterval(checkInterval);
+            resolve({
+              vmFunctions: bgVmFunctions,
+              vm: bgVm,
+              program: bgProgram
+            });
+          } else if (attempts >= maxAttempts) {
+            clearInterval(checkInterval);
+            reject(new Error('[BotGuardClient]: Timeout waiting for asyncSnapshotFunction'));
+          }
+          attempts++;
+        }, 1);
+      });
+    }
+
+    function snapshot(botguard, args) {
+      return new Promise(function (resolve, reject) {
+        if (!botguard.vmFunctions || !botguard.vmFunctions.asyncSnapshotFunction) {
+          return reject(new Error('[BotGuardClient]: Async snapshot function not found'));
+        }
+        try {
+          botguard.vmFunctions.asyncSnapshotFunction(
+            function (response) { resolve(response); },
+            [
+              args.contentBinding,
+              args.signedTimestamp,
+              args.webPoSignalOutput,
+              args.skipPrivacyBuffer
+            ]
+          );
+        } catch (e) {
+          reject(new Error('[BotGuardClient]: Snapshot failed: ' + e.message));
+        }
+      });
+    }
+
+    function runBotGuard(challengeData) {
+      var interpreterJavascript =
+        challengeData.interpreterJavascript.privateDoNotAccessOrElseSafeScriptWrappedValue;
+
+      if (interpreterJavascript) {
+        new Function(interpreterJavascript)();
+      } else {
+        throw new Error('[BotGuardClient]: Could not load VM - no interpreter JavaScript');
+      }
+
+      var webPoSignalOutput = [];
+
+      return loadBotGuard({
+        globalName: challengeData.globalName,
+        program: challengeData.program
+      }).then(function (botguard) {
+        return snapshot(botguard, { webPoSignalOutput: webPoSignalOutput });
+      }).then(function (botguardResponse) {
+        return {
+          webPoSignalOutput: webPoSignalOutput,
+          botguardResponse: botguardResponse
+        };
+      });
+    }
+
+    /**
+     * The minter is created exactly once per page, right after the integrity
+     * token arrives, and reused for every identifier.
+     */
+    async function createPoTokenMinter(webPoSignalOutput, integrityToken) {
+      var getMinter = webPoSignalOutput[0];
+      if (!getMinter) {
+        throw new Error('PMD:Undefined - webPoSignalOutput[0] is not defined');
+      }
+      if (typeof getMinter !== 'function') {
+        throw new Error('PMD:NotFunction - webPoSignalOutput[0] is not a function');
+      }
+
+      var mintCallback;
+      try {
+        var minterResult = getMinter(integrityToken);
+        if (minterResult && typeof minterResult.then === 'function') {
+          mintCallback = await minterResult;
+        } else {
+          mintCallback = minterResult;
+        }
+      } catch (e) {
+        throw new Error('GMC:Failed - getMinter() threw: ' + e.message);
+      }
+
+      if (!mintCallback) {
+        throw new Error('APF:Undefined - mintCallback is undefined');
+      }
+      if (typeof mintCallback !== 'function') {
+        throw new Error('APF:NotFunction - mintCallback is not a function');
+      }
+
+      poTokenMinter = mintCallback;
+    }
+
+    async function obtainPoToken(identifier) {
+      if (!poTokenMinter) {
+        throw new Error('MNT:NotInit - poTokenMinter was not initialized');
+      }
+
+      var result;
+      try {
+        var mintResult = poTokenMinter(identifier);
+        if (mintResult && typeof mintResult.then === 'function') {
+          result = await mintResult;
+        } else {
+          result = mintResult;
+        }
+      } catch (e) {
+        throw new Error('MNT:Failed - mintCallback() threw: ' + e.message);
+      }
+
+      if (!result) {
+        throw new Error('YNJ:Undefined - mint result is undefined');
+      }
+      if (!(result instanceof Uint8Array)) {
+        throw new Error('ODM:Invalid - result is not Uint8Array');
+      }
+      if (result.length < 100 || result.length > 140) {
+        console.warn('[obtainPoToken] Unexpected token size: ' + result.length);
+      }
+
+      return result;
+    }
+
+    /** Entry point called by Dart once the page has loaded. */
+    function startFlutterPoToken(challengeData) {
+      try {
+        var data = challengeData;
+        runBotGuard(data).then(function (result) {
+          window.webPoSignalOutput = result.webPoSignalOutput;
+          call('onBotguardResult', result.botguardResponse);
+        }, function (error) {
+          call('onInitError', error + '\n' + (error && error.stack ? error.stack : ''));
+        });
+      } catch (error) {
+        call('onInitError', error + '\n' + (error && error.stack ? error.stack : ''));
+      }
+    }
+
+    /** Builds the one minter this page will use. */
+    function createFlutterMinter(integrityTokenJs) {
+      try {
+        window.integrityToken = integrityTokenJs;
+        createPoTokenMinter(window.webPoSignalOutput, window.integrityToken)
+          .then(function () {
+            call('onMinterReady', 'ok');
+          })
+          .catch(function (error) {
+            call('onInitError', String(error) + '\n' + (error && error.stack ? error.stack : ''));
+          });
+      } catch (error) {
+        call('onInitError', String(error) + '\n' + (error && error.stack ? error.stack : ''));
+      }
+    }
+
+    /** Mints one token; requestKey keeps concurrent calls apart. */
+    function mintFlutterToken(requestKey, identifierJs) {
+      (function () {
+        try {
+          var u8Identifier = identifierJs;
+          obtainPoToken(u8Identifier).then(function (poTokenU8) {
+            call('onTokenResult', requestKey + '|' + poTokenU8.join(','));
+          }).catch(function (error) {
+            call('onTokenError', requestKey + '|' + String(error));
+          });
+        } catch (error) {
+          call('onTokenError', requestKey + '|' + String(error));
+        }
+      })();
+    }
+  </script>
+</head>
+<body></body>
+</html>

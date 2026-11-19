@@ -21,12 +21,36 @@ class VideoController {
     assert(payload['context']!['client'] != null,
         'client must contain a context.client');
 
-    final userAgent = payload['context']!['client']!['userAgent'] as String?;
+    final payloadContext = Map<String, dynamic>.from(
+      payload['context'] as Map<dynamic, dynamic>,
+    );
+    final clientContext = Map<String, dynamic>.from(
+      payloadContext['client'] as Map<dynamic, dynamic>,
+    );
+
+    final userAgent = clientContext['userAgent'] as String?;
     final ytCfg = watchPage?.ytCfg;
+
+    // BotGuard WebPO clients have to name the visitor the token was minted
+    // for. The native IOS client asks the same question through sw.js_data, as
+    // before, when no visitor data was handed in.
+    final visitorData = client.visitorData ??
+        (clientContext['clientName'] == 'IOS'
+            ? await _extractVisitorData(httpClient, client)
+            : null);
+    if (visitorData != null && visitorData.isNotEmpty) {
+      clientContext['visitorData'] = visitorData;
+    }
 
     final body = {
       ...payload,
+      'context': {...payloadContext, 'client': clientContext},
       'videoId': videoId.value,
+      // The player-request PO token is what lets googlevideo authorise a
+      // web client's audio past the 1 MiB boundary. Without it the URL looks
+      // fine and dies mid-track.
+      if (client.poToken != null && client.poToken!.isNotEmpty)
+        'serviceIntegrityDimensions': {'poToken': client.poToken},
       if (ytCfg?.containsKey('STS') ?? false)
         'playbackContext': {
           'contentPlaybackContext': {
@@ -35,22 +59,17 @@ class VideoController {
           }
         }
     };
-    if (body['context']!['client']['clientName'] == 'IOS') {
-      body['context']!['client']!['visitorData'] =
-          await _extractVisitorData(httpClient, client);
-    }
+
+    final visitorHeader = _visitorHeader(ytCfg, visitorData);
 
     final content = await httpClient.postString(
       client.apiUrl,
       body: body,
       headers: {
         if (userAgent != null) 'User-Agent': userAgent,
-        'X-Youtube-Client-Name': payload['context']!['client']!['clientName'],
-        'X-Youtube-Client-Version':
-            payload['context']!['client']!['clientVersion'],
-        if (ytCfg != null)
-          'X-Goog-Visitor-Id': ytCfg['INNERTUBE_CONTEXT']['client']
-              ['visitorData'],
+        'X-Youtube-Client-Name': clientContext['clientName'],
+        'X-Youtube-Client-Version': clientContext['clientVersion'],
+        if (visitorHeader != null) 'X-Goog-Visitor-Id': visitorHeader,
         'Origin': 'https://www.youtube.com',
         'Sec-Fetch-Mode': 'navigate',
         'Content-Type': 'application/json',
@@ -59,6 +78,17 @@ class VideoController {
       },
     );
     return PlayerResponse.parse(content);
+  }
+
+  /// The visitor id the request should carry: the one the PO token was minted
+  /// for when there is one, otherwise the watch page's.
+  String? _visitorHeader(Map<String, dynamic>? ytCfg, String? visitorData) {
+    if (visitorData != null && visitorData.isNotEmpty) return visitorData;
+    final watchVisitor =
+        ytCfg?['INNERTUBE_CONTEXT']?['client']?['visitorData'];
+    return watchVisitor is String && watchVisitor.isNotEmpty
+        ? watchVisitor
+        : null;
   }
 
   String? _visitorData;

@@ -18,6 +18,9 @@
 import 'dart:developer' as developer;
 
 import 'package:http/http.dart' as http;
+import 'package:musify/services/settings_manager.dart';
+import 'package:musify/services/youtube/po_token_service.dart';
+import 'package:musify/services/youtube/stream_diagnostics.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 
 /// BitChord's `IOS_RECENT` identity.
@@ -73,34 +76,31 @@ final _webRemix = YoutubeApiClient(
 
 /// The player identities tried for a stream, in order.
 ///
-/// This is the union of the clients BitChord's InnerTubeX catalog and Mornye's
-/// YouTube Music extension rely on, expressed through `youtube_explode`'s
-/// client model:
-///
-/// * VISIONOS — tokenless, yt-dlp's only default no-JS client.
-/// * ANDROID / IOS — native app identities with plain audio URLs.
-/// * TVHTML5 (current and downgraded) — the TV fallback for restricted videos.
-/// * WEB_EMBEDDED / WEB / MWEB — browser-shaped fallbacks.
-/// * ANDROID_MUSIC / ANDROID_VR — deprecated upstream, kept last because
-///   YouTube's enforcement has historically been rolled out unevenly.
-/// * WEB_REMIX — the music.youtube.com identity.
+/// The order follows what BitChord's resolver measured from a browser-shaped
+/// request: the tokenless VISIONOS identity first, then the native app
+/// identities, then the BotGuard (`WebPO`) web clients with a freshly minted
+/// PO token, then the embedded/TV fallbacks, and only then the deprecated
+/// clients. WEB_REMIX closes the anonymous part of the ladder because it is
+/// the identity `music.youtube.com` itself uses.
 ///
 /// A client that mints an unplayable URL is benched for that track for ten
 /// minutes, so a retry does not ask the same refused identity again.
 final fallbackClients = <YoutubeApiClient>[
   YoutubeApiClient.visionOs,
-  YoutubeApiClient.android,
   _iosRecent,
   YoutubeApiClient.ios,
+  YoutubeApiClient.android,
+  // BotGuard clients: they get a visitor-bound token for the player request
+  // and a video-bound token for the `pot` parameter (see `_withPoTokens`).
+  YoutubeApiClient.mweb,
+  YoutubeApiClient.safari,
+  _webRemix,
   YoutubeApiClient.tvDowngraded,
   YoutubeApiClient.webEmbedded,
   YoutubeApiClient.tv,
-  YoutubeApiClient.mweb,
-  YoutubeApiClient.safari,
+  YoutubeApiClient.mediaConnect,
   // ignore: deprecated_member_use
   YoutubeApiClient.androidMusic,
-  YoutubeApiClient.mediaConnect,
-  _webRemix,
   // ignore: deprecated_member_use
   YoutubeApiClient.androidVr,
 ];
@@ -113,6 +113,17 @@ const _perClientTimeout = Duration(seconds: 5);
 /// The probe only needs to prove that the CDN will send bytes.
 const _probeTimeout = Duration(seconds: 5);
 const _probeBytes = 16 * 1024;
+
+/// How long a web rung may wait for BotGuard before asking the client anyway.
+const _tokenBudget = Duration(seconds: 9);
+
+/// Where googlevideo stops authorising some clients' URLs.
+///
+/// A URL can answer byte 0 happily and then 403 everything past this point.
+/// Probing only the first kilobytes therefore reports "playable" for a stream
+/// that dies a minute into the track.
+const _authBoundaryBytes = 1024 * 1024;
+
 const _refusalTtl = Duration(minutes: 10);
 const _maxRefusedSongs = 64;
 
@@ -202,43 +213,50 @@ AudioOnlyStreamInfo _bestAudio(StreamManifest manifest) {
   return best;
 }
 
-/// Reads the first bytes of a minted audio URL.
+/// Proves a minted audio URL actually authorises bytes.
 ///
-/// A URL can be well-formed and still 403, or answer headers and then stall.
-/// Handing it to the player turns that into an indefinite buffering spinner;
-/// checking it here turns it into "try the next client" before playback starts.
-Future<bool> _probeAudio(
+/// A URL can be well-formed and still 403, answer headers and then stall, or —
+/// the failure this probe exists for — serve the first megabyte and refuse
+/// everything after it. Reading from [_authBoundaryBytes] when the file is
+/// long enough catches that last case before playback starts.
+///
+/// Returns the offset that answered, or null when the URL refused.
+Future<int?> _probeAudio(
   AudioOnlyStreamInfo stream,
   YoutubeApiClient client, {
   required Duration timeout,
 }) async {
+  final length = stream.size.totalBytes;
+  final start =
+      length > _authBoundaryBytes + _probeBytes ? _authBoundaryBytes : 0;
+
   http.StreamedResponse? response;
   try {
     final request = http.Request('GET', stream.url)
       ..headers.addAll(clientRequestHeaders(client))
-      ..headers['Range'] = 'bytes=0-${_probeBytes - 1}';
+      ..headers['Range'] = 'bytes=$start-${start + _probeBytes - 1}';
     response = await _probeClient.send(request).timeout(timeout);
 
     final status = response.statusCode;
     if (status == 403 || status == 404 || status == 410) {
-      return false;
+      return null;
     }
-    if (status < 200 || status >= 300) return false;
+    if (status < 200 || status >= 300) return null;
 
     final contentType = (response.headers['content-type'] ?? '').toLowerCase();
     if (contentType.contains('text/html') ||
         contentType.contains('application/json')) {
-      return false;
+      return null;
     }
 
     final chunk = await response.stream.first.timeout(timeout);
-    return chunk.isNotEmpty;
+    return chunk.isEmpty ? null : start;
   } catch (error) {
     developer.log(
-      'Probe failed for ${_clientKey(client)}: $error',
+      'Probe failed for ${_clientKey(client)} at $start: $error',
       name: 'StreamClients',
     );
-    return false;
+    return null;
   } finally {
     // Drop the rest of the range without downloading it.
     try {
@@ -247,6 +265,30 @@ Future<bool> _probeAudio(
       // The stream may already be closed; nothing to do.
     }
   }
+}
+
+/// The web clients need BotGuard tokens; every other identity ignores them.
+///
+/// Token minting is bounded: the page runs on a headless WebView, and waiting
+/// on it must never eat the whole streaming budget. Without tokens the rung is
+/// still tried, and the boundary probe decides honestly whether it plays.
+Future<YoutubeApiClient> _withPoTokens(
+  YoutubeApiClient client,
+  String songId,
+) async {
+  if (!client.isWebPoClient) return client;
+  if (!webPoTokensEnabled.value) return client;
+
+  final tokens = await PoTokenService.instance
+      .tokensFor(songId)
+      .timeout(_tokenBudget, onTimeout: () => null);
+  if (tokens == null) return client;
+
+  return client.withPoToken(
+    poToken: tokens.playerRequestToken,
+    streamingPoToken: tokens.streamingToken,
+    visitorData: tokens.visitorData,
+  );
 }
 
 /// Fetches a stream manifest through the full client ladder.
@@ -265,14 +307,18 @@ Future<StreamManifest> getManifestWithFallback(
   StackTrace? lastStack;
   final clients = _orderedClients(songId);
 
-  for (final client in clients) {
+  for (final baseClient in clients) {
     final remaining = deadline.difference(DateTime.now());
     if (remaining <= const Duration(milliseconds: 500)) break;
 
-    final perClient = remaining < _perClientTimeout ? remaining : _perClientTimeout;
-    final key = _clientKey(client);
+    final perClient =
+        remaining < _perClientTimeout ? remaining : _perClientTimeout;
+    final key = _clientKey(baseClient);
+    final started = DateTime.now();
 
     try {
+      final client = await _withPoTokens(baseClient, songId);
+
       final manifest = await yt.videos.streams
           .getManifest(
             songId,
@@ -285,27 +331,50 @@ Future<StreamManifest> getManifestWithFallback(
         throw VideoUnavailableException('No audio streams for "$songId"');
       }
 
+      var probeOffset = 0;
       if (verifyAudio) {
-        final playable = await _probeAudio(
+        final probed = await _probeAudio(
           _bestAudio(manifest),
           client,
           timeout: _probeTimeout,
         );
-        if (!playable) {
+        if (probed == null) {
           _markRefused(songId, key);
           throw VideoUnavailableException(
-            'Client $key minted an unplayable audio URL for "$songId"',
+            'Client $key minted an audio URL that refused the boundary probe '
+            'for "$songId"',
           );
         }
+        probeOffset = probed;
       }
 
       _songClients[songId] = client;
       _lastGoodClientKey = key;
+      recordStreamAttempt(
+        StreamAttempt(
+          songId: songId,
+          client: key,
+          ok: true,
+          latencyMs: DateTime.now().difference(started).inMilliseconds,
+          usedTokens: client.poToken != null,
+          probeBytes: probeOffset,
+        ),
+      );
       return manifest;
     } catch (error, stackTrace) {
       developer.log(
         'Client $key failed for $songId: $error',
         name: 'StreamClients',
+      );
+      recordStreamAttempt(
+        StreamAttempt(
+          songId: songId,
+          client: key,
+          ok: false,
+          latencyMs: DateTime.now().difference(started).inMilliseconds,
+          reason: '$error',
+          usedTokens: baseClient.isWebPoClient && webPoTokensEnabled.value,
+        ),
       );
       lastError = error;
       lastStack = stackTrace;

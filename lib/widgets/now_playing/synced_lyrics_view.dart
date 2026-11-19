@@ -236,27 +236,17 @@ class _SyncedLyricsViewState extends State<SyncedLyricsView>
                 right: 0,
                 bottom: 10,
                 child: Center(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: CupertinoColors.black.withValues(alpha: 0.28),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: CupertinoColors.white.withValues(alpha: 0.12),
-                        width: 0.7,
-                      ),
-                    ),
-                    child: Text(
-                      widget.lyrics.attribution,
-                      style: TextStyle(
-                        color: CupertinoColors.white.withValues(alpha: 0.62),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.2,
-                      ),
+                  child: Text(
+                    widget.lyrics.attribution,
+                    style: TextStyle(
+                      color: CupertinoColors.white.withValues(alpha: 0.70),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 0.1,
+                      decoration: TextDecoration.underline,
+                      decorationColor:
+                          CupertinoColors.white.withValues(alpha: 0.42),
+                      decorationThickness: 1.1,
                     ),
                   ),
                 ),
@@ -332,7 +322,6 @@ class _LyricLineTile extends StatelessWidget {
   final VoidCallback onTap;
 
   bool get _isActive => index == activeIndex;
-  bool get _isNear => (index - activeIndex).abs() <= 2;
 
   @override
   Widget build(BuildContext context) {
@@ -346,27 +335,41 @@ class _LyricLineTile extends StatelessWidget {
       activeFontSize: activeFontSize,
     );
 
-    Widget content = _isActive
-        ? base
-        : Opacity(
-            opacity: _isNear ? 0.38 : 0.22,
-            child: _isNear
-                ? ImageFiltered(
-                    imageFilter: ui.ImageFilter.blur(
-                      sigmaX: 0.7,
-                      sigmaY: 0.7,
-                    ),
-                    child: base,
-                  )
-                : base,
-          );
+    // Lines melt away with distance instead of all sharing one opacity: the
+    // next line stays legible, the one after is a hint, the rest is texture.
+    final distance = (index - activeIndex).abs();
+    final opacity = switch (distance) {
+      0 => 1.0,
+      1 => 0.46,
+      2 => 0.30,
+      _ => 0.18,
+    };
+    final sigma = switch (distance) {
+      0 => 0.0,
+      1 => 1.1,
+      2 => 1.9,
+      _ => 2.6,
+    };
+
+    Widget content = base;
+    if (sigma > 0) {
+      content = ImageFiltered(
+        imageFilter: ui.ImageFilter.blur(sigmaX: sigma, sigmaY: sigma),
+        child: content,
+      );
+    }
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
-      child: Padding(
-        padding: EdgeInsets.symmetric(vertical: _isActive ? 9 : 7),
-        child: content,
+      child: AnimatedOpacity(
+        opacity: opacity,
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: _isActive ? 9 : 7),
+          child: content,
+        ),
       ),
     );
   }
@@ -392,9 +395,7 @@ class _LyricText extends StatelessWidget {
       fontWeight: active ? FontWeight.w800 : FontWeight.w600,
       height: 1.28,
       letterSpacing: active ? -0.6 : -0.3,
-      color: active
-          ? CupertinoColors.white
-          : CupertinoColors.white.withValues(alpha: 0.72),
+      color: CupertinoColors.white,
       shadows: const [
         Shadow(color: Color(0x55000000), blurRadius: 12, offset: Offset(0, 2)),
       ],
