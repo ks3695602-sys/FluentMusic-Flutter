@@ -18,7 +18,7 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
-import 'package:musify/services/logger_service.dart';
+import 'package:musify/main.dart' show logger;
 import 'package:musify/services/settings_manager.dart';
 
 /// The Cobalt bridge used by Mornye's YouTube Music extension.
