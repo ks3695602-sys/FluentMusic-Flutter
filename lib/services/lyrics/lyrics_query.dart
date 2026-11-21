@@ -160,6 +160,14 @@ List<TrackInfo> buildSearchVariants(TrackInfo track, {int maxVariants = 4}) {
     if (seen.add(key)) result.add(track.copyWith(artist: a, title: t));
   }
 
+  // Appends the untouched queue title when cleaning actually changed it, so a
+  // decoration that is part of the real name still gets searched as-is.
+  void addRescue(String a, String raw) {
+    final rawTitle = raw.trim();
+    if (rawTitle.isEmpty || rawTitle == title) return;
+    add(a, rawTitle);
+  }
+
   final parts = title.split(_dashSeparator);
   final hasDash = parts.length >= 2;
   if (hasDash) {
@@ -169,10 +177,15 @@ List<TrackInfo> buildSearchVariants(TrackInfo track, {int maxVariants = 4}) {
       add(artist, right);
     }
     add(artist, title);
+    // The raw queue title stays in the pool as a rescue variant: the " | "
+    // cut and bracket stripping can otherwise make a lookup miss when the
+    // decoration is really part of the song name.
+    addRescue(artist, track.title);
     add(left, right);
     add(right, left);
   } else {
     add(artist, title);
+    addRescue(artist, track.title);
   }
 
   return result.take(maxVariants).toList();

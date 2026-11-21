@@ -68,6 +68,10 @@ class ChunkedStreamProxy {
   HttpServer? _server;
   final Map<String, _ProxyStream> _streams = {};
   final Map<String, _ProxyStream> _byToken = {};
+
+  /// Keys whose first player flush has already been timed ("stream timing:
+  /// first media bytes"), so the diagnosis logs exactly once per stream.
+  final Set<String> _firstFlushTimed = {};
   final Random _random = Random.secure();
   int _nextStreamId = 0;
   int _consecutiveTransportFailures = 0;
@@ -287,7 +291,7 @@ class ChunkedStreamProxy {
     stream.touched = DateTime.now();
 
     try {
-      await _serve(request, stream);
+      await _serve(request, stream, Stopwatch()..start());
     } catch (e) {
       // A player that stops reading closes the socket; that is a normal seek
       // or a track change, not an error worth logging at full volume.
@@ -302,7 +306,11 @@ class ChunkedStreamProxy {
     }
   }
 
-  Future<void> _serve(HttpRequest request, _ProxyStream stream) async {
+  Future<void> _serve(
+    HttpRequest request,
+    _ProxyStream stream,
+    Stopwatch sinceRequest,
+  ) async {
     final response = request.response;
 
     if (request.method != 'GET' && request.method != 'HEAD') {
@@ -374,6 +382,13 @@ class ChunkedStreamProxy {
 
       response.add(Uint8List.sublistView(chunk, from, available));
       await response.flush();
+      if (position == start && _firstFlushTimed.add(stream.key)) {
+        _log.log(
+          'stream timing: first media bytes for ${stream.songId} '
+          'at ${sinceRequest.elapsedMilliseconds}ms '
+          '(range $start-$end, player request)',
+        );
+      }
       position = chunkStart + available;
     }
 

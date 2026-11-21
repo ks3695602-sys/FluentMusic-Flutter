@@ -8,20 +8,15 @@ import 'package:material_ui/material_ui.dart';
 import 'package:musify/mornye_player/controllers/player_metadata_controller.dart';
 import 'package:musify/mornye_player/l10n/l10n.dart';
 import 'package:musify/mornye_player/providers/music_player_provider.dart';
-import 'package:musify/mornye_player/providers/settings_provider.dart';
 import 'package:musify/mornye_player/theme/mornye_theme.dart';
 import 'package:musify/mornye_player/utils/playback_seek_preview.dart';
-import 'package:musify/mornye_player/widgets/app_bottom_sheet.dart';
 import 'package:musify/mornye_player/widgets/app_icon.dart';
-import 'package:musify/mornye_player/widgets/audio_info_sheet.dart';
 import 'package:musify/mornye_player/widgets/audio_output_button.dart';
 import 'package:musify/mornye_player/widgets/mornye_player_background.dart';
 import 'package:musify/mornye_player/widgets/mornye_player_layout.dart';
-import 'package:musify/mornye_player/widgets/playback_tempo_sheet.dart';
 import 'package:musify/mornye_player/widgets/player_artwork.dart';
 import 'package:musify/mornye_player/widgets/player_gesture_regions.dart';
 import 'package:musify/mornye_player/widgets/player_lyrics_section.dart';
-import 'package:musify/mornye_player/widgets/settings_group.dart';
 import 'package:musify/screens/artist_page.dart';
 
 /// The full player, hosting Mornye's copied surface on FluentMusic's playback.
@@ -141,8 +136,6 @@ class _MornyePlayerScreenState extends ConsumerState<MornyePlayerScreen> {
                         lyricsOptions: null,
                         onPageChanged: _setPage,
                         onTrackNavigation: _openArtist,
-                        onMoreActions: (buttonContext, item, anchor) =>
-                            _showMoreActions(item),
                       ),
                     ),
                     _footer(context),
@@ -256,52 +249,6 @@ class _MornyePlayerScreenState extends ConsumerState<MornyePlayerScreen> {
       ),
     );
   }
-
-  /// The player's overflow menu, limited to what FluentMusic can answer.
-  Future<void> _showMoreActions(MediaItem item) => showAppBottomSheet<void>(
-    context: context,
-    title: item.title,
-    subtitle: item.artist,
-    builder: (sheetContext) => Consumer(
-      builder: (context, ref, _) {
-        final settings = ref.watch(settingsProvider);
-        return SettingsGroup(
-          children: [
-            SettingsItem(
-              icon: Icons.graphic_eq,
-              title: context.l10n.audioInfoTitle,
-              showDivider: false,
-              onTap: () {
-                Navigator.of(sheetContext).pop();
-                unawaited(showAudioInfoSheet(context, metadata: _metadata));
-              },
-            ),
-            SettingsItem(
-              icon: Icons.speed,
-              title: context.l10n.playbackTempoTitle,
-              subtitle: playbackTempoSettingsSummary(
-                context.l10n,
-                settings,
-              ),
-              showDivider: false,
-              onTap: () {
-                Navigator.of(sheetContext).pop();
-                unawaited(showPlaybackTempoSheet(context));
-              },
-            ),
-            SettingsSwitchItem(
-              icon: Icons.volume_up_outlined,
-              title: context.l10n.nowPlayingVolume,
-              value: settings.playerShowVolume,
-              showDivider: false,
-              onChanged: (value) =>
-                  ref.read(settingsProvider.notifier).setPlayerShowVolume(value),
-            ),
-          ],
-        );
-      },
-    ),
-  );
 }
 
 /// Keeps FluentMusic's colours and typography while marking the subtree as

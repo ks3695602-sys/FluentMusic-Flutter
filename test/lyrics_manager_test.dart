@@ -199,6 +199,22 @@ void main() {
       expect(variants.first.artist, 'The Weeknd');
       expect(variants.first.title, 'Blinding Lights');
     });
+
+    test('keeps the raw title as a rescue variant', () {
+      final variants = buildSearchVariants(
+        const TrackInfo(title: 'Song | Official Audio', artist: 'Artist'),
+      );
+      expect(variants.first.title, 'Song');
+      expect(
+        variants.any((v) => v.title == 'Song | Official Audio'),
+        isTrue,
+      );
+      expect(
+        buildSearchVariants(const TrackInfo(title: 'Song', artist: 'Artist'))
+            .length,
+        1,
+      );
+    });
   });
 
   group('selectBestLrclibMatch', () {

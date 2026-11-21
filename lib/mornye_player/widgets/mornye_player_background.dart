@@ -4,15 +4,16 @@ import 'package:material_ui/material_ui.dart';
 import 'package:musify/mornye_player/theme/app_motion.dart';
 import 'package:musify/mornye_player/theme/cover_palette.dart';
 
-/// The player's background for a cover whose average is [sourceColor]: the
-/// same two muted tones on every page, so the controls keep their surface
-/// when lyrics or the queue open. With [fullBleed] they run straight down,
-/// behind the artwork and the controls; otherwise across the page.
+/// The player's background for a cover whose average is [sourceColor]: three
+/// cover-derived tones, the middle one hue-shifted, so the mesh reads vivid
+/// while the brightness ladder stays dark enough for the white labels above.
+/// With [fullBleed] they run straight down, behind the artwork and the
+/// controls; otherwise across the page.
 LinearGradient mornyePlayerGradient(
   Color? sourceColor, {
   required bool fullBleed,
 }) {
-  final dominant = HSLColor.fromColor(sourceColor ?? const Color(0xff808080));
+  final dominant = HSLColor.fromColor(sourceColor ?? const Color(0xff8090a0));
   // Bright and mid covers keep their tones. Darker ones go darker with the
   // cover, so a black cover ends near black rather than on a gray surface.
   final depth = ui.lerpDouble(
@@ -20,16 +21,24 @@ LinearGradient mornyePlayerGradient(
     1,
     (dominant.lightness / 0.35).clamp(0.0, 1.0),
   )!;
-  final muted = dominant.withSaturation(dominant.saturation.clamp(0.0, 0.34));
+  // Lift chroma for a lively mesh, but never past a hue that fights the text.
+  final vivid = dominant.withSaturation(
+    (dominant.saturation * 1.25).clamp(0.42, 0.72),
+  );
+  final accent = dominant
+      .withSaturation((dominant.saturation * 1.35).clamp(0.5, 0.8))
+      .withHue((dominant.hue + 30) % 360);
   return LinearGradient(
     // Straight down under the artwork, whose fade into it is then a single
     // vertical overlay (see [_ArtworkFade]).
     begin: fullBleed ? Alignment.topCenter : Alignment.topLeft,
     end: fullBleed ? Alignment.bottomCenter : Alignment.bottomRight,
     colors: [
-      muted.withLightness((0.28 + dominant.lightness * 0.24) * depth).toColor(),
-      muted.withLightness((0.14 + dominant.lightness * 0.20) * depth).toColor(),
+      vivid.withLightness((0.30 + dominant.lightness * 0.24) * depth).toColor(),
+      vivid.withLightness((0.22 + dominant.lightness * 0.22) * depth).toColor(),
+      accent.withLightness((0.14 + dominant.lightness * 0.20) * depth).toColor(),
     ],
+    stops: const [0, 0.55, 1],
   );
 }
 

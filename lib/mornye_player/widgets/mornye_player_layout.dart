@@ -1,29 +1,34 @@
+import 'dart:async';
+
 import 'package:audio_service/audio_service.dart';
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:musify/mornye_player/controllers/player_metadata_controller.dart';
 import 'package:musify/mornye_player/l10n/l10n.dart';
 import 'package:musify/mornye_player/providers/music_player_provider.dart';
 import 'package:musify/mornye_player/providers/settings_provider.dart';
 import 'package:musify/mornye_player/routes/now_playing_route.dart';
 import 'package:musify/mornye_player/utils/playback_seek_preview.dart';
-import 'package:musify/mornye_player/widgets/mornye_context_menu.dart';
+import 'package:musify/mornye_player/widgets/audio_info_sheet.dart';
 import 'package:musify/mornye_player/widgets/mornye_landscape_player.dart';
 import 'package:musify/mornye_player/widgets/mornye_player_background.dart';
 import 'package:musify/mornye_player/widgets/mornye_player_favorite_button.dart';
 import 'package:musify/mornye_player/widgets/mornye_player_queue.dart';
-import 'package:musify/mornye_player/widgets/player_volume_control.dart';
 import 'package:musify/mornye_player/widgets/overflow_marquee.dart';
+import 'package:musify/mornye_player/widgets/playback_source_label.dart';
+import 'package:musify/mornye_player/widgets/playback_tempo_sheet.dart';
 import 'package:musify/mornye_player/widgets/player_artwork.dart';
 import 'package:musify/mornye_player/widgets/player_gesture_regions.dart';
 import 'package:musify/mornye_player/widgets/player_lyric_preview.dart';
 import 'package:musify/mornye_player/widgets/player_lyrics.dart';
 import 'package:musify/mornye_player/widgets/player_lyrics_controls.dart';
 import 'package:musify/mornye_player/widgets/player_metadata_title.dart';
-import 'package:musify/mornye_player/widgets/playback_source_label.dart';
 import 'package:musify/mornye_player/widgets/player_playback_controls.dart';
 import 'package:musify/mornye_player/widgets/player_track_swipe.dart';
+import 'package:musify/mornye_player/widgets/player_volume_control.dart';
+import 'package:musify/widgets/glass/glass_sheet_style.dart';
 
 const _mornyeContentInset = mornyeLyricsContentInset;
 const _mornyeHeaderButtonSize = 48.0;
@@ -56,7 +61,6 @@ class MornyePlayerLayout extends ConsumerWidget {
     required this.lyricsOptions,
     required this.onPageChanged,
     required this.onTrackNavigation,
-    required this.onMoreActions,
     this.showSourceLabel = true,
     this.artworkAspectRatio,
     this.controlsHeadroom = 0,
@@ -85,7 +89,6 @@ class MornyePlayerLayout extends ConsumerWidget {
   final Widget? lyricsOptions;
   final ValueChanged<int> onPageChanged;
   final Future<void> Function(BuildContext, MediaItem) onTrackNavigation;
-  final Future<void> Function(BuildContext, MediaItem, Rect?) onMoreActions;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -405,7 +408,7 @@ class MornyePlayerLayout extends ConsumerWidget {
               controlsHeldOpen: lyricsOptionsOpen,
               onPageChanged: onPageChanged,
               artwork: stage(artworkOnly: true),
-              header: _trackHeader(context, colorScheme, compact: true),
+              header: _trackHeader(context, colorScheme, ref: ref, compact: true),
               lyrics: lyricsBuilder(true),
               lyricsOptions: showLyrics ? lyricsOptions : null,
               queue: MornyePlayerQueue(colorScheme: colorScheme),
@@ -441,6 +444,7 @@ class MornyePlayerLayout extends ConsumerWidget {
                     child: _trackHeader(
                       context,
                       foreground,
+                      ref: ref,
                       compactProgress: progress,
                     ),
                   ),
@@ -495,10 +499,12 @@ class MornyePlayerLayout extends ConsumerWidget {
   Widget _trackHeader(
     BuildContext context,
     ColorScheme colorScheme, {
+    required WidgetRef ref,
     bool compact = false,
     double? compactProgress,
   }) {
     final progress = compactProgress ?? (compact ? 1.0 : 0.0);
+    final settings = ref.watch(settingsProvider);
     final actionSize = compactProgress == null
         ? (page == 0 ? 24.0 : _mornyeCompactIconSize)
         : 24 + (_mornyeCompactIconSize - 24) * progress;
@@ -575,17 +581,64 @@ class MornyePlayerLayout extends ConsumerWidget {
               Builder(
                 builder: (buttonContext) => SizedBox.square(
                   dimension: _mornyeHeaderButtonSize,
-                  child: IconButton(
-                    tooltip: MaterialLocalizations.of(
-                      context,
-                    ).moreButtonTooltip,
-                    color: colorScheme.onSurface,
-                    iconSize: actionSize,
-                    icon: const Icon(CupertinoIcons.ellipsis),
-                    onPressed: () => onMoreActions(
-                      buttonContext,
-                      mediaItem,
-                      mornyeMenuAnchor(buttonContext),
+                  child: DarkGlassMenuTheme(
+                    child: GlassMenu(
+                      semanticLabel: MaterialLocalizations.of(
+                        buttonContext,
+                      ).moreButtonTooltip,
+                      // The trigger stays a plain control on the player
+                      // surface; only the open menu is glass.
+                      menuWidth: 268,
+                      menuPadding: const EdgeInsets.all(8),
+                      itemBorderRadius: 18,
+                      maxStackHeight:
+                          MediaQuery.sizeOf(buttonContext).height * 0.62,
+                      settings: glassSheetSettings(
+                        buttonContext,
+                        brightness: Brightness.dark,
+                      ),
+                      triggerBuilder: (menuContext, toggle) => IconButton(
+                        tooltip: MaterialLocalizations.of(
+                          menuContext,
+                        ).moreButtonTooltip,
+                        color: colorScheme.onSurface,
+                        iconSize: actionSize,
+                        icon: const Icon(CupertinoIcons.ellipsis),
+                        onPressed: toggle,
+                      ),
+                      items: [
+                        GlassMenuItem(
+                          title: context.l10n.audioInfoTitle,
+                          icon: const Icon(CupertinoIcons.info_circle),
+                          onTap: () => unawaited(
+                            showAudioInfoSheet(
+                              context,
+                              metadata: metadata,
+                            ),
+                          ),
+                        ),
+                        GlassMenuItem(
+                          title: context.l10n.playbackTempoTitle,
+                          subtitle: playbackTempoSettingsSummary(
+                            context.l10n,
+                            settings,
+                          ),
+                          icon: const Icon(CupertinoIcons.speedometer),
+                          onTap: () => unawaited(
+                            showPlaybackTempoSheet(context),
+                          ),
+                        ),
+                        GlassMenuItem(
+                          title: context.l10n.nowPlayingVolume,
+                          icon: const Icon(CupertinoIcons.volume_up),
+                          isSelected: settings.playerShowVolume,
+                          onTap: () => ref
+                              .read(settingsProvider.notifier)
+                              .setPlayerShowVolume(
+                                !settings.playerShowVolume,
+                              ),
+                        ),
+                      ],
                     ),
                   ),
                 ),

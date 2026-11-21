@@ -109,8 +109,20 @@ const Duration _cacheProbeTimeout = Duration(seconds: 5);
 /// without disturbing the extractor's connection pool.
 final http.Client _cacheProbeClient = http.Client();
 
-/// Fetches a stream manifest for a song, honoring proxy settings.
+/// Fetches a stream manifest for a song, honoring proxy settings, and logs
+/// how long the resolve took so a slow start can be traced to the lookup.
 Future<StreamManifest?> _fetchStreamManifest(String songId) async {
+  final watch = Stopwatch()..start();
+  try {
+    return await _fetchStreamManifestUnmeasured(songId);
+  } finally {
+    logger.log(
+      'stream timing: manifest for $songId took ${watch.elapsedMilliseconds}ms',
+    );
+  }
+}
+
+Future<StreamManifest?> _fetchStreamManifestUnmeasured(String songId) async {
   if (useProxy.value) {
     return ProxyManager().getSongManifest(songId).timeout(_manifestTimeout);
   }
@@ -899,6 +911,21 @@ Future<String?> fetchSongStreamUrl(
     duration: duration,
   );
   _inFlightSongUrls[key] = future;
+  final watch = Stopwatch()..start();
+  unawaited(
+    future.then<void>(
+      (url) => logger.log(
+        'stream timing: url ${url == null ? 'miss' : 'ok'} for $songId '
+        'took ${watch.elapsedMilliseconds}ms',
+      ),
+      onError: (Object error, StackTrace stackTrace) => logger.log(
+        'stream timing: url failed for $songId after '
+        '${watch.elapsedMilliseconds}ms',
+        error: error,
+        stackTrace: stackTrace,
+      ),
+    ),
+  );
   unawaited(
     future
         .then<void>((_) {}, onError: (Object _) {})
