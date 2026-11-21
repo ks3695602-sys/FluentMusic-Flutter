@@ -127,9 +127,56 @@ const _authBoundaryBytes = 1024 * 1024;
 const _refusalTtl = Duration(minutes: 10);
 const _maxRefusedSongs = 64;
 
+/// How long a track every identity refused is remembered as unplayable.
+///
+/// Without this, a queue that hits one dead row retries the whole client
+/// ladder for it on every preload tick and every playback attempt, which is
+/// how a single unavailable song turns into a retry storm that starves the
+/// track that is actually playing.
+const _unplayableTtl = Duration(minutes: 10);
+const _maxUnplayableSongs = 32;
+
 // Client that produced the stream URL of each song, so playback can send
 // the matching headers.
 final Map<String, YoutubeApiClient> _songClients = {};
+
+/// Tracks every client refused, with the time the verdict expires.
+final Map<String, DateTime> _unplayableUntil = {};
+
+/// Whether [songId] was refused by every client recently enough that asking
+/// again would only repeat the same refusals.
+bool isSongMarkedUnplayable(String songId) {
+  final until = _unplayableUntil[songId];
+  if (until == null) return false;
+  if (DateTime.now().isAfter(until)) {
+    _unplayableUntil.remove(songId);
+    return false;
+  }
+  return true;
+}
+
+/// Forgets a track's unplayable verdict, e.g. after its URL was invalidated.
+void clearUnplayableVerdict(String songId) => _unplayableUntil.remove(songId);
+
+void _markUnplayable(String songId) {
+  if (_unplayableUntil.length >= _maxUnplayableSongs) {
+    _unplayableUntil.remove(_unplayableUntil.keys.first);
+  }
+  _unplayableUntil[songId] = DateTime.now().add(_unplayableTtl);
+}
+
+/// A refusal that a retry cannot fix: the track is gone, region-locked or
+/// every identity was answered with 403/410. Timeouts and socket errors are
+/// deliberately excluded — those are worth retrying once the network recovers.
+bool _isDefinitiveRefusal(Object? error) {
+  final text = error?.toString().toLowerCase() ?? '';
+  if (text.isEmpty) return false;
+  return text.contains('unavailable') ||
+      text.contains('not available') ||
+      text.contains('refused') ||
+      text.contains('403') ||
+      text.contains('410');
+}
 
 /// The client that last produced a playable manifest, tried first next time.
 String? _lastGoodClientKey;
@@ -182,11 +229,15 @@ void _markRefused(String songId, String key) {
 
 /// Last-good client first, then the documented ladder, minus identities that
 /// already refused this track.
+///
+/// The last-good identity is not exempt from the refusal list: a client that
+/// played the previous track can still be the one that refused this one, and
+/// trying it first would only waste the per-client budget.
 List<YoutubeApiClient> _orderedClients(String songId) {
   final lastGood = _lastGoodClientKey;
   final ordered = <YoutubeApiClient>[];
 
-  if (lastGood != null) {
+  if (lastGood != null && !_isRefused(songId, lastGood)) {
     for (final client in fallbackClients) {
       if (_clientKey(client) == lastGood) {
         ordered.add(client);
@@ -233,7 +284,7 @@ Future<int?> _probeAudio(
   http.StreamedResponse? response;
   try {
     final request = http.Request('GET', stream.url)
-      ..headers.addAll(clientRequestHeaders(client))
+      ..headers.addAll(_mediaHeaders(client))
       ..headers['Range'] = 'bytes=$start-${start + _probeBytes - 1}';
     response = await _probeClient.send(request).timeout(timeout);
 
@@ -302,6 +353,12 @@ Future<StreamManifest> getManifestWithFallback(
   required Duration timeout,
   bool verifyAudio = true,
 }) async {
+  if (isSongMarkedUnplayable(songId)) {
+    throw VideoUnavailableException(
+      'Every client refused "$songId" recently; not retrying yet',
+    );
+  }
+
   final deadline = DateTime.now().add(timeout);
   Object? lastError;
   StackTrace? lastStack;
@@ -350,6 +407,7 @@ Future<StreamManifest> getManifestWithFallback(
 
       _songClients[songId] = client;
       _lastGoodClientKey = key;
+      _unplayableUntil.remove(songId);
       recordStreamAttempt(
         StreamAttempt(
           songId: songId,
@@ -382,8 +440,10 @@ Future<StreamManifest> getManifestWithFallback(
   }
 
   if (lastError != null) {
-    Error.throwWithStackTrace(lastError!, lastStack!);
+    if (_isDefinitiveRefusal(lastError)) _markUnplayable(songId);
+    Error.throwWithStackTrace(lastError, lastStack!);
   }
+  _markUnplayable(songId);
   throw VideoUnavailableException(
     'No playable audio streams for "$songId" after trying '
     '${clients.length} clients',
@@ -392,7 +452,112 @@ Future<StreamManifest> getManifestWithFallback(
 
 /// Headers googlevideo.com expects for URLs minted by the client that served
 /// [songId]; a mismatched User-Agent can cause HTTP 403.
+///
+/// Prefer [streamPlaybackHeadersForUrl] wherever the URL is in hand: after an
+/// app restart the in-memory client map is empty, and the URL itself is the
+/// only record of which identity minted it.
 Map<String, String> streamPlaybackHeaders(String? songId) {
   final client = _songClients[songId] ?? fallbackClients.first;
-  return clientRequestHeaders(client);
+  return _mediaHeaders(client);
+}
+
+/// Headers a media fetch for [url] must carry.
+///
+/// googlevideo bakes the minting client into the URL as `c=`/`cver=` and
+/// compares those against the request that comes back for the bytes. Sending
+/// the wrong identity is answered with a 403 or a response paced down to a
+/// crawl, which is exactly the stutter this avoids. When the URL names an
+/// identity the app does not model, an iPhone identity is the safest guess
+/// (BitChord's `PlayerClient.forStreamUrl` makes the same choice).
+Map<String, String> streamPlaybackHeadersForUrl(String? songId, String? url) {
+  final minted = songId == null ? null : _songClients[songId];
+  if (minted != null) return _mediaHeaders(minted);
+
+  final uri = url == null ? null : Uri.tryParse(url);
+  if (uri == null || !uri.host.endsWith('googlevideo.com')) {
+    return _mediaHeaders(fallbackClients.first);
+  }
+
+  final name = (uri.queryParameters['c'] ?? '').toUpperCase();
+  final version = uri.queryParameters['cver'];
+  if (name.isEmpty) return _mediaHeaders(fallbackClients.first);
+
+  return _headersForNamedClient(name, version);
+}
+
+/// Media headers for the identity a googlevideo URL names in `c`/`cver`.
+Map<String, String> _headersForNamedClient(String name, String? version) {
+  if (name.startsWith('IOS')) {
+    final ios = version == _clientVersion(_iosRecent)
+        ? _iosRecent
+        : YoutubeApiClient.ios;
+    return _mediaHeaders(ios);
+  }
+  if (name == 'ANDROID_VR') {
+    // ignore: deprecated_member_use
+    return _mediaHeaders(YoutubeApiClient.androidVr);
+  }
+  if (name == 'ANDROID_MUSIC') {
+    // ignore: deprecated_member_use
+    return _mediaHeaders(YoutubeApiClient.androidMusic);
+  }
+  if (name.startsWith('ANDROID')) {
+    return _mediaHeaders(YoutubeApiClient.android);
+  }
+  if (name.startsWith('TVHTML5_SIMPLY')) {
+    return _mediaHeaders(YoutubeApiClient.tvDowngraded);
+  }
+  if (name.startsWith('TVHTML5')) {
+    return _mediaHeaders(YoutubeApiClient.tv);
+  }
+  if (name == 'MEDIA_CONNECT_FRONTEND') {
+    return _mediaHeaders(YoutubeApiClient.mediaConnect);
+  }
+  if (name == 'WEB_REMIX') {
+    return _mediaHeaders(_webRemix);
+  }
+  if (name.startsWith('WEB') || name == 'MWEB') {
+    // The ladder has no plain WEB identity; WEB_REMIX carries the same
+    // desktop Chrome agent and only the origin differs.
+    return _mediaHeaders(_webRemix, origin: 'https://www.youtube.com');
+  }
+  if (name == 'VISIONOS') {
+    return _mediaHeaders(YoutubeApiClient.visionOs);
+  }
+  return _mediaHeaders(YoutubeApiClient.ios);
+}
+
+String _clientVersion(YoutubeApiClient client) {
+  final context = client.payload['context'];
+  final clientContext = context is Map ? context['client'] : null;
+  final version = clientContext is Map ? clientContext['clientVersion'] : null;
+  return version is String ? version : '';
+}
+
+/// The client's own request headers, plus the origin a browser-shaped client
+/// is expected to send.
+///
+/// Native app identities send no origin, and sending one anyway is as wrong as
+/// omitting it from a web client. `Origin`/`Referer` also make the `WEB` and
+/// `TVHTML5` families behave like their real counterparts.
+Map<String, String> _mediaHeaders(
+  YoutubeApiClient client, {
+  String? origin,
+}) {
+  final headers = clientRequestHeaders(client);
+  final name = client.clientName;
+
+  final effectiveOrigin = origin ??
+      (name == 'WEB_REMIX'
+          ? 'https://music.youtube.com'
+          : (name.startsWith('WEB') ||
+                  name == 'MWEB' ||
+                  name.startsWith('TVHTML5'))
+              ? 'https://www.youtube.com'
+              : null);
+  if (effectiveOrigin != null) {
+    headers['origin'] = effectiveOrigin;
+    headers['referer'] = '$effectiveOrigin/';
+  }
+  return headers;
 }

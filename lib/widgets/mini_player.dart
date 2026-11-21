@@ -27,7 +27,8 @@ import 'package:material_ui/material_ui.dart';
 import 'package:musify/main.dart';
 import 'package:musify/models/full_player_state.dart';
 import 'package:musify/models/position_data.dart';
-import 'package:musify/screens/now_playing_page.dart';
+import 'package:musify/mornye_player/routes/now_playing_route.dart';
+import 'package:musify/mornye_player/screens/mornye_player_screen.dart';
 import 'package:musify/services/settings_manager.dart';
 import 'package:musify/widgets/marquee.dart';
 import 'package:musify/widgets/song_artwork.dart';
@@ -147,17 +148,7 @@ class _MiniPlayerBodyState extends State<_MiniPlayerBody>
   }
 
   PageRoute<void> _createSlideTransition() {
-    return PageRouteBuilder<void>(
-      pageBuilder: (context, animation, _) => const NowPlayingPage(),
-      reverseTransitionDuration: const Duration(milliseconds: 250),
-      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        final tween = Tween(
-          begin: const Offset(0, 1),
-          end: Offset.zero,
-        ).chain(CurveTween(curve: Curves.easeInOut));
-        return SlideTransition(position: animation.drive(tween), child: child);
-      },
-    );
+    return NowPlayingRoute(child: const MornyePlayerScreen());
   }
 
   /// Compact dock accessory used while the tab bar is scrolled into its

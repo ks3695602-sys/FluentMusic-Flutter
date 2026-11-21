@@ -23,7 +23,7 @@ import 'package:audio_service/audio_service.dart';
 import 'package:musify/services/common_services.dart';
 import 'package:musify/utilities/media_duration.dart';
 
-Map mediaItemToMap(MediaItem mediaItem) {
+Map<String, dynamic> mediaItemToMap(MediaItem mediaItem) {
   final extras = mediaItem.extras;
   return {
     'id': mediaItem.id,

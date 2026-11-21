@@ -34,6 +34,7 @@ import 'package:musify/services/common_services.dart';
 import 'package:musify/services/data_manager.dart';
 import 'package:musify/services/listening_stats_service.dart';
 import 'package:musify/services/settings_manager.dart';
+import 'package:musify/services/streaming/chunked_stream_proxy.dart';
 import 'package:musify/utilities/map_utils.dart';
 import 'package:musify/utilities/media_duration.dart';
 import 'package:musify/utilities/mediaitem.dart';
@@ -53,9 +54,16 @@ class MusifyAudioHandler extends BaseAudioHandler implements AndroidAutoHost {
           : AudioPipeline(androidAudioEffects: [androidEqualizer]),
       audioLoadConfiguration: const AudioLoadConfiguration(
         androidLoadControl: AndroidLoadControl(
-          maxBufferDuration: Duration(seconds: 60),
+          // BitChord's PlaybackService keeps fifteen minutes ahead and
+          // resumes after a stall with two seconds in hand. The old sixty
+          // second ceiling meant a single slow range could drain the buffer
+          // before the next one arrived.
+          minBufferDuration: Duration(seconds: 30),
+          maxBufferDuration: Duration(minutes: 15),
           bufferForPlaybackDuration: Duration(milliseconds: 500),
-          bufferForPlaybackAfterRebufferDuration: Duration(seconds: 3),
+          bufferForPlaybackAfterRebufferDuration: Duration(seconds: 2),
+          prioritizeTimeOverSizeThresholds: true,
+          backBufferDuration: Duration(seconds: 30),
         ),
       ),
     );
@@ -1554,6 +1562,17 @@ class MusifyAudioHandler extends BaseAudioHandler implements AndroidAutoHost {
       }
       if (preloadUrl != null && preloadUrl.isNotEmpty) {
         _preloadedYtIds.add(ytid);
+        // Warm the first bounded range of the next track so the transition
+        // into it starts from memory instead of a fresh CDN round trip.
+        unawaited(
+          ChunkedStreamProxy.instance.prefetch(
+            songId: ytid,
+            url: preloadUrl,
+            headers: streamPlaybackHeadersForUrl(ytid, preloadUrl),
+            totalBytes: knownStreamLengthFor(ytid),
+            contentType: knownStreamContentTypeFor(ytid),
+          ),
+        );
       }
     }
   }
@@ -2490,13 +2509,29 @@ class MusifyAudioHandler extends BaseAudioHandler implements AndroidAutoHost {
       }
 
       final uri = Uri.parse(songUrl);
-      final needsClientHeaders =
+      final songId = song['ytid']?.toString();
+      final isGoogleVideo =
           song['isLive'] != true && uri.host.endsWith('googlevideo.com');
+      final headers =
+          isGoogleVideo ? streamPlaybackHeadersForUrl(songId, songUrl) : null;
+
+      // googlevideo paces an open-ended read down to roughly playback speed.
+      // Serving the player from a loopback proxy that fetches bounded ranges
+      // keeps the download at line rate. When the proxy cannot run, the
+      // direct URL is used unchanged.
+      final proxiedUri = isGoogleVideo && songId != null
+          ? await ChunkedStreamProxy.instance.register(
+              songId: songId,
+              url: songUrl,
+              headers: headers,
+              totalBytes: knownStreamLengthFor(songId),
+              contentType: knownStreamContentTypeFor(songId),
+            )
+          : null;
+
       final audioSource = AudioSource.uri(
-        uri,
-        headers: needsClientHeaders
-            ? streamPlaybackHeaders(song['ytid']?.toString())
-            : null,
+        proxiedUri ?? uri,
+        headers: proxiedUri == null ? headers : null,
         tag: tag,
       );
 

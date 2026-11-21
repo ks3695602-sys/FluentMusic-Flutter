@@ -28,12 +28,14 @@ import 'package:flutter/cupertino.dart' show CupertinoTheme, CupertinoThemeData;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:just_audio_media_kit/just_audio_media_kit.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:musify/extensions/l10n.dart';
 import 'package:musify/localization/app_localizations.dart';
+import 'package:musify/mornye_player/l10n/l10n.dart' as mornye_l10n;
 import 'package:musify/services/account_service.dart';
 import 'package:musify/services/ytmusic_auth_service.dart';
 import 'package:musify/services/ytmusic_library_store.dart';
@@ -304,6 +306,7 @@ class _MusifyState extends State<Musify> with WidgetsBindingObserver {
             darkTheme: getAppTheme(darkScheme),
             localizationsDelegates: [
               AppLocalizations.delegate,
+              mornye_l10n.AppLocalizations.delegate,
               ...GlobalMaterialLocalizations.delegates,
             ],
             supportedLocales: appSupportedLocales,
@@ -375,22 +378,24 @@ void main() async {
   glassConfigController.addListener(updateLiquidGlassTheme);
 
   runApp(
-    GlassConfigScope(
-      controller: glassConfigController,
-      child: ValueListenableBuilder<GlassThemeData>(
-        valueListenable: liquidGlassThemeNotifier,
-        builder: (context, glassTheme, _) {
-          return LiquidGlassWidgets.wrap(
-            brightnessResolver: Theme.maybeBrightnessOf,
-            theme: glassTheme,
-            // The Glass Lab quality selector is authoritative. Runtime frame
-            // probes and reduce-transparency used to silently demote premium
-            // mid-session, which made the dock/pill look inconsistent.
-            adaptiveQuality: false,
-            respectSystemAccessibility: false,
-            child: const Musify(),
-          );
-        },
+    ProviderScope(
+      child: GlassConfigScope(
+        controller: glassConfigController,
+        child: ValueListenableBuilder<GlassThemeData>(
+          valueListenable: liquidGlassThemeNotifier,
+          builder: (context, glassTheme, _) {
+            return LiquidGlassWidgets.wrap(
+              brightnessResolver: Theme.maybeBrightnessOf,
+              theme: glassTheme,
+              // The Glass Lab quality selector is authoritative. Runtime frame
+              // probes and reduce-transparency used to silently demote premium
+              // mid-session, which made the dock/pill look inconsistent.
+              adaptiveQuality: false,
+              respectSystemAccessibility: false,
+              child: const Musify(),
+            );
+          },
+        ),
       ),
     ),
   );
@@ -593,7 +598,7 @@ void handleIncomingLink(Uri? uri) async {
     if (isDuplicate) {
       showToast(
         NavigationManager().context,
-        NavigationManager().context.l10n!.playlistAlreadyExists,
+        ContextX(NavigationManager().context).l10n!.playlistAlreadyExists,
       );
     } else {
       userCustomPlaylists.value = [...userCustomPlaylists.value, playlist];
@@ -606,7 +611,7 @@ void handleIncomingLink(Uri? uri) async {
       );
       showToast(
         NavigationManager().context,
-        '${NavigationManager().context.l10n!.addedSuccess}!',
+        '${ContextX(NavigationManager().context).l10n!.addedSuccess}!',
       );
     }
   } catch (e) {
@@ -617,6 +622,6 @@ void handleIncomingLink(Uri? uri) async {
 void _showPlaylistError() {
   showToast(
     NavigationManager().context,
-    NavigationManager().context.l10n!.failedToLoadPlaylist,
+    ContextX(NavigationManager().context).l10n!.failedToLoadPlaylist,
   );
 }
