@@ -23,6 +23,7 @@ import 'package:musify/mornye_player/theme/app_tokens.dart';
 import 'package:musify/mornye_player/theme/mornye_theme.dart';
 import 'package:musify/mornye_player/utils/desktop_platform.dart';
 import 'package:musify/mornye_player/utils/lyrics_parser.dart';
+import 'package:musify/mornye_player/utils/lyrics_spacing.dart';
 import 'package:musify/mornye_player/utils/lyrics_timeline.dart';
 import 'package:musify/mornye_player/utils/synced_lyrics_scroll.dart';
 import 'package:musify/mornye_player/utils/text_direction.dart';

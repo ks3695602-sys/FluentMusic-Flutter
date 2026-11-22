@@ -359,10 +359,12 @@ Future<StreamManifest> getManifestWithFallback(
     );
   }
 
-  final deadline = DateTime.now().add(timeout);
+  final startedAt = DateTime.now();
+  final deadline = startedAt.add(timeout);
   Object? lastError;
   StackTrace? lastStack;
   final clients = _orderedClients(songId);
+  var rung = 0;
 
   for (final baseClient in clients) {
     final remaining = deadline.difference(DateTime.now());
@@ -372,6 +374,17 @@ Future<StreamManifest> getManifestWithFallback(
         remaining < _perClientTimeout ? remaining : _perClientTimeout;
     final key = _clientKey(baseClient);
     final started = DateTime.now();
+    // The first rung is the fast path. Gyawun's plan named ANDROID_VR for it,
+    // but the vendored extractor documents that YouTube 403'd every ANDROID_VR
+    // format on 2026-08-17 (yt-dlp dropped it from its defaults), so the fast
+    // path is whichever tokenless identity the ladder rates first today.
+    // ANDROID_VR is still kept as the last rung for the occasional window
+    // where YouTube accepts it again.
+    final path = rung++ == 0 ? 'primary' : 'fallback';
+    developer.log(
+      'stream timing: $path $key for $songId',
+      name: 'StreamClients',
+    );
 
     try {
       final client = await _withPoTokens(baseClient, songId);
@@ -408,6 +421,11 @@ Future<StreamManifest> getManifestWithFallback(
       _songClients[songId] = client;
       _lastGoodClientKey = key;
       _unplayableUntil.remove(songId);
+      developer.log(
+        'stream timing: $path $key ok for $songId in '
+        '${DateTime.now().difference(started).inMilliseconds}ms',
+        name: 'StreamClients',
+      );
       recordStreamAttempt(
         StreamAttempt(
           songId: songId,
@@ -422,6 +440,11 @@ Future<StreamManifest> getManifestWithFallback(
     } catch (error, stackTrace) {
       developer.log(
         'Client $key failed for $songId: $error',
+        name: 'StreamClients',
+      );
+      developer.log(
+        'stream timing: $path $key failed for $songId in '
+        '${DateTime.now().difference(started).inMilliseconds}ms: $error',
         name: 'StreamClients',
       );
       recordStreamAttempt(
@@ -440,9 +463,18 @@ Future<StreamManifest> getManifestWithFallback(
   }
 
   if (lastError != null) {
+    developer.log(
+      'stream timing: ladder exhausted for $songId after '
+      '${DateTime.now().difference(startedAt).inMilliseconds}ms',
+      name: 'StreamClients',
+    );
     if (_isDefinitiveRefusal(lastError)) _markUnplayable(songId);
     Error.throwWithStackTrace(lastError, lastStack!);
   }
+  developer.log(
+    'stream timing: ladder exhausted for $songId (no client left)',
+    name: 'StreamClients',
+  );
   _markUnplayable(songId);
   throw VideoUnavailableException(
     'No playable audio streams for "$songId" after trying '

@@ -63,6 +63,13 @@ class ChunkedStreamProxy {
   static const Duration idleStreamTtl = Duration(minutes: 20);
   static const Duration _upstreamTimeout = Duration(seconds: 20);
 
+  /// Gyawun's range-fetch retry policy: five units of error budget and half a
+  /// second between attempts. A rate limit costs two units, a server error
+  /// three, and any other transient failure one, so a hard 429 cannot spin the
+  /// proxy for five full attempts.
+  static const int _retryBudget = 5;
+  static const Duration _retryDelay = Duration(milliseconds: 500);
+
   final Logger _log = Logger();
 
   HttpServer? _server;
@@ -144,10 +151,8 @@ class ChunkedStreamProxy {
     }
 
     if (stream.totalBytes == null) {
-      final length = await _probeLength(stream).timeout(
-        const Duration(seconds: 5),
-        onTimeout: () => null,
-      );
+      final length = await _probeLength(stream)
+          .timeout(const Duration(seconds: 5), onTimeout: () => null);
       if (length == null) {
         _forgetStream(stream);
         return null;
@@ -432,7 +437,8 @@ class ChunkedStreamProxy {
         return null;
       }
 
-      final length = _lengthFromContentRange(contentRange) ??
+      final length =
+          _lengthFromContentRange(contentRange) ??
           (contentLength > 0 ? contentLength : null);
       if (length == null || length <= 0) {
         stream.metadataFailed = true;
@@ -460,7 +466,8 @@ class ChunkedStreamProxy {
     }
   }
 
-  static int? _lengthFromContentRange(String? value) {    if (value == null) return null;
+  static int? _lengthFromContentRange(String? value) {
+    if (value == null) return null;
     final slash = value.lastIndexOf('/');
     if (slash < 0) return null;
     return int.tryParse(value.substring(slash + 1).trim());
@@ -566,65 +573,137 @@ class ChunkedStreamProxy {
     }
   }
 
+  /// Fetches one bounded range, resuming from the last received byte after a
+  /// transient failure.
+  ///
+  /// This is Gyawun's `AudioStreamClient` retry shape ported to the loopback
+  /// proxy: the same five-unit error budget, the same 500 ms pause, and the
+  /// same cost tiers (rate limit 2, server error 3, anything else 1). The
+  /// difference is that a partial body is kept, so a connection that drops
+  /// halfway through a chunk resumes instead of downloading it again.
   Future<Uint8List?> _fetchRange(
     _ProxyStream stream,
     int start,
     int end,
   ) async {
     final expected = end - start + 1;
+    final builder = BytesBuilder(copy: false);
+    var offset = start;
+    var budget = _retryBudget;
+    var attempts = 0;
 
-    try {
-      final request = await _client.getUrl(stream.url);
-      _applyHeaders(request.headers, stream.headers);
-      request.headers.set(HttpHeaders.acceptEncodingHeader, 'identity');
-      request.headers.set(HttpHeaders.rangeHeader, 'bytes=$start-$end');
+    while (offset <= end) {
+      attempts++;
+      var cost = 1;
+      var retry = false;
+      var completed = false;
 
-      final response = await request.close().timeout(_upstreamTimeout);
-      final status = response.statusCode;
+      try {
+        final request = await _client.getUrl(stream.url);
+        _applyHeaders(request.headers, stream.headers);
+        request.headers.set(HttpHeaders.acceptEncodingHeader, 'identity');
+        request.headers.set(HttpHeaders.rangeHeader, 'bytes=$offset-$end');
 
-      if (status != HttpStatus.partialContent &&
-          status != HttpStatus.ok) {
-        await response.drain<void>();
+        final response = await request.close().timeout(_upstreamTimeout);
+        final status = response.statusCode;
+
         if (status == HttpStatus.forbidden ||
             status == HttpStatus.notFound ||
             status == HttpStatus.gone) {
+          await response.drain<void>();
           // The URL expired. Not a transport problem: the next playback
           // attempt mints a new one.
           stream.metadataFailed = true;
-        } else {
-          _noteTransportFailure();
+          _log.log(
+            'Chunk fetch refused for ${stream.songId} at $offset-$end '
+            '(HTTP $status)',
+          );
+          return null;
         }
+
+        if (status == HttpStatus.tooManyRequests) {
+          await response.drain<void>();
+          cost = 2;
+          retry = true;
+          _log.log(
+            'stream timing: chunk retry ${stream.songId} at $offset '
+            'after HTTP 429 (attempt $attempts)',
+          );
+        } else if (status >= 500) {
+          await response.drain<void>();
+          cost = 3;
+          retry = true;
+          _log.log(
+            'stream timing: chunk retry ${stream.songId} at $offset '
+            'after HTTP $status (attempt $attempts)',
+          );
+        } else if (status != HttpStatus.partialContent &&
+            status != HttpStatus.ok) {
+          await response.drain<void>();
+          cost = 3;
+          retry = true;
+          _log.log(
+            'stream timing: chunk retry ${stream.songId} at $offset '
+            'after HTTP $status (attempt $attempts)',
+          );
+        } else if (status == HttpStatus.ok && offset != 0) {
+          await response.drain<void>();
+          // The host ignored the range; the body would start at byte zero.
+          stream.metadataFailed = true;
+          return null;
+        } else {
+          await for (final data in response) {
+            builder.add(data);
+            if (builder.length >= expected) break;
+          }
+
+          _noteTransportSuccess();
+          if (builder.length >= expected) {
+            completed = true;
+          } else {
+            // A cleanly closed but short response is still a failure; resume
+            // from where it stopped instead of accepting a truncated chunk.
+            cost = 1;
+            retry = true;
+            _log.log(
+              'stream timing: chunk retry ${stream.songId} at $offset '
+              'after a short body (attempt $attempts)',
+            );
+          }
+        }
+      } catch (e) {
+        cost = 1;
+        retry = true;
+        _noteTransportFailure();
+        _log.log(
+          'Chunk fetch attempt $attempts failed for ${stream.songId} '
+          'at $offset-$end',
+          error: e,
+        );
+      }
+
+      if (completed || !retry) break;
+
+      budget -= cost;
+      if (budget <= 0) {
+        _log.log(
+          'stream timing: chunk fetch gave up for ${stream.songId} '
+          'at $offset after $attempts attempts',
+        );
         return null;
       }
 
-      if (status == HttpStatus.ok && start != 0) {
-        // The host ignored the range; the body would start at byte zero.
-        await response.drain<void>();
-        stream.metadataFailed = true;
-        return null;
-      }
-
-      final builder = BytesBuilder(copy: false);
-      await for (final data in response) {
-        builder.add(data);
-        if (builder.length >= expected) break;
-      }
-
-      _noteTransportSuccess();
-      if (builder.isEmpty) return null;
-
-      final bytes = builder.takeBytes();
-      return bytes.length > expected
-          ? Uint8List.sublistView(bytes, 0, expected)
-          : bytes;
-    } catch (e) {
-      _noteTransportFailure();
-      _log.log(
-        'Chunk fetch failed for ${stream.songId} at $start-$end',
-        error: e,
-      );
-      return null;
+      offset = start + builder.length;
+      if (offset > end) break;
+      await Future.delayed(_retryDelay);
     }
+
+    final bytes = builder.takeBytes();
+    if (bytes.isEmpty) return null;
+
+    return bytes.length > expected
+        ? Uint8List.sublistView(bytes, 0, expected)
+        : bytes;
   }
 
   void _noteTransportSuccess() {

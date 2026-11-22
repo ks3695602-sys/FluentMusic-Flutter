@@ -418,7 +418,7 @@ class _WordHighlightedLyricLineState
         ? Colors.white.withValues(alpha: 0.4)
         : widget.colorScheme.onSurfaceVariant.withValues(alpha: 0.6);
     return _SweepingTimedLyricText(
-      segments: [for (final word in words) word.text],
+      segments: reattachWordSpacing(text, words),
       starts: [for (final word in words) word.time],
       ends: [
         for (var index = 0; index < words.length; index++)

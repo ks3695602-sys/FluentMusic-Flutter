@@ -163,6 +163,54 @@ void main() {
       );
     });
 
+    test(
+      'retries a transient upstream failure instead of dropping the chunk',
+      () async {
+        var requests = 0;
+        final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+        server.listen((request) async {
+          final response = request.response;
+          if (requests++ == 0) {
+            response.statusCode = HttpStatus.internalServerError;
+            await response.close();
+            return;
+          }
+
+          final range = request.headers.value(HttpHeaders.rangeHeader)!;
+          final start = int.parse(
+            range.substring('bytes='.length).split('-').first,
+          );
+          final endText = range.substring('bytes='.length).split('-').last;
+          final end = endText.isEmpty
+              ? payload.length - 1
+              : min(int.parse(endText), payload.length - 1);
+
+          response.statusCode = HttpStatus.partialContent;
+          response.headers.contentType = ContentType('audio', 'mp4');
+          response.headers.set(
+            HttpHeaders.contentRangeHeader,
+            'bytes $start-$end/${payload.length}',
+          );
+          response.headers.contentLength = end - start + 1;
+          response.add(Uint8List.sublistView(payload, start, end + 1));
+          await response.close();
+        });
+        addTearDown(() => server.close(force: true));
+
+        final uri = await ChunkedStreamProxy.instance.register(
+          songId: 'song-retry',
+          url: 'http://127.0.0.1:${server.port}/media',
+          totalBytes: payload.length,
+          contentType: 'audio/mp4',
+        );
+        expect(uri, isNotNull);
+
+        final bytes = await read(uri!, 'bytes=0-');
+        expect(bytes, payload);
+        expect(requests, greaterThan(1));
+      },
+    );
+
     test('an upstream refusal fails the request before any bytes', () async {
       final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
       server.listen((request) async {

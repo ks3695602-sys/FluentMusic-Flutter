@@ -41,6 +41,19 @@ JavaScript entry points are BitChord's; the transport is Flutter's
 `flutter_inappwebview` bridge instead of Android's `@JavascriptInterface`.
 BitChord's GPL-3.0 notice therefore covers those three files.
 
+## Gyawun Music
+
+- Upstream: <https://github.com/sheikhhaziq/gyawun_music>
+- Licence: GNU General Public License v3.0
+
+Gyawun's `AudioStreamClient` was the reference for the bounded-range retry
+policy in `lib/services/streaming/chunked_stream_proxy.dart`: five units of
+error budget, a 500 ms pause between attempts, separate costs for rate limits
+and server errors, and resuming a partial response instead of restarting it.
+The Dart implementation is FluentMusic's own and runs inside its existing
+loopback proxy. Gyawun and FluentMusic are both GPL-3.0, so the obligations
+are compatible.
+
 ## BgUtils
 
 - Upstream: <https://github.com/LuanRT/BgUtils>
