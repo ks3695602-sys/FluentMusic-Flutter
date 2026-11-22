@@ -98,6 +98,8 @@ class Musify extends StatefulWidget {
 }
 
 class _MusifyState extends State<Musify> with WidgetsBindingObserver {
+  bool _keyboardVisible = false;
+
   void changeSettings({
     ThemeMode? newThemeMode,
     Locale? newLocale,
@@ -134,7 +136,7 @@ class _MusifyState extends State<Musify> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
 
     if (isMobilePlatform) {
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+      unawaited(_setImmersiveSystemUi());
     }
 
     offlineMode.addListener(_onOfflineModeChanged);
@@ -202,9 +204,37 @@ class _MusifyState extends State<Musify> with WidgetsBindingObserver {
     }
   }
 
+  Future<void> _setImmersiveSystemUi() async {
+    if (!isMobilePlatform || _keyboardVisible) return;
+    try {
+      await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    } catch (error, stackTrace) {
+      logger.log(
+        'Could not enable immersive system UI',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
+  void _updateKeyboardVisibility() {
+    final visible = MediaQuery.viewInsetsOf(context).bottom > 0;
+    if (visible == _keyboardVisible) return;
+    _keyboardVisible = visible;
+    if (!isMobilePlatform) return;
+    unawaited(
+      SystemChrome.setEnabledSystemUIMode(
+        visible ? SystemUiMode.edgeToEdge : SystemUiMode.immersiveSticky,
+      ),
+    );
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed && isMobilePlatform) {
+      unawaited(_setImmersiveSystemUi());
+    }
     // Persist listening stats when the app leaves the foreground. This is the
     // reliable moment to snapshot and flush: unlike widget dispose, these
     // callbacks are delivered before the OS suspends or terminates the process.
@@ -249,6 +279,7 @@ class _MusifyState extends State<Musify> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    _updateKeyboardVisibility();
     return DynamicColorBuilder(
       builder: (lightColorScheme, darkColorScheme) {
         final lightScheme = getThemeColorScheme(
@@ -275,9 +306,7 @@ class _MusifyState extends State<Musify> with WidgetsBindingObserver {
             systemNavigationBarColor: Colors.transparent,
             systemNavigationBarDividerColor: Colors.transparent,
             systemNavigationBarContrastEnforced: false,
-            statusBarBrightness: isDark
-                ? Brightness.light
-                : Brightness.dark,
+            statusBarBrightness: isDark ? Brightness.light : Brightness.dark,
             statusBarIconBrightness: isDark
                 ? Brightness.light
                 : Brightness.dark,
@@ -296,10 +325,7 @@ class _MusifyState extends State<Musify> with WidgetsBindingObserver {
                 brightness: isDark ? Brightness.dark : Brightness.light,
                 primaryColor: (isDark ? darkScheme : lightScheme).primary,
               ),
-              child: Material(
-                type: MaterialType.transparency,
-                child: child!,
-              ),
+              child: Material(type: MaterialType.transparency, child: child!),
             ),
             themeMode: themeMode,
             theme: getAppTheme(lightScheme),
@@ -322,9 +348,7 @@ class _MusifyState extends State<Musify> with WidgetsBindingObserver {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
-    await LiquidGlassWidgets.initialize(
-      warmUpMode: GlassWarmUpMode.always,
-    );
+    await LiquidGlassWidgets.initialize(warmUpMode: GlassWarmUpMode.always);
     debugPrint('[LiquidGlass] Shader pipeline initialized successfully.');
   } catch (e, stack) {
     debugPrint('[LiquidGlass] Initialization failed: $e\n$stack');
@@ -564,7 +588,10 @@ Future<void> initialisation() async {
 }
 
 void handleIncomingLink(Uri? uri) async {
-  if (uri == null || (uri.scheme != 'fluentmusic' && uri.scheme != 'musify') || uri.host != 'playlist') return;
+  if (uri == null ||
+      (uri.scheme != 'fluentmusic' && uri.scheme != 'musify') ||
+      uri.host != 'playlist')
+    return;
 
   if (uri.pathSegments.length < 2 || uri.pathSegments[0] != 'custom') return;
 

@@ -23,11 +23,14 @@ LinearGradient mornyePlayerGradient(
   )!;
   // Lift chroma for a lively mesh, but never past a hue that fights the text.
   final vivid = dominant.withSaturation(
-    (dominant.saturation * 1.25).clamp(0.42, 0.72),
+    (dominant.saturation * 1.35).clamp(0.48, 0.78),
   );
   final accent = dominant
-      .withSaturation((dominant.saturation * 1.35).clamp(0.5, 0.8))
+      .withSaturation((dominant.saturation * 1.5).clamp(0.55, 0.85))
       .withHue((dominant.hue + 30) % 360);
+  final complement = dominant
+      .withSaturation((dominant.saturation * 1.2).clamp(0.35, 0.65))
+      .withHue((dominant.hue + 150) % 360);
   return LinearGradient(
     // Straight down under the artwork, whose fade into it is then a single
     // vertical overlay (see [_ArtworkFade]).
@@ -36,9 +39,14 @@ LinearGradient mornyePlayerGradient(
     colors: [
       vivid.withLightness((0.30 + dominant.lightness * 0.24) * depth).toColor(),
       vivid.withLightness((0.22 + dominant.lightness * 0.22) * depth).toColor(),
-      accent.withLightness((0.14 + dominant.lightness * 0.20) * depth).toColor(),
+      accent
+          .withLightness((0.14 + dominant.lightness * 0.20) * depth)
+          .toColor(),
+      complement
+          .withLightness((0.08 + dominant.lightness * 0.15) * depth)
+          .toColor(),
     ],
-    stops: const [0, 0.55, 1],
+    stops: const [0, 0.45, 0.72, 1],
   );
 }
 
@@ -263,9 +271,8 @@ class _ArtworkFade extends CustomPainter {
         paint
           ..shader = ui.Gradient.linear(rect.topCenter, rect.bottomCenter, [
             for (final stop in stops)
-              _backgroundAt(
-                (top + stop * (bottom - top)) / size.height,
-              ).withValues(alpha: stop),
+              _backgroundAt((top + stop * (bottom - top)) / size.height)
+                  .withValues(alpha: stop),
           ], stops),
       );
       return;

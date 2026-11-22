@@ -30,6 +30,7 @@ import 'package:musify/constants/app_constants.dart';
 import 'package:musify/extensions/l10n.dart';
 import 'package:musify/main.dart';
 import 'package:musify/services/common_services.dart';
+import 'package:musify/services/data_manager.dart';
 import 'package:musify/services/listening_stats_service.dart';
 import 'package:musify/services/playlists_manager.dart';
 import 'package:musify/services/search_bridge.dart';
@@ -72,9 +73,7 @@ class _HomePageState extends State<HomePage> {
     externalRecommendations.addListener(_refreshRecommendedSongs);
     // Restore the cached account library immediately, then refresh it in the
     // background if the last sync is older than six hours.
-    unawaited(
-      restoreYtMusicLibrary().then((_) => autoSyncYtMusicLibrary()),
-    );
+    unawaited(restoreYtMusicLibrary().then((_) => autoSyncYtMusicLibrary()));
   }
 
   @override
@@ -117,6 +116,11 @@ class _HomePageState extends State<HomePage> {
                 iconBgColor: iconBgColor,
                 iconBorderColor: iconBorderColor,
                 onProfileTap: () => context.go('/settings'),
+                onThemeToggle: () {
+                  final next = isDark ? ThemeMode.light : ThemeMode.dark;
+                  addOrUpdateData<int>('settings', 'themeIndex', next.index);
+                  Musify.updateAppState(context, newThemeMode: next);
+                },
               ),
             ),
             // Big gradient hero so Home opens with real weight.
@@ -127,9 +131,8 @@ class _HomePageState extends State<HomePage> {
                 valueListenable: announcementURL,
                 builder: (_, _url, __) {
                   if (_url == null) return const SizedBox.shrink();
-                  final isSponsorshipAnnouncement = isSponsorshipAnnouncementUrl(
-                    _url,
-                  );
+                  final isSponsorshipAnnouncement =
+                      isSponsorshipAnnouncementUrl(_url);
                   final _message = isSponsorshipAnnouncement
                       ? context.l10n!.sponsorProject
                       : context.l10n!.newAnnouncement;
@@ -176,7 +179,9 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildRecentlyPlayedSection() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final itemTitleColor = isDark ? CupertinoColors.white : const Color(0xFF1C1C1E);
+    final itemTitleColor = isDark
+        ? CupertinoColors.white
+        : const Color(0xFF1C1C1E);
     final itemSubColor = isDark
         ? CupertinoColors.white.withValues(alpha: 0.65)
         : const Color(0xFF8E8E93);
@@ -208,7 +213,8 @@ class _HomePageState extends State<HomePage> {
                   final song = displaySongs[index];
                   final title = song['title']?.toString() ?? '';
                   final artist = song['artist']?.toString() ?? '';
-                  final image = song['highResImage'] ??
+                  final image =
+                      song['highResImage'] ??
                       song['image'] ??
                       song['lowResImage'];
 
@@ -218,7 +224,8 @@ class _HomePageState extends State<HomePage> {
                       onTap: () async {
                         await audioHandler.playPlaylistSong(
                           playlist: {
-                            'title': context.l10n?.recentlyPlayed ??
+                            'title':
+                                context.l10n?.recentlyPlayed ??
                                 'Recently Played',
                             'list': recents,
                           },
@@ -245,11 +252,13 @@ class _HomePageState extends State<HomePage> {
                                     height: 32,
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
-                                      color: CupertinoColors.black
-                                          .withValues(alpha: 0.55),
+                                      color: CupertinoColors.black.withValues(
+                                        alpha: 0.55,
+                                      ),
                                       border: Border.all(
-                                        color: CupertinoColors.white
-                                            .withValues(alpha: 0.25),
+                                        color: CupertinoColors.white.withValues(
+                                          alpha: 0.25,
+                                        ),
                                         width: 0.8,
                                       ),
                                     ),
@@ -279,10 +288,7 @@ class _HomePageState extends State<HomePage> {
                             artist,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: itemSubColor,
-                              fontSize: 12,
-                            ),
+                            style: TextStyle(color: itemSubColor, fontSize: 12),
                           ),
                         ],
                       ),
@@ -330,7 +336,9 @@ class _HomePageState extends State<HomePage> {
     final itemsNumber = playlists.length.clamp(0, recommendedCubesNumber);
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final itemTitleColor = isDark ? CupertinoColors.white : const Color(0xFF1C1C1E);
+    final itemTitleColor = isDark
+        ? CupertinoColors.white
+        : const Color(0xFF1C1C1E);
     final itemSubColor = isDark
         ? CupertinoColors.white.withValues(alpha: 0.65)
         : const Color(0xFF8E8E93);
@@ -340,9 +348,7 @@ class _HomePageState extends State<HomePage> {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: SectionHeader(
-            title: sectionTitle,
-          ),
+          child: SectionHeader(title: sectionTitle),
         ),
         SizedBox(
           height: 236,
@@ -356,7 +362,8 @@ class _HomePageState extends State<HomePage> {
             itemBuilder: (context, index) {
               final playlist = playlists[index];
               final title = playlist['title']?.toString() ?? '';
-              final subtitle = playlist['author']?.toString() ??
+              final subtitle =
+                  playlist['author']?.toString() ??
                   (playlist['isAlbum'] == true
                       ? (context.l10n?.album ?? 'Album')
                       : (context.l10n?.playlist ?? 'Playlist'));
@@ -392,10 +399,7 @@ class _HomePageState extends State<HomePage> {
                         subtitle,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: itemSubColor,
-                          fontSize: 12,
-                        ),
+                        style: TextStyle(color: itemSubColor, fontSize: 12),
                       ),
                     ],
                   ),
@@ -506,9 +510,7 @@ class _HomePageState extends State<HomePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SectionHeader(
-                title: context.l10n!.timeMachine,
-              ),
+              SectionHeader(title: context.l10n!.timeMachine),
               ListeningRecapCard(
                 periodLabel: periodLabel,
                 minutes: displayMinutes,
@@ -555,12 +557,14 @@ class _HomeHeaderDelegate extends SliverPersistentHeaderDelegate {
     required this.iconBgColor,
     required this.iconBorderColor,
     required this.onProfileTap,
+    required this.onThemeToggle,
   });
 
   final bool isDark;
   final Color iconBgColor;
   final Color iconBorderColor;
   final VoidCallback onProfileTap;
+  final VoidCallback onThemeToggle;
 
   // Keep the large title close to the hero card. The old 108 px header left a
   // blank band above the title on every tunnel/punch-hole Android phone.
@@ -609,22 +613,54 @@ class _HomeHeaderDelegate extends SliverPersistentHeaderDelegate {
             alignment: Alignment.bottomRight,
             child: Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: GestureDetector(
-                onTap: onProfileTap,
-                child: Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: iconBgColor,
-                    border: Border.all(color: iconBorderColor, width: 1),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Semantics(
+                    button: true,
+                    label: isDark
+                        ? 'Switch to light theme'
+                        : 'Switch to dark theme',
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: onThemeToggle,
+                      child: Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: iconBgColor,
+                          border: Border.all(color: iconBorderColor, width: 1),
+                        ),
+                        child: Icon(
+                          isDark
+                              ? CupertinoIcons.moon_fill
+                              : CupertinoIcons.sun_max_fill,
+                          color: titleColor,
+                          size: 21,
+                        ),
+                      ),
+                    ),
                   ),
-                  child: Icon(
-                    CupertinoIcons.person_crop_circle_fill,
-                    color: titleColor,
-                    size: 24,
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: onProfileTap,
+                    child: Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: iconBgColor,
+                        border: Border.all(color: iconBorderColor, width: 1),
+                      ),
+                      child: Icon(
+                        CupertinoIcons.person_crop_circle_fill,
+                        color: titleColor,
+                        size: 24,
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
           ),
@@ -647,6 +683,7 @@ class _HomeHeaderDelegate extends SliverPersistentHeaderDelegate {
     return oldDelegate.isDark != isDark ||
         oldDelegate.iconBgColor != iconBgColor ||
         oldDelegate.iconBorderColor != iconBorderColor ||
-        oldDelegate.onProfileTap != onProfileTap;
+        oldDelegate.onProfileTap != onProfileTap ||
+        oldDelegate.onThemeToggle != onThemeToggle;
   }
 }
