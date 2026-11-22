@@ -75,24 +75,16 @@ List<LyricLine> parseTtml(String rawTtml) {
             ? parseTtmlTime(spanEnd)
             : (end ?? (wStart + const Duration(milliseconds: 300)));
 
-        words.add(LyricWord(
-          text: text,
-          start: wStart,
-          end: wEnd,
-        ));
+        words.add(LyricWord(text: text, start: wStart, end: wEnd));
       }
 
-      final fullText = words.isNotEmpty
-          ? words.map((w) => w.text).join(' ')
-          : p.text.trim();
+      // Preserve the TTML text nodes between spans. Joining timed spans with a
+      // hard-coded space corrupts CJK lyrics and syllable-split tokens such as
+      // `is` + `n't`; the word-sweep renderer reattaches these original gaps.
+      final fullText = p.text.trim();
 
       if (fullText.isNotEmpty) {
-        lines.add(LyricLine(
-          start,
-          fullText,
-          end: end,
-          words: words,
-        ));
+        lines.add(LyricLine(start, fullText, end: end, words: words));
       }
     }
 

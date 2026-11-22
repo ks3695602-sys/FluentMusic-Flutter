@@ -25,6 +25,7 @@ import 'dart:developer' as developer;
 
 import 'package:html/parser.dart' as html_parser;
 import 'package:http/http.dart' as http;
+import 'package:musify/services/lyrics/binimum_provider.dart';
 import 'package:musify/services/lyrics/lrc_parser.dart';
 import 'package:musify/services/lyrics/lyrics_models.dart';
 import 'package:musify/services/lyrics/lyrics_query.dart';
@@ -49,7 +50,8 @@ class LyricsManager {
   final http.Client? _client;
 
   static const _timeout = Duration(seconds: 8);
-  static const _userAgent = 'Musify (https://github.com/gokadzev/Musify)';
+  static const _userAgent =
+      'FluentMusic (https://github.com/ks3695602-sys/FluentMusic-Flutter)';
   static const _maxCacheEntries = 50;
   static const _hitTtl = Duration(hours: 6);
   static const _missTtl = Duration(minutes: 5);
@@ -100,10 +102,7 @@ class LyricsManager {
     return result;
   }
 
-  Future<Lyrics?> _search(
-    List<TrackInfo> variants,
-    TrackInfo track,
-  ) async {
+  Future<Lyrics?> _search(List<TrackInfo> variants, TrackInfo track) async {
     // 0. Unison (video-id exact, word/syllable synchronized). A synced entry
     //    wins immediately because it is keyed on this exact upload; a plain
     //    one is held back until every synced provider has been asked.
@@ -125,8 +124,20 @@ class LyricsManager {
     // 2. Priority 2: BetterLyrics (Apple TTML Word/Syllable synchronized lyrics)
     for (final variant in variants.take(2)) {
       final better = await _fetchFromBetterLyrics(variant);
-      if (better != null && better.synced != null && better.synced!.isNotEmpty) {
+      if (better != null &&
+          better.synced != null &&
+          better.synced!.isNotEmpty) {
         return better;
+      }
+    }
+
+    // 2b. Priority 2b: Binimum (Word/Syllable synchronized TTML, open API)
+    for (final variant in variants.take(2)) {
+      final binimum = await _fetchFromBinimum(variant);
+      if (binimum != null &&
+          binimum.synced != null &&
+          binimum.synced!.isNotEmpty) {
+        return binimum;
       }
     }
 
@@ -227,10 +238,7 @@ class LyricsManager {
   // ------------------------------------------------------------- YouLyPlus
 
   Future<Lyrics?> _fetchFromYouLyPlus(TrackInfo track) async {
-    const mirrors = [
-      'lyricsplus.prjktla.my.id',
-      'lyricsplus.binimum.org',
-    ];
+    const mirrors = ['lyricsplus.prjktla.my.id', 'lyricsplus.binimum.org'];
 
     for (final host in mirrors) {
       try {
@@ -285,8 +293,9 @@ class LyricsManager {
             final lines = <LyricLine>[];
             for (final item in rawLyrics) {
               if (item is Map) {
-                final timeMs =
-                    item['time'] is num ? (item['time'] as num).toInt() : 0;
+                final timeMs = item['time'] is num
+                    ? (item['time'] as num).toInt()
+                    : 0;
                 final text = (item['text'] ?? '').toString().trim();
                 if (text.isNotEmpty) {
                   lines.add(LyricLine(Duration(milliseconds: timeMs), text));
@@ -313,10 +322,7 @@ class LyricsManager {
 
   Future<Lyrics?> _fetchFromBetterLyrics(TrackInfo track) async {
     try {
-      final queryParams = <String, String>{
-        's': track.title,
-        'a': track.artist,
-      };
+      final queryParams = <String, String>{'s': track.title, 'a': track.artist};
       if (track.album != null && track.album!.trim().isNotEmpty) {
         queryParams['al'] = track.album!;
       }
@@ -345,6 +351,17 @@ class LyricsManager {
       );
     } catch (e, st) {
       _logError('BetterLyrics lookup failed', e, st);
+      return null;
+    }
+  }
+
+  // ------------------------------------------------------------- Binimum
+
+  Future<Lyrics?> _fetchFromBinimum(TrackInfo track) async {
+    try {
+      return await fetchFromBinimum(track, client: _client);
+    } catch (e, st) {
+      _logError('Binimum lookup failed', e, st);
       return null;
     }
   }

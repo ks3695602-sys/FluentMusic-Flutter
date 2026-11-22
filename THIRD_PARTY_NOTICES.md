@@ -118,6 +118,25 @@ access to the service. Requests stay well below the published read limit
 (600 requests per minute per IP), and lyrics are cached in memory for six
 hours to avoid repeat downloads.
 
+## Binimum Lyrics
+
+- Service: <https://lyrics-api.binimum.org>
+- Operator: the Binimum Lyrics project
+- Reference implementation: ArchiveTune's `BinimumLyricsProvider.kt`
+  (GPL-3.0, github.com/rukamori)
+
+FluentMusic reads word/syllable-synchronized TTML lyrics through the public
+`GET /?track=&artist=&album=&duration=` endpoint and then fetches the returned
+`lyricsUrl`. No API key or account is used; only the song title, artist and
+optional album/duration are sent. Requests carry the app's own User-Agent and
+are cached in memory for six hours.
+
+Results are ranked the same way ArchiveTune ranks them: entries advertised as
+word-timed (`timing_type == "word"`) come first, then the closest duration
+match. The Dart implementation in `lib/services/lyrics/binimum_provider.dart`
+is FluentMusic's own, based on the documented JSON shape. Both projects are
+GPL-3.0, so the obligations are compatible.
+
 ## Lyrics providers
 
 FluentMusic can also query the following public lyrics services. Each result
@@ -127,6 +146,7 @@ is credited in the lyrics UI with the provider name returned by the service:
 | --- | --- | --- |
 | YouLy+ | `lyricsplus.prjktla.my.id`, `lyricsplus.binimum.org` | Community word/syllable-synced lyrics |
 | BetterLyrics API | `api.betterlyrics.org` | Apple-style TTML word/syllable lyrics |
+| Binimum Lyrics | `lyrics-api.binimum.org` | Word/syllable TTML, open API |
 | LRCLIB | `lrclib.net` | Open community LRC database |
 | lyrics.ovh | `api.lyrics.ovh` | Plain-text fallback |
 | paroles.net | `www.paroles.net` | Plain-text fallback, scraped |
