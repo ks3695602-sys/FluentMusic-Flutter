@@ -24,15 +24,25 @@ import 'dart:async';
 import 'package:app_links/app_links.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:dynamic_color/dynamic_color.dart';
+import 'package:flutter/cupertino.dart' show CupertinoTheme, CupertinoThemeData;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:just_audio_media_kit/just_audio_media_kit.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:musify/desktop/windows_window.dart';
 import 'package:musify/extensions/l10n.dart';
 import 'package:musify/localization/app_localizations.dart';
+import 'package:musify/mornye_player/l10n/l10n.dart' as mornye_l10n;
+import 'package:musify/services/account_service.dart';
+import 'package:musify/services/announcements/announcement_service.dart';
+import 'package:musify/services/updates/update_service.dart';
+import 'package:musify/widgets/updates/update_prompt.dart';
+import 'package:musify/services/ytmusic_auth_service.dart';
+import 'package:musify/services/ytmusic_library_store.dart';
 import 'package:musify/services/audio_service.dart';
 import 'package:musify/services/data_manager.dart';
 import 'package:musify/services/desktop_media_artwork.dart';
@@ -40,13 +50,15 @@ import 'package:musify/services/io_service.dart';
 import 'package:musify/services/linux_media_controls.dart';
 import 'package:musify/services/listening_stats_service.dart';
 import 'package:musify/services/logger_service.dart';
+import 'package:musify/services/lyrics/lyrics_settings.dart';
 import 'package:musify/services/playlist_sharing.dart';
 import 'package:musify/services/playlists_manager.dart';
 import 'package:musify/services/router_service.dart';
 import 'package:musify/services/settings_manager.dart';
-import 'package:musify/services/update_manager.dart';
+import 'package:musify/services/sync_service.dart';
 import 'package:musify/services/windows_media_controls.dart';
 import 'package:musify/theme/app_themes.dart';
+import 'package:musify/theme/glass_config_controller.dart';
 import 'package:musify/utilities/flutter_toast.dart';
 import 'package:musify/utilities/language_utils.dart';
 import 'package:musify/utilities/platform_utils.dart';
@@ -65,7 +77,6 @@ final logger = Logger();
 final appLinks = AppLinks();
 
 bool isFdroidBuild = false;
-bool isUpdateChecked = false;
 
 class Musify extends StatefulWidget {
   const Musify({super.key});
@@ -90,6 +101,8 @@ class Musify extends StatefulWidget {
 }
 
 class _MusifyState extends State<Musify> with WidgetsBindingObserver {
+  bool _keyboardVisible = false;
+
   void changeSettings({
     ThemeMode? newThemeMode,
     Locale? newLocale,
@@ -126,7 +139,7 @@ class _MusifyState extends State<Musify> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
 
     if (isMobilePlatform) {
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+      unawaited(_setImmersiveSystemUi());
     }
 
     offlineMode.addListener(_onOfflineModeChanged);
@@ -167,36 +180,53 @@ class _MusifyState extends State<Musify> with WidgetsBindingObserver {
       );
     }
 
-    if (!isFdroidBuild && isMobilePlatform) {
-      if (shouldWeCheckUpdates.value == true) {
-        if (!isUpdateChecked && kReleaseMode) {
-          SchedulerBinding.instance.addPostFrameCallback((_) {
-            if (!offlineMode.value) {
-              checkAppUpdates();
-            }
-            isUpdateChecked = true;
-          });
+    if (!isFdroidBuild && UpdateService.instance.autoChecksEnabled) {
+      SchedulerBinding.instance.addPostFrameCallback((_) async {
+        if (offlineMode.value) return;
+        try {
+          final result = await UpdateService.instance.checkForUpdates();
+          if (!mounted || !result.updateAvailable) return;
+          if (!UpdateService.instance.shouldPrompt(result)) return;
+          await UpdatePrompt.show(NavigationManager().context, result);
+        } catch (_) {
+          // Background checks stay silent; the Updates settings page reports
+          // failures when the user asks for them explicitly.
         }
-      } else {
-        if (shouldWeCheckUpdates.value == null) {
-          // show dialog that asks user if they want to enable update checks
-          SchedulerBinding.instance.addPostFrameCallback((_) {
-            showUpdateCheckDialog(NavigationManager().context);
-          });
-        } else {
-          SchedulerBinding.instance.addPostFrameCallback((_) async {
-            if (!offlineMode.value) {
-              await fetchAnnouncementOnly();
-            }
-          });
-        }
-      }
+      });
     }
+  }
+
+  Future<void> _setImmersiveSystemUi() async {
+    if (!isMobilePlatform || _keyboardVisible) return;
+    try {
+      await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    } catch (error, stackTrace) {
+      logger.log(
+        'Could not enable immersive system UI',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
+  void _updateKeyboardVisibility() {
+    final visible = MediaQuery.viewInsetsOf(context).bottom > 0;
+    if (visible == _keyboardVisible) return;
+    _keyboardVisible = visible;
+    if (!isMobilePlatform) return;
+    unawaited(
+      SystemChrome.setEnabledSystemUIMode(
+        visible ? SystemUiMode.edgeToEdge : SystemUiMode.immersiveSticky,
+      ),
+    );
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed && isMobilePlatform) {
+      unawaited(_setImmersiveSystemUi());
+    }
     // Persist listening stats when the app leaves the foreground. This is the
     // reliable moment to snapshot and flush: unlike widget dispose, these
     // callbacks are delivered before the OS suspends or terminates the process.
@@ -241,6 +271,7 @@ class _MusifyState extends State<Musify> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    _updateKeyboardVisibility();
     return DynamicColorBuilder(
       builder: (lightColorScheme, darkColorScheme) {
         final lightScheme = getThemeColorScheme(
@@ -256,14 +287,22 @@ class _MusifyState extends State<Musify> with WidgetsBindingObserver {
             ? (brightness == Brightness.dark)
             : (themeMode == ThemeMode.dark);
 
+        if (isWindowsDesktop) {
+          unawaited(applyDesktopWindowMaterial(dark: isDark));
+        }
+
         return AnnotatedRegion<SystemUiOverlayStyle>(
           value: SystemUiOverlayStyle(
+            // True edge-to-edge: both bars stay transparent and the page
+            // background/artwork draws behind them. Contrast enforcement is
+            // what paints the solid white/black strip behind the gesture
+            // handle on HyperOS/Android 14+, so it must stay off.
             statusBarColor: Colors.transparent,
+            systemStatusBarContrastEnforced: false,
             systemNavigationBarColor: Colors.transparent,
-            systemNavigationBarContrastEnforced: true,
-            statusBarBrightness: isDark
-                ? Brightness.light
-                : Brightness.dark,
+            systemNavigationBarDividerColor: Colors.transparent,
+            systemNavigationBarContrastEnforced: false,
+            statusBarBrightness: isDark ? Brightness.light : Brightness.dark,
             statusBarIconBrightness: isDark
                 ? Brightness.light
                 : Brightness.dark,
@@ -273,15 +312,23 @@ class _MusifyState extends State<Musify> with WidgetsBindingObserver {
           ),
           child: MaterialApp.router(
             title: 'FluentMusic',
-            builder: (context, child) => Material(
-              type: MaterialType.transparency,
-              child: child!,
+            // GlassTheme.brightnessOf reads the Cupertino pin before it falls
+            // back to the OS. Pinning here (instead of overriding GlassTheme
+            // above the whole app) keeps every page's glass variant aligned
+            // with the Material theme, while local dark overrides still work.
+            builder: (context, child) => CupertinoTheme(
+              data: CupertinoThemeData(
+                brightness: isDark ? Brightness.dark : Brightness.light,
+                primaryColor: (isDark ? darkScheme : lightScheme).primary,
+              ),
+              child: Material(type: MaterialType.transparency, child: child!),
             ),
             themeMode: themeMode,
             theme: getAppTheme(lightScheme),
             darkTheme: getAppTheme(darkScheme),
             localizationsDelegates: [
               AppLocalizations.delegate,
+              mornye_l10n.AppLocalizations.delegate,
               ...GlobalMaterialLocalizations.delegates,
             ],
             supportedLocales: appSupportedLocales,
@@ -297,9 +344,7 @@ class _MusifyState extends State<Musify> with WidgetsBindingObserver {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
-    await LiquidGlassWidgets.initialize(
-      warmUpMode: GlassWarmUpMode.always,
-    );
+    await LiquidGlassWidgets.initialize(warmUpMode: GlassWarmUpMode.always);
     debugPrint('[LiquidGlass] Shader pipeline initialized successfully.');
   } catch (e, stack) {
     debugPrint('[LiquidGlass] Initialization failed: $e\n$stack');
@@ -349,22 +394,36 @@ void main() async {
     }
   }
 
+  // Keep the global glass theme in sync with the Glass Lab tuner.
+  glassConfigController.addListener(updateLiquidGlassTheme);
+
+  try {
+    await initializeDesktopWindow(dark: brightness == Brightness.dark);
+  } catch (error, stackTrace) {
+    debugPrint('[Desktop] Window setup failed: $error');
+    debugPrintStack(stackTrace: stackTrace);
+  }
+
   runApp(
-    ValueListenableBuilder<GlassThemeData>(
-      valueListenable: liquidGlassThemeNotifier,
-      builder: (context, glassTheme, _) {
-        return LiquidGlassWidgets.wrap(
-          brightnessResolver: Theme.maybeBrightnessOf,
-          theme: glassTheme,
-          adaptiveQuality: true,
-          adaptiveConfig: const GlassAdaptiveScopeConfig(
-            minQuality: GlassQuality.premium,
-            initialQuality: GlassQuality.premium,
-          ),
-          respectSystemAccessibility: true,
-          child: const Musify(),
-        );
-      },
+    ProviderScope(
+      child: GlassConfigScope(
+        controller: glassConfigController,
+        child: ValueListenableBuilder<GlassThemeData>(
+          valueListenable: liquidGlassThemeNotifier,
+          builder: (context, glassTheme, _) {
+            return LiquidGlassWidgets.wrap(
+              brightnessResolver: Theme.maybeBrightnessOf,
+              theme: glassTheme,
+              // The Glass Lab quality selector is authoritative. Runtime frame
+              // probes and reduce-transparency used to silently demote premium
+              // mid-session, which made the dock/pill look inconsistent.
+              adaptiveQuality: false,
+              respectSystemAccessibility: false,
+              child: const Musify(),
+            );
+          },
+        ),
+      ),
     ),
   );
 }
@@ -379,6 +438,35 @@ Future<void> initialisation() async {
       Hive.openBox('userNoBackup'),
       Hive.openBox('cache'),
     ]);
+
+    // Hive is finally open: load the optional provider token from encrypted
+    // storage and migrate older plain-box values before the UI starts.
+    await initializeLyricsSettings();
+
+    // Pick up the persisted Glass Lab values and push them into the global
+    // theme before the first frame is built.
+    glassConfigController.reloadFromStorage();
+    updateLiquidGlassTheme();
+
+    // Restore the optional account session. Missing or corrupt data simply
+    // means "guest mode", which is always fully usable.
+    accountService.restoreFromStorage();
+
+    // Restore the YouTube Music session (profile only; playback stays
+    // anonymous and flag-gated).
+    unawaited(
+      ytMusicAuthService.load().then((_) async {
+        if (!ytMusicAuthService.isConnected) return;
+        await restoreYtMusicLibrary();
+        await autoSyncYtMusicLibrary();
+      }),
+    );
+
+    // Local-first sync: media starts instantly, and if the user has a cloud
+    // account the library reconciles quietly after the first frame.
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      unawaited(syncService.autoSyncOnLaunch());
+    });
 
     if (isMobilePlatform) {
       audioHandler = await AudioService.init(
@@ -495,8 +583,8 @@ Future<void> initialisation() async {
       logger.log('Failed to get initial uri');
     }
 
-    if (isFdroidBuild && !offlineMode.value) {
-      await fetchAnnouncementOnly();
+    if (!offlineMode.value) {
+      unawaited(fetchAnnouncementOnly());
     }
   } catch (e, stackTrace) {
     logger.log('Initialization Error', error: e, stackTrace: stackTrace);
@@ -507,7 +595,10 @@ Future<void> initialisation() async {
 }
 
 void handleIncomingLink(Uri? uri) async {
-  if (uri == null || (uri.scheme != 'fluentmusic' && uri.scheme != 'musify') || uri.host != 'playlist') return;
+  if (uri == null ||
+      (uri.scheme != 'fluentmusic' && uri.scheme != 'musify') ||
+      uri.host != 'playlist')
+    return;
 
   if (uri.pathSegments.length < 2 || uri.pathSegments[0] != 'custom') return;
 
@@ -541,7 +632,7 @@ void handleIncomingLink(Uri? uri) async {
     if (isDuplicate) {
       showToast(
         NavigationManager().context,
-        NavigationManager().context.l10n!.playlistAlreadyExists,
+        ContextX(NavigationManager().context).l10n!.playlistAlreadyExists,
       );
     } else {
       userCustomPlaylists.value = [...userCustomPlaylists.value, playlist];
@@ -554,7 +645,7 @@ void handleIncomingLink(Uri? uri) async {
       );
       showToast(
         NavigationManager().context,
-        '${NavigationManager().context.l10n!.addedSuccess}!',
+        '${ContextX(NavigationManager().context).l10n!.addedSuccess}!',
       );
     }
   } catch (e) {
@@ -565,6 +656,6 @@ void handleIncomingLink(Uri? uri) async {
 void _showPlaylistError() {
   showToast(
     NavigationManager().context,
-    NavigationManager().context.l10n!.failedToLoadPlaylist,
+    ContextX(NavigationManager().context).l10n!.failedToLoadPlaylist,
   );
 }

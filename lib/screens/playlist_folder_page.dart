@@ -74,16 +74,16 @@ class _PlaylistFolderPageState extends State<PlaylistFolderPage> {
           body: CustomScrollView(
             slivers: [
               SliverAppBar(
-                leading: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: GlassIconButton(
-                    icon: const Icon(
-                      CupertinoIcons.chevron_back,
-                      color: CupertinoColors.white,
-                      size: 20,
-                    ),
-                    onPressed: () => Navigator.pop(context),
+                leading: GlassIconButton(
+                  size: 40,
+                  iconSize: 19,
+                  semanticLabel: 'Back',
+                  icon: const Icon(
+                    CupertinoIcons.chevron_back,
+                    color: CupertinoColors.white,
+                    size: 19,
                   ),
+                  onPressed: () => Navigator.pop(context),
                 ),
                 pinned: true,
                 expandedHeight: 320,

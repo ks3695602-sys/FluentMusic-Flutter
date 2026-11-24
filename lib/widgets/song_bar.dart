@@ -38,6 +38,7 @@ import 'package:musify/services/settings_manager.dart';
 import 'package:musify/utilities/flutter_toast.dart';
 import 'package:musify/utilities/formatter.dart';
 import 'package:musify/utilities/playlist_dialogs.dart';
+import 'package:musify/widgets/glass/glass_toast.dart';
 import 'package:musify/widgets/no_artwork_cube.dart';
 import 'package:musify/widgets/overflow_menu_button.dart';
 import 'package:musify/widgets/popup_menu_item.dart';
@@ -209,12 +210,14 @@ Future<void> _handleSongMenuAction({
     case 'like':
       final newValue = !songLikeStatus.value;
       songLikeStatus.value = newValue;
-      showToast(
+      showGlassToast(
         context,
         newValue
             ? context.l10n!.addedToLikedSongs
             : context.l10n!.removedFromLikedSongs,
-        duration: const Duration(seconds: 1),
+        icon: newValue
+            ? FluentIcons.heart_24_filled
+            : FluentIcons.heart_24_regular,
       );
       try {
         await updateSongLikeStatus(ytid, newValue, songData: song);

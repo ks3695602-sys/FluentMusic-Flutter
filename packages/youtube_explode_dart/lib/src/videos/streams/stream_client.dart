@@ -393,6 +393,16 @@ class StreamClient {
         continue;
       }
 
+      // Web clients' audio URLs are only authorised for the first megabyte
+      // unless they carry a BotGuard token bound to this video id. The token
+      // travels as the `pot` query parameter (the same place yt-dlp puts it).
+      final streamingPoToken = ytClient.streamingPoToken;
+      if (streamingPoToken != null &&
+          streamingPoToken.isNotEmpty &&
+          !url.queryParameters.containsKey('pot')) {
+        url = url.setQueryParam('pot', streamingPoToken);
+      }
+
       if (solver != null && watchPage != null) {
         if (url.queryParameters.containsKey('n')) {
           final nParam = url.queryParameters['n']!;

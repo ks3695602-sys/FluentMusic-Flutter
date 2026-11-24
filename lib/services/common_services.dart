@@ -32,10 +32,17 @@ import 'package:musify/main.dart' show logger;
 import 'package:musify/services/artist_service.dart';
 import 'package:musify/services/data_manager.dart';
 import 'package:musify/services/io_service.dart';
+import 'package:musify/services/lyrics/lyrics_settings.dart';
 import 'package:musify/services/lyrics_manager.dart';
 import 'package:musify/services/playlists_manager.dart';
 import 'package:musify/services/proxy_manager.dart';
 import 'package:musify/services/settings_manager.dart';
+import 'package:musify/services/sources/jiosaavn_source.dart';
+import 'package:musify/services/sources/music_source.dart';
+import 'package:musify/services/sources/spotify_source.dart';
+import 'package:musify/services/stream_fallback.dart';
+import 'package:musify/services/streaming/zen_stream_resolver.dart';
+import 'package:musify/services/ytmusic_playback_service.dart';
 import 'package:musify/utilities/app_utils.dart';
 import 'package:musify/utilities/formatter.dart';
 import 'package:musify/utilities/map_utils.dart';
@@ -96,11 +103,28 @@ void reloadSongLibraryStateFromStorage() {
 }
 
 // Timeouts and durations used across manifest fetching and cache validation.
-const Duration _manifestTimeout = Duration(seconds: 30);
+const Duration _manifestTimeout = Duration(seconds: 45);
 const Duration _cacheValidationDuration = Duration(hours: 1);
+const Duration _cacheProbeTimeout = Duration(seconds: 5);
 
-/// Fetches a stream manifest for a song, honoring proxy settings.
+/// Separate client for cached-URL validation, so a probe can be abandoned
+/// without disturbing the extractor's connection pool.
+final http.Client _cacheProbeClient = http.Client();
+
+/// Fetches a stream manifest for a song, honoring proxy settings, and logs
+/// how long the resolve took so a slow start can be traced to the lookup.
 Future<StreamManifest?> _fetchStreamManifest(String songId) async {
+  final watch = Stopwatch()..start();
+  try {
+    return await _fetchStreamManifestUnmeasured(songId);
+  } finally {
+    logger.log(
+      'stream timing: manifest for $songId took ${watch.elapsedMilliseconds}ms',
+    );
+  }
+}
+
+Future<StreamManifest?> _fetchStreamManifestUnmeasured(String songId) async {
   if (useProxy.value) {
     return ProxyManager().getSongManifest(songId).timeout(_manifestTimeout);
   }
@@ -163,11 +187,30 @@ Future<String?> _getCachedSongUrl(
 /// Checks if a cached URL still responds successfully.
 Future<bool> _validateCachedUrl(String songId, String cachedUrl) async {
   try {
-    final response = await http.head(
-      Uri.parse(cachedUrl),
-      headers: streamPlaybackHeaders(songId),
-    );
-    return response.statusCode >= 200 && response.statusCode < 300;
+    final uri = Uri.parse(cachedUrl);
+    // A bridge URL is not minted by an InnerTube client, so sending a
+    // YouTube client's headers with it is pointless and can confuse the host.
+    final isGoogleVideo = uri.host.endsWith('googlevideo.com');
+    final headers = isGoogleVideo
+        ? streamPlaybackHeadersForUrl(songId, cachedUrl)
+        : const <String, String>{};
+
+    // googlevideo does not answer HEAD for every client, and a HEAD cannot
+    // prove the URL authorises bytes. A one-byte ranged GET can.
+    final request = http.Request('GET', uri)
+      ..headers.addAll(headers)
+      ..headers['Range'] = 'bytes=0-1';
+    final response = await _cacheProbeClient
+        .send(request)
+        .timeout(_cacheProbeTimeout);
+
+    final status = response.statusCode;
+    final contentType = (response.headers['content-type'] ?? '').toLowerCase();
+    await response.stream.listen(null).cancel();
+
+    if (status < 200 || status >= 300) return false;
+    return !contentType.contains('text/html') &&
+        !contentType.contains('application/json');
   } catch (_) {
     return false;
   }
@@ -177,7 +220,10 @@ Future<List> fetchSongsList(String searchQuery) async {
   try {
     // 1. Prioritize YouTube Music dedicated official "Songs" shelf for clean metadata and 100% lyric hit rate
     try {
-      final musicSongs = await ytMusicClient.music.searchSongs(searchQuery, limit: 25);
+      final musicSongs = await ytMusicClient.music.searchSongs(
+        searchQuery,
+        limit: 25,
+      );
       if (musicSongs.isNotEmpty) {
         final songsList = musicSongs
             .map((video) => returnSongLayout(0, video))
@@ -185,7 +231,9 @@ Future<List> fetchSongsList(String searchQuery) async {
         return songsList;
       }
     } catch (e) {
-      logger.log('YT Music searchSongs failed, falling back to general search: $e');
+      logger.log(
+        'YT Music searchSongs failed, falling back to general search: $e',
+      );
     }
 
     // 2. Fallback to general YouTube video search if official shelf is empty
@@ -202,7 +250,10 @@ Future<List> fetchSongsList(String searchQuery) async {
 }
 
 /// Fetches a list of related songs for the given YouTube video ID.
-Future<List<Map<String, dynamic>>> getRelatedSongsList(String songYtId, {int limit = 15}) async {
+Future<List<Map<String, dynamic>>> getRelatedSongsList(
+  String songYtId, {
+  int limit = 15,
+}) async {
   try {
     final song = await ytClient.videos.get(songYtId);
     final related = await ytClient.videos.getRelatedVideos(song) ?? [];
@@ -215,7 +266,11 @@ Future<List<Map<String, dynamic>>> getRelatedSongsList(String songYtId, {int lim
     }
     return list;
   } catch (e, st) {
-    logger.log('Error fetching related songs list for $songYtId', error: e, stackTrace: st);
+    logger.log(
+      'Error fetching related songs list for $songYtId',
+      error: e,
+      stackTrace: st,
+    );
     return [];
   }
 }
@@ -695,6 +750,10 @@ Future<Map<String, dynamic>?> getSimilarSong(
 final Map<String, ({AudioOnlyStreamInfo stream, DateTime resolvedAt})>
 _selectedAudioStreams = {};
 
+/// The Zen fast-path result behind a song, when that is where its stream came
+/// from. Playback uses it to choose the wider throttled chunk size.
+final Map<String, ZenStream> _zenStreams = {};
+
 const _maxSelectedAudioStreams = 50;
 
 String _selectedAudioStreamKey(String songId) =>
@@ -726,23 +785,74 @@ void _cacheSelectedAudioStream(String songId, AudioOnlyStreamInfo stream) {
   );
 }
 
+/// Whether [songId]'s current stream was minted by the Zen fast path and is
+/// throttled.
+///
+/// Only a still-cached Zen result counts: once the selected stream expires or
+/// the fallback ladder takes over, playback keeps the normal 1 MB range.
+bool knownZenStreamThrottledFor(String songId) {
+  final zen = _zenStreams[songId];
+  if (zen == null || !zen.stream.isThrottled) return false;
+  final selected = _getSelectedAudioStream(songId);
+  return selected != null && selected.url == zen.stream.url;
+}
+
 /// Drops both cached forms of a song's stream, so the next request resolves
 /// it again. Used when a cached URL turns out to be dead.
 Future<void> invalidateSongStreamCache(String songId) async {
   _selectedAudioStreams.remove(_selectedAudioStreamKey(songId));
+  _zenStreams.remove(songId);
+  ZenStreamResolver.instance.invalidate(songId);
+  clearUnplayableVerdict(songId);
   await deleteData('cache', 'song_${songId}_${audioQualitySetting.value}_url');
 }
 
-/// Fetches the best available audio stream for a song.
-Future<AudioOnlyStreamInfo?> fetchBestAudioStream(String? songId) async {
-  try {
-    if (songId == null || songId.isEmpty) {
-      logger.log('fetchBestAudioStream: songId is null or empty');
-      return null;
-    }
+/// Manifest resolves in flight, keyed by song id. A background preload and a
+/// playback request for the same track used to race two full client ladders;
+/// sharing the future means the second one waits on the first instead.
+final Map<String, Future<AudioOnlyStreamInfo?>> _inFlightAudioStreams = {};
 
-    final cachedStream = _getSelectedAudioStream(songId);
-    if (cachedStream != null) return cachedStream;
+/// Fetches the best available audio stream for a song.
+Future<AudioOnlyStreamInfo?> fetchBestAudioStream(String? songId) {
+  if (songId == null || songId.isEmpty) {
+    logger.log('fetchBestAudioStream: songId is null or empty');
+    return Future.value();
+  }
+
+  final cachedStream = _getSelectedAudioStream(songId);
+  if (cachedStream != null) return Future.value(cachedStream);
+
+  final inFlight = _inFlightAudioStreams[songId];
+  if (inFlight != null) return inFlight;
+
+  final future = _fetchBestAudioStream(songId);
+  _inFlightAudioStreams[songId] = future;
+  unawaited(
+    future.then<void>((_) {}, onError: (Object _) {}).whenComplete(() {
+      if (identical(_inFlightAudioStreams[songId], future)) {
+        _inFlightAudioStreams.remove(songId);
+      }
+    }),
+  );
+  return future;
+}
+
+Future<AudioOnlyStreamInfo?> _fetchBestAudioStream(String songId) async {
+  try {
+    // Zen fast path: three tokenless identities, no watch page and no
+    // boundary probe. The full ladder below still runs when they all refuse
+    // the track, so nothing is lost.
+    if (!useProxy.value) {
+      final zen = await ZenStreamResolver.instance.resolve(
+        songId,
+        youtube: ytClient,
+      );
+      if (zen != null) {
+        _zenStreams[songId] = zen;
+        _cacheSelectedAudioStream(songId, zen.stream);
+        return zen.stream;
+      }
+    }
 
     final manifest = await _fetchStreamManifest(songId);
     final audioStream = manifest?.audioOnly;
@@ -774,13 +884,111 @@ Future<AudioOnlyStreamInfo?> fetchBestAudioStream(String? songId) async {
   }
 }
 
-/// Resolves a playable stream URL for a song (cached when possible).
-Future<String?> fetchSongStreamUrl(String songId, bool isLive) async {
-  try {
-    if (songId.isEmpty) {
-      logger.log('fetchSongStreamUrl: songId is empty');
+/// Byte length of the audio file resolved for [songId] this session, when the
+/// manifest is still in memory. Used by the loopback stream proxy so the
+/// player can seek without an extra length probe.
+int? knownStreamLengthFor(String songId) {
+  return _getSelectedAudioStream(songId)?.size.totalBytes;
+}
+
+/// MIME type of the container resolved for [songId] this session.
+String? knownStreamContentTypeFor(String songId) {
+  final container = _getSelectedAudioStream(songId)?.container.name;
+  switch (container) {
+    case 'mp4':
+      return 'audio/mp4';
+    case 'webm':
+      return 'audio/webm';
+    case '3gpp':
+      return 'audio/3gpp';
+    default:
       return null;
-    }
+  }
+}
+
+/// Registers the streaming sources that sit beside YouTube.
+///
+/// YouTube Music is the primary source and stays in the InnerTube ladder; the
+/// registry only holds what can be asked after it refuses a track.
+bool _sourcesRegistered = false;
+
+void _ensureSources() {
+  if (_sourcesRegistered) return;
+  _sourcesRegistered = true;
+  SourceRegistry.register(JioSaavnSource());
+  SourceRegistry.register(SpotifySource());
+}
+
+/// URL resolves in flight, keyed by song id, quality and resolver flags.
+final Map<String, Future<String?>> _inFlightSongUrls = {};
+
+/// Resolves a playable stream URL for a song (cached when possible).
+///
+/// [skipSignedIn] forces the anonymous resolver. Playback retries use it after
+/// a signed-in URL failed so the retry cannot return the same broken stream.
+///
+/// [title] and [artist] let a fallback source recognise the track when every
+/// YouTube identity has refused it. They are only used after that point.
+Future<String?> fetchSongStreamUrl(
+  String songId,
+  bool isLive, {
+  bool skipSignedIn = false,
+  String? title,
+  String? artist,
+  Duration? duration,
+}) {
+  if (songId.isEmpty) {
+    logger.log('fetchSongStreamUrl: songId is empty');
+    return Future.value();
+  }
+
+  final key = '$songId|${audioQualitySetting.value}|$skipSignedIn|$isLive';
+  final inFlight = _inFlightSongUrls[key];
+  if (inFlight != null) return inFlight;
+
+  final future = _fetchSongStreamUrl(
+    songId,
+    isLive,
+    skipSignedIn: skipSignedIn,
+    title: title,
+    artist: artist,
+    duration: duration,
+  );
+  _inFlightSongUrls[key] = future;
+  final watch = Stopwatch()..start();
+  unawaited(
+    future.then<void>(
+      (url) => logger.log(
+        'stream timing: url ${url == null ? 'miss' : 'ok'} for $songId '
+        'took ${watch.elapsedMilliseconds}ms',
+      ),
+      onError: (Object error, StackTrace stackTrace) => logger.log(
+        'stream timing: url failed for $songId after '
+        '${watch.elapsedMilliseconds}ms',
+        error: error,
+        stackTrace: stackTrace,
+      ),
+    ),
+  );
+  unawaited(
+    future.then<void>((_) {}, onError: (Object _) {}).whenComplete(() {
+      if (identical(_inFlightSongUrls[key], future)) {
+        _inFlightSongUrls.remove(key);
+      }
+    }),
+  );
+  return future;
+}
+
+Future<String?> _fetchSongStreamUrl(
+  String songId,
+  bool isLive, {
+  bool skipSignedIn = false,
+  String? title,
+  String? artist,
+  Duration? duration,
+}) async {
+  try {
     if (isLive) {
       final streamInfo = await ytClient.videos.streamsClient
           .getHttpLiveStreamUrl(VideoId(songId));
@@ -790,20 +998,67 @@ Future<String?> fetchSongStreamUrl(String songId, bool isLive) async {
     const _cacheDuration = Duration(hours: 3);
     final cacheKey = 'song_${songId}_${audioQualitySetting.value}_url';
 
-    // Try to get from cache
+    // Fast path first. Account sync and background preloads both resolve
+    // through here, so a cached URL must never wait on the optional signed-in
+    // round trip.
     final cachedUrl = await _getCachedSongUrl(songId, cacheKey, _cacheDuration);
     if (cachedUrl != null) {
       return cachedUrl;
     }
 
+    if (!skipSignedIn) {
+      // D2: opportunistic signed-in resolution. Returns null unless the user
+      // opted in *and* YouTube handed back a plain audio URL, so the anonymous
+      // path below stays the default. Cache the result: background preloads
+      // then hand it straight to playback instead of resolving it again.
+      final signedInUrl = await ytMusicPlaybackService.tryResolveStreamUrl(
+        songId,
+      );
+      if (signedInUrl != null && signedInUrl.isNotEmpty) {
+        unawaited(addOrUpdateData<String>('cache', cacheKey, signedInUrl));
+        return signedInUrl;
+      }
+    }
+
     // Get fresh URL, reusing the stream already resolved for this song.
     final selectedStream = await fetchBestAudioStream(songId);
     if (selectedStream == null) {
+      // YouTube refused every identity. An add-on source may still know the
+      // track; only the title and artist leave the device.
+      if (crossSourceFallbackEnabled.value &&
+          title != null &&
+          artist != null &&
+          title.trim().isNotEmpty &&
+          artist.trim().isNotEmpty) {
+        _ensureSources();
+        final bridged = await SourceRegistry.resolveFallback(
+          title: title,
+          artist: artist,
+          duration: duration,
+        );
+        if (bridged != null && bridged.isNotEmpty) {
+          unawaited(addOrUpdateData<String>('cache', cacheKey, bridged));
+          return bridged;
+        }
+      }
+
+      // Every InnerTube client refused this track. The Cobalt bridge is the
+      // last resort, and only the public video id is sent to it.
+      final remoteUrl = await resolveRemoteAudioUrl(songId);
+      if (remoteUrl != null) {
+        unawaited(addOrUpdateData<String>('cache', cacheKey, remoteUrl));
+        return remoteUrl;
+      }
       logger.log('fetchSongStreamUrl: no audio streams for $songId');
       return null;
     }
 
     final url = selectedStream.url.toString();
+
+    // Keep the stream itself, not just its URL: playback needs the byte
+    // length and container to serve it through the loopback proxy without a
+    // second probe.
+    _cacheSelectedAudioStream(songId, selectedStream);
 
     unawaited(addOrUpdateData<String>('cache', cacheKey, url));
 
@@ -847,26 +1102,38 @@ String formatPlainLyrics(Lyrics result) {
       .replaceAll(RegExp(r'<[^>]+>'), '')
       .replaceAll(RegExp(r'\[\d{1,3}:\d{1,2}(?:[.:]\d{1,3})?\]'), '')
       .trim();
-  return '$cleanText\n\n© ${result.source}'
+  final attribution = result.credit ?? '© ${result.source}';
+  return '$cleanText\n\n$attribution'
       .replaceAll(RegExp(r'\n{4,}'), '\n\n')
       .replaceAll(RegExp(r'\n{3}'), '\n\n');
 }
 
 /// Fetches lyrics for a song, keeping timestamps when the provider has them.
+///
+/// [videoId] is the YouTube id of the upload; providers keyed on the exact
+/// video (Unison) use it for a precise lookup instead of a title search.
 Future<Lyrics?> getSongLyricsResult(
   String? artist,
   String title, {
   Duration? duration,
   String? album,
+  String? videoId,
 }) async {
   if (artist == null) return null;
-  final key = '$artist - $title';
-  if (lastFetchedLyrics == key) return _lastLyricsResult;
+  final key = '$artist - $title - ${videoId ?? ''}';
+  final configuredKey = '$key - ${lyricsProviderConfigSignature()}';
+  if (lastFetchedLyrics == configuredKey) return _lastLyricsResult;
 
   lyrics.value = null;
   final requestId = ++_lyricsRequestCounter;
   final result = await LyricsManager().fetchLyricsResult(
-    TrackInfo(title: title, artist: artist, album: album, duration: duration),
+    TrackInfo(
+      title: title,
+      artist: artist,
+      album: album,
+      duration: duration,
+      videoId: videoId,
+    ),
   );
   if (result == null) return null;
 
@@ -874,7 +1141,7 @@ Future<Lyrics?> getSongLyricsResult(
   if (requestId == _lyricsRequestCounter) {
     _lastLyricsResult = result;
     lyrics.value = formatPlainLyrics(result);
-    lastFetchedLyrics = key;
+    lastFetchedLyrics = configuredKey;
   }
   return result;
 }
@@ -884,12 +1151,14 @@ Future<String?> getSongLyrics(
   String title, {
   Duration? duration,
   String? album,
+  String? videoId,
 }) async {
   final result = await getSongLyricsResult(
     artist,
     title,
     duration: duration,
     album: album,
+    videoId: videoId,
   );
   return result == null ? null : formatPlainLyrics(result);
 }

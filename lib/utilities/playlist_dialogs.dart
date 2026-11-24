@@ -28,6 +28,15 @@ import 'package:musify/services/playlists_manager.dart';
 import 'package:musify/utilities/flutter_toast.dart';
 import 'package:musify/utilities/playlist_image_picker.dart';
 import 'package:musify/widgets/dialog_item.dart';
+import 'package:musify/widgets/glass/glass_toast.dart';
+
+void _showPlaylistAddToast(BuildContext context, String message) {
+  showGlassToast(
+    context,
+    message,
+    icon: FluentIcons.album_add_24_filled,
+  );
+}
 
 void showCreatePlaylistDialog(
   BuildContext context, {
@@ -311,7 +320,7 @@ void showCreatePlaylistDialog(
                           newPlaylistId,
                           songToAdd,
                         );
-                        showToast(context, addResult);
+                        _showPlaylistAddToast(context, addResult);
                       }
                     } else if (songsToAdd != null && songsToAdd.isNotEmpty) {
                       if (context.mounted) {
@@ -320,7 +329,7 @@ void showCreatePlaylistDialog(
                           newPlaylistId,
                           songsToAdd,
                         );
-                        showToast(context, addResult);
+                        _showPlaylistAddToast(context, addResult);
                       }
                     } else {
                       if (context.mounted) showToast(context, result);
@@ -472,7 +481,7 @@ void showAddToPlaylistDialog(
                                 label: p['title'] ?? '',
                                 onTap: () {
                                   if (song != null) {
-                                    showToast(
+                                    _showPlaylistAddToast(
                                       context,
                                       addSongInCustomPlaylist(
                                         context,
@@ -482,7 +491,7 @@ void showAddToPlaylistDialog(
                                     );
                                   } else if (songs != null &&
                                       songs.isNotEmpty) {
-                                    showToast(
+                                    _showPlaylistAddToast(
                                       context,
                                       addSongsInCustomPlaylist(
                                         context,
@@ -512,7 +521,7 @@ void showAddToPlaylistDialog(
                       label: playlist['title'] ?? '',
                       onTap: () {
                         if (song != null) {
-                          showToast(
+                          _showPlaylistAddToast(
                             context,
                             addSongInCustomPlaylist(
                               context,
@@ -521,7 +530,7 @@ void showAddToPlaylistDialog(
                             ),
                           );
                         } else if (songs != null && songs.isNotEmpty) {
-                          showToast(
+                          _showPlaylistAddToast(
                             context,
                             addSongsInCustomPlaylist(
                               context,

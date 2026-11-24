@@ -30,6 +30,7 @@ import 'package:musify/extensions/l10n.dart';
 import 'package:musify/services/common_services.dart';
 import 'package:musify/services/lyrics/lyrics_models.dart';
 import 'package:musify/services/settings_manager.dart';
+import 'package:musify/theme/player_style.dart';
 import 'package:musify/utilities/async_loader.dart';
 import 'package:musify/widgets/flip_card.dart';
 import 'package:musify/widgets/now_playing/synced_lyrics_view.dart';
@@ -41,10 +42,12 @@ class NowPlayingArtwork extends StatelessWidget {
     required this.size,
     required this.metadata,
     required this.lyricsController,
+    required this.playerStyle,
   });
   final Size size;
   final MediaItem metadata;
   final FlipCardController lyricsController;
+  final PlayerStyle playerStyle;
 
   @override
   Widget build(BuildContext context) {
@@ -63,42 +66,45 @@ class NowPlayingArtwork extends StatelessWidget {
         : screenWidth * 0.65;
 
     const borderRadius = 28.0;
+    final isVinyl = playerStyle == PlayerStyle.vinyl;
+    final artworkRadius = isVinyl ? imageSize / 2 : borderRadius;
 
     return FlipCard(
       rotateSide: RotateSide.right,
       onTapFlipping:
           !offlineMode.value && !(metadata.extras?['isLive'] ?? false),
       controller: lyricsController,
-      frontWidget: DecoratedBox(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(borderRadius),
-          boxShadow: [
-            BoxShadow(
-              color: CupertinoColors.black.withValues(alpha: 0.40),
-              blurRadius: 36,
-              offset: const Offset(0, 16),
-              spreadRadius: 2,
-            ),
-          ],
-        ),
-        child: Stack(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(borderRadius),
-              child: SongArtworkWidget(
-                metadata: metadata,
-                size: imageSize,
-                errorWidgetIconSize: size.width / 8,
-                borderRadius: borderRadius,
+      frontWidget: _ArtworkHero(
+        borderRadius: artworkRadius,
+        child: isVinyl
+            ? Stack(
+                children: [
+                  _VinylRecord(size: imageSize, metadata: metadata),
+                  Positioned(
+                    right: 10,
+                    bottom: 10,
+                    child: _AudioQualityBadge(metadata: metadata),
+                  ),
+                ],
+              )
+            : Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(borderRadius),
+                    child: SongArtworkWidget(
+                      metadata: metadata,
+                      size: imageSize,
+                      errorWidgetIconSize: size.width / 8,
+                      borderRadius: borderRadius,
+                    ),
+                  ),
+                  Positioned(
+                    right: 10,
+                    bottom: 10,
+                    child: _AudioQualityBadge(metadata: metadata),
+                  ),
+                ],
               ),
-            ),
-            Positioned(
-              right: 10,
-              bottom: 10,
-              child: _AudioQualityBadge(metadata: metadata),
-            ),
-          ],
-        ),
       ),
       backWidget: GlassContainer.card(
         surfaceStyle: GlassSurfaceStyle.solid,
@@ -112,10 +118,236 @@ class NowPlayingArtwork extends StatelessWidget {
   }
 }
 
+/// Artwork presented as the label of a vinyl record.
+///
+/// The disc itself is painted with a radial gradient and concentric grooves,
+/// with the song artwork in the centre label. It is deliberately static: the
+/// Now Playing screen already owns enough animation, and a static record keeps
+/// the stage free of per-frame repaints.
+class _VinylRecord extends StatelessWidget {
+  const _VinylRecord({required this.size, required this.metadata});
+
+  final double size;
+  final MediaItem metadata;
+
+  @override
+  Widget build(BuildContext context) {
+    final labelSize = size * 0.42;
+
+    return SizedBox(
+      width: size,
+      height: size,
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: RadialGradient(
+            colors: [
+              Color(0xFF1D1D20),
+              Color(0xFF0C0C0D),
+              Color(0xFF000000),
+            ],
+            stops: [0.0, 0.68, 1.0],
+          ),
+        ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Positioned.fill(
+              child: CustomPaint(painter: const _VinylGroovePainter()),
+            ),
+            ClipOval(
+              child: SizedBox(
+                width: labelSize,
+                height: labelSize,
+                child: SongArtworkWidget(
+                  metadata: metadata,
+                  size: labelSize,
+                  borderRadius: labelSize / 2,
+                ),
+              ),
+            ),
+            // Spindle hole.
+            Container(
+              width: size * 0.036,
+              height: size * 0.036,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF050505),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.24),
+                  width: 1,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _VinylGroovePainter extends CustomPainter {
+  const _VinylGroovePainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = size.center(Offset.zero);
+    final maxRadius = size.shortestSide / 2;
+    final minRadius = maxRadius * 0.46;
+    final groove = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.8;
+
+    for (var radius = minRadius; radius < maxRadius; radius += maxRadius * 0.018) {
+      final t = (radius - minRadius) / (maxRadius - minRadius);
+      groove.color = Colors.white.withValues(alpha: 0.025 + (t * 0.07));
+      canvas.drawCircle(center, radius, groove);
+    }
+
+    // A single soft sheen band reads as light catching the vinyl without
+    // forcing a blur pass.
+    final sheen = Paint()
+      ..shader = SweepGradient(
+        colors: [
+          Colors.white.withValues(alpha: 0),
+          Colors.white.withValues(alpha: 0.06),
+          Colors.white.withValues(alpha: 0),
+        ],
+        stops: const [0.0, 0.5, 1.0],
+      ).createShader(Offset.zero & size);
+    canvas.drawCircle(center, maxRadius, sheen);
+  }
+
+  @override
+  bool shouldRepaint(covariant _VinylGroovePainter oldDelegate) => false;
+}
+
+/// Shared transition + entrance motion for the player artwork.
+///
+/// The mini player already exposes a `now_playing_artwork` hero, so opening the
+/// player grows the same picture instead of cross-fading two different frames.
+/// A short scale/fade entrance keeps the hero flight feeling continuous on
+/// routes where no source hero exists (deep links, queue taps).
+class _ArtworkHero extends StatefulWidget {
+  const _ArtworkHero({required this.child, required this.borderRadius});
+
+  final Widget child;
+  final double borderRadius;
+
+  @override
+  State<_ArtworkHero> createState() => _ArtworkHeroState();
+}
+
+class _ArtworkHeroState extends State<_ArtworkHero>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 420),
+  );
+  late final Animation<double> _curve = CurvedAnimation(
+    parent: _controller,
+    curve: Curves.easeOutCubic,
+  );
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _controller.value = 1;
+    } else if (_controller.isDismissed) {
+      _controller.forward();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Widget _shell(BuildContext context, Widget child) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(widget.borderRadius),
+        boxShadow: [
+          BoxShadow(
+            color: CupertinoColors.black.withValues(alpha: 0.40),
+            blurRadius: 36,
+            offset: const Offset(0, 16),
+            spreadRadius: 2,
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final child = Hero(
+      tag: 'now_playing_artwork',
+      transitionOnUserGestures: true,
+      // Keep the artwork corners rounded for the whole flight, otherwise the
+      // hero snaps from a square image into a rounded one mid-animation.
+      flightShuttleBuilder:
+          (
+            flightContext,
+            animation,
+            direction,
+            fromHeroContext,
+            toHeroContext,
+          ) {
+            final fromChild = (fromHeroContext.widget as Hero).child;
+            final toChild = (toHeroContext.widget as Hero).child;
+            return AnimatedBuilder(
+              animation: animation,
+              child: direction == HeroFlightDirection.push
+                  ? toChild
+                  : fromChild,
+              builder: (context, shuttleChild) {
+                final radius =
+                    widget.borderRadius * (animation.value.clamp(0.0, 1.0));
+                return ClipRRect(
+                  borderRadius: BorderRadius.circular(radius),
+                  child: shuttleChild,
+                );
+              },
+            );
+          },
+      child: _shell(context, RepaintBoundary(child: widget.child)),
+    );
+
+    return AnimatedBuilder(
+      animation: _curve,
+      child: child,
+      builder: (context, animatedChild) {
+        final t = _curve.value;
+        // Drop the opacity/transform wrappers once the entrance settles. At
+        // rest they would otherwise keep a transformed layer alive for the
+        // whole session.
+        if (t >= 1.0) return animatedChild!;
+        return Opacity(
+          opacity: t,
+          child: Transform.scale(
+            // Slight overshoot-free settle, reads as a gentle dolly-in.
+            scale: 0.94 + (0.06 * t),
+            child: animatedChild,
+          ),
+        );
+      },
+    );
+  }
+}
+
 /// Fetches and caches lyrics lazily per song.
 class LyricsViewWidget extends StatefulWidget {
-  const LyricsViewWidget({super.key, required this.metadata});
+  const LyricsViewWidget({
+    super.key,
+    required this.metadata,
+    this.showProvider = false,
+  });
   final MediaItem metadata;
+  final bool showProvider;
 
   @override
   State<LyricsViewWidget> createState() => _LyricsViewWidgetState();
@@ -146,13 +378,12 @@ class _LyricsViewWidgetState extends State<LyricsViewWidget> {
       widget.metadata.title,
       duration: widget.metadata.duration,
       album: widget.metadata.album,
+      videoId: widget.metadata.extras?['ytid']?.toString(),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     Widget unavailable() => Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -160,7 +391,7 @@ class _LyricsViewWidgetState extends State<LyricsViewWidget> {
           Icon(
             FluentIcons.text_quote_24_regular,
             size: 48,
-            color: colorScheme.onSecondaryContainer.withValues(alpha: 0.5),
+            color: CupertinoColors.white.withValues(alpha: 0.45),
           ),
           const SizedBox(height: 16),
           Text(
@@ -168,7 +399,9 @@ class _LyricsViewWidgetState extends State<LyricsViewWidget> {
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w500,
-              color: colorScheme.onSecondaryContainer,
+              // The player stage is always dark, whatever the app theme is,
+              // so a theme colour would vanish into the artwork here.
+              color: CupertinoColors.white.withValues(alpha: 0.72),
             ),
             textAlign: TextAlign.center,
           ),
@@ -189,7 +422,10 @@ class _LyricsViewWidgetState extends State<LyricsViewWidget> {
           valueListenable: syncedLyricsEnabled,
           builder: (context, syncedEnabled, _) {
             if (lyrics.isSynced && syncedEnabled) {
-              return SyncedLyricsView(lyrics: lyrics);
+              return SyncedLyricsView(
+                lyrics: lyrics,
+                showProvider: widget.showProvider,
+              );
             }
 
             return SingleChildScrollView(
@@ -200,7 +436,7 @@ class _LyricsViewWidgetState extends State<LyricsViewWidget> {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w500,
-                  color: colorScheme.onSecondaryContainer,
+                  color: CupertinoColors.white.withValues(alpha: 0.88),
                   height: 1.6,
                 ),
                 textAlign: TextAlign.center,

@@ -21,6 +21,8 @@
 
 import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 
+import 'package:musify/utilities/artist_names.dart';
+
 const _noiseTerms =
     'official music video|official lyric video|official lyrics video|'
     'official video|official 4k video|official audio|lyric video|'
@@ -69,7 +71,9 @@ Map<String, dynamic> returnSongLayout(
 }) {
   // Split only on the first ' - ' so dashes inside the title are preserved.
   final sep = song.title.indexOf(' - ');
-  final artist = sep != -1 ? song.title.substring(0, sep) : song.author;
+  final artist = formatArtistNames(
+    sep != -1 ? song.title.substring(0, sep) : song.author,
+  );
   final rawTitle = sep != -1 ? song.title.substring(sep + 3) : song.title;
   final title = formatSongTitle(rawTitle);
 
@@ -97,9 +101,14 @@ String formatDuration(int audioDurationInSeconds) {
   final minutes = duration.inMinutes.remainder(60);
   final seconds = duration.inSeconds.remainder(60);
 
+  // Apple Music style: "0:16" and "-2:58" for ordinary tracks, "1:02:03"
+  // only once the hour mark is crossed.
   return [
-    if (hours > 0) hours.toString().padLeft(2, '0'),
-    minutes.toString().padLeft(2, '0'),
+    if (hours > 0) hours.toString(),
+    if (hours > 0)
+      minutes.toString().padLeft(2, '0')
+    else
+      minutes.toString(),
     seconds.toString().padLeft(2, '0'),
   ].join(':');
 }

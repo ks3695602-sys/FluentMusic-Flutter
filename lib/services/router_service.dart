@@ -222,7 +222,20 @@ class NavigationManager {
                 state: state,
               );
             },
-            routes: [_artistRoute(), _albumRoute()],
+            routes: [
+              GoRoute(
+                path: 'playlist/:playlistId',
+                pageBuilder: (context, state) => _pushPage(
+                  child: PlaylistPage(
+                    playlistId: state.pathParameters['playlistId'] ?? '',
+                    playlistData: _extraAsMap(state.extra),
+                  ),
+                  state: state,
+                ),
+              ),
+              _artistRoute(),
+              _albumRoute(),
+            ],
           ),
         ],
       ),

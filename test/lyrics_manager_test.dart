@@ -21,9 +21,11 @@
 
 import 'dart:convert';
 
+import 'package:flutter_lyric/flutter_lyric.dart' show LyricParser;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:musify/services/lyrics/binimum_provider.dart';
 import 'package:musify/services/lyrics/lrc_parser.dart';
 import 'package:musify/services/lyrics/lyrics_query.dart';
 import 'package:musify/services/lyrics_manager.dart';
@@ -33,6 +35,25 @@ http.Response _json(Object body, [int status = 200]) => http.Response.bytes(
   status,
   headers: {'content-type': 'application/json; charset=utf-8'},
 );
+
+http.Response _ttml(String body, [int status = 200]) => http.Response.bytes(
+  utf8.encode(body),
+  status,
+  headers: {'content-type': 'application/ttml+xml; charset=utf-8'},
+);
+
+const _binimumTtml =
+    '<tt><body><div>'
+    '<p begin="0:09.845" end="0:12.105">'
+    '<span begin="0:09.845" end="0:10.056">I</span> '
+    '<span begin="0:10.056" end="0:10.383">was</span> '
+    '<span begin="0:10.383" end="0:12.105">on</span>'
+    '</p>'
+    '<p begin="0:12.234" end="0:14.243">'
+    '<span begin="0:12.234" end="0:12.901">the</span> '
+    '<span begin="0:12.901" end="0:14.243">outside</span>'
+    '</p>'
+    '</div></body></tt>';
 
 void main() {
   group('parseLrc', () {
@@ -77,6 +98,61 @@ void main() {
       expect(lyrics.text, 'a');
       expect(lyrics.isSynced, isTrue);
     });
+
+    test('wraps long tokens without splitting grapheme clusters', () {
+      expect(wrapLongLyricTokens('ooooo'), 'ooooo');
+      expect(wrapLongLyricTokens('oooooo'), 'ooooo\u200Bo');
+      expect(
+        wrapLongLyricTokens('oooooooooooooo'),
+        'ooooo\u200Booooo\u200Boooo',
+      );
+      expect(
+        wrapLongLyricTokens('🧑‍🎤🧑‍🎤🧑‍🎤', maxGraphemes: 2),
+        '🧑‍🎤🧑‍🎤\u200B🧑‍🎤',
+      );
+      expect(wrapLongLyricTokens('two words'), 'two words');
+      const arabic = 'مرحبابالعالم';
+      final wrappedArabic = wrapLongLyricTokens(arabic, maxGraphemes: 4);
+      expect(wrappedArabic.replaceAll('\u200B', ''), arabic);
+      expect(wrappedArabic, contains('\u200B'));
+      expect(
+        () => wrapLongLyricTokens('text', maxGraphemes: 0),
+        throwsArgumentError,
+      );
+    });
+
+    test('adds break opportunities in LRC and QRC output', () {
+      final lyrics = Lyrics(
+        source: 't',
+        synced: [
+          const LyricLine(Duration(seconds: 1), 'oooooooooooooooo'),
+          LyricLine(
+            Duration(seconds: 5),
+            'oooooooooooooooo',
+            words: [
+              LyricWord(
+                text: 'oooooooooooooooo',
+                start: Duration(seconds: 5),
+                end: Duration(seconds: 8),
+              ),
+            ],
+          ),
+        ],
+      );
+      final lrc = lyrics.toLrc();
+      expect(lrc.split('\n').first, contains('\u200B'));
+      expect(
+        parseLrc(lrc).first.text.replaceAll('\u200B', ''),
+        'oooooooooooooooo',
+      );
+      final qrc = lyrics.toQrc();
+      expect(qrc, contains('\u200B'));
+      final roundTripQrc = LyricParser.autoDetect(qrc);
+      expect(
+        roundTripQrc.lines.last.text.replaceAll('\u200B', ''),
+        'oooooooooooooooo',
+      );
+    });
   });
 
   group('lyrics_query', () {
@@ -95,6 +171,14 @@ void main() {
       expect(cleanArtist('Adele, Someone'), 'Adele');
       expect(cleanArtist('AdeleVEVO'), 'Adele');
       expect(cleanArtist('Simon & Garfunkel'), 'Simon & Garfunkel');
+    });
+
+    test('cleanArtist rejects account library item types', () {
+      expect(cleanArtist('Song'), '');
+      expect(cleanArtist('Single'), '');
+      expect(cleanArtist('Album'), '');
+      expect(cleanArtist('Single, The Weeknd'), 'The Weeknd');
+      expect(cleanArtist('Song, Single, Adele'), 'Adele');
     });
 
     test('slugs fold accents and reject non-Latin text', () {
@@ -117,6 +201,28 @@ void main() {
         isTrue,
       );
       expect(variants.length, 3); // duplicates are removed
+      expect(
+        buildSearchVariants(const TrackInfo(title: 'Song', artist: 'Artist'))
+            .length,
+        1,
+      );
+    });
+
+    test('recovers the artist from a dashed title when the field is junk', () {
+      final variants = buildSearchVariants(
+        const TrackInfo(title: 'The Weeknd - Blinding Lights', artist: 'Song'),
+      );
+      expect(variants, isNotEmpty);
+      expect(variants.first.artist, 'The Weeknd');
+      expect(variants.first.title, 'Blinding Lights');
+    });
+
+    test('keeps the raw title as a rescue variant', () {
+      final variants = buildSearchVariants(
+        const TrackInfo(title: 'Song | Official Audio', artist: 'Artist'),
+      );
+      expect(variants.first.title, 'Song');
+      expect(variants.any((v) => v.title == 'Song | Official Audio'), isTrue);
       expect(
         buildSearchVariants(const TrackInfo(title: 'Song', artist: 'Artist'))
             .length,
@@ -171,6 +277,144 @@ void main() {
     });
   });
 
+  group('fetchFromBinimum', () {
+    test('picks a word-timed result and parses its TTML', () async {
+      final requestedUris = <Uri>[];
+      final client = MockClient((request) async {
+        requestedUris.add(request.url);
+        if (request.url.host == 'lyrics-api.binimum.org') {
+          expect(request.url.queryParameters['track'], 'Shape of You');
+          expect(request.url.queryParameters['artist'], 'Ed Sheeran');
+          expect(request.url.queryParameters['duration'], '233');
+          return http.Response(
+            '',
+            307,
+            headers: {
+              'location': 'https://lrc.red/api/v1?track=Shape%20of%20You&artist=Ed%20Sheeran&duration=233',
+            },
+          );
+        }
+        if (request.url.host == 'lrc.red' && request.url.path == '/api/v1') {
+          return _json({
+            'results': [
+              {
+                'lyricsUrl': 'https://lrc.red/s/word-wrong-duration.ttml',
+                'timing_type': 'word',
+                'duration': 250.0,
+              },
+              {
+                'lyricsUrl': 'https://lrc.red/s/plain.ttml',
+                'timing_type': 'line',
+                'duration': 233.0,
+              },
+              {
+                'lyricsUrl': 'https://lrc.red/s/word.ttml',
+                'timing_type': 'word',
+                'duration': 234.0,
+              },
+            ],
+          });
+        }
+        expect(request.url.host, 'lrc.red');
+        if (request.url.path == '/s/word-wrong-duration.ttml') {
+          fail('Did not choose the closest-duration word-timed match');
+        }
+        return _ttml(_binimumTtml);
+      });
+
+      final lyrics = await fetchFromBinimum(
+        const TrackInfo(
+          title: 'Shape of You',
+          artist: 'Ed Sheeran',
+          duration: Duration(seconds: 233),
+        ),
+        client: client,
+      );
+
+      expect(lyrics, isNotNull);
+      expect(lyrics!.source, 'Binimum Lyrics');
+      expect(lyrics.isSynced, isTrue);
+      expect(
+        lyrics.synced!.first.start,
+        const Duration(seconds: 9, milliseconds: 845),
+      );
+      expect(
+        lyrics.synced!.first.end,
+        const Duration(seconds: 12, milliseconds: 105),
+      );
+      expect(lyrics.synced!.length, 2);
+      expect(lyrics.synced!.first.words.length, 3);
+      expect(lyrics.synced!.first.words.first.text, 'I');
+      // Text nodes between spans are preserved for the renderer's spacing fix.
+      expect(lyrics.synced!.first.text, 'I was on');
+      // The API's redirect and returned TTML URL are followed safely.
+      expect(
+        requestedUris.any(
+          (uri) => uri.host == 'lrc.red' && uri.path == '/api/v1',
+        ),
+        isTrue,
+      );
+      expect(requestedUris.any((uri) => uri.path == '/s/word.ttml'), isTrue);
+      expect(
+        requestedUris.any((uri) => uri.path == '/s/word-wrong-duration.ttml'),
+        isFalse,
+      );
+    });
+
+    test('returns null when the API has no results', () async {
+      final client = MockClient((request) async => _json({'results': []}));
+      expect(
+        await fetchFromBinimum(
+          const TrackInfo(title: 'Unknown', artist: 'Nobody'),
+          client: client,
+        ),
+        isNull,
+      );
+    });
+
+    test('returns null on a non-200 search response', () async {
+      final client = MockClient((request) async => _json({'results': []}, 503));
+      expect(
+        await fetchFromBinimum(
+          const TrackInfo(title: 'Song', artist: 'Artist'),
+          client: client,
+        ),
+        isNull,
+      );
+    });
+
+    test('returns null when the TTML document is not TTML', () async {
+      final client = MockClient((request) async {
+        if (request.url.host == 'lyrics-api.binimum.org') {
+          return _json({
+            'results': [
+              {'lyricsUrl': 'https://ttml.example/word', 'timing_type': 'word'},
+            ],
+          });
+        }
+        return _ttml('<html><body>nope</body></html>');
+      });
+      expect(
+        await fetchFromBinimum(
+          const TrackInfo(title: 'Song', artist: 'Artist'),
+          client: client,
+        ),
+        isNull,
+      );
+    });
+
+    test('requires a title and an artist', () async {
+      final client = MockClient((request) async => _json({'results': []}));
+      expect(
+        await fetchFromBinimum(
+          const TrackInfo(title: '', artist: 'Artist'),
+          client: client,
+        ),
+        isNull,
+      );
+    });
+  });
+
   group('LyricsManager', () {
     setUp(LyricsManager.clearCache);
 
@@ -187,16 +431,83 @@ void main() {
           },
         ]);
       });
-      final result = await LyricsManager(client: client).fetchLyricsResult(
-        const TrackInfo(
-          title: 'Song (Official Video)',
-          artist: 'Artist - Topic',
-          duration: Duration(seconds: 200),
-        ),
-      );
+      final result =
+          await LyricsManager(
+            client: client,
+            providers: const [LyricsProvider.lrclib],
+          ).fetchLyricsResult(
+            const TrackInfo(
+              title: 'Song (Official Video)',
+              artist: 'Artist - Topic',
+              duration: Duration(seconds: 200),
+            ),
+          );
       expect(result!.isSynced, isTrue);
       expect(result.source, 'lrclib.net');
       expect(result.synced!.length, 2);
+    });
+
+    test(
+      'uses Unison for the exact video id and keeps submitter credit',
+      () async {
+        final client = MockClient((request) async {
+          expect(request.url.host, 'unison.betterlyrics.org');
+          expect(request.url.queryParameters['v'], 'abc123');
+          return _json({
+            'success': true,
+            'data': {
+              'format': 'lrc',
+              'syncType': 'linesync',
+              'lyrics': '[00:01.00]hello\n[00:05.00]world',
+              'submitter': {'keyId': 'k', 'displayName': 'boidu'},
+            },
+          });
+        });
+
+        final result =
+            await LyricsManager(
+              client: client,
+              providers: const [LyricsProvider.unison],
+            ).fetchLyricsResult(
+              const TrackInfo(
+                title: 'Song',
+                artist: 'Artist',
+                videoId: 'abc123',
+              ),
+            );
+
+        expect(result, isNotNull);
+        expect(result!.source, 'Unison');
+        expect(result.isSynced, isTrue);
+        expect(result.synced!.length, 2);
+        expect(result.attribution, 'Lyrics from Unison · submitted by boidu');
+      },
+    );
+
+    test('keeps the Unison credit without a submitter name', () async {
+      final client = MockClient((request) async {
+        return _json({
+          'success': true,
+          'data': {
+            'format': 'plain',
+            'syncType': 'plain',
+            'lyrics': 'just words',
+          },
+        });
+      });
+
+      final result =
+          await LyricsManager(
+            client: client,
+            providers: const [LyricsProvider.unison],
+          ).fetchLyricsResult(
+            const TrackInfo(title: 'Song', artist: 'Artist', videoId: 'abc123'),
+          );
+
+      expect(result, isNotNull);
+      expect(result!.isSynced, isFalse);
+      expect(result.text, 'just words');
+      expect(result.attribution, 'Lyrics from Unison');
     });
 
     test('falls back to lyrics.ovh and keeps fetchLyrics format', () async {
@@ -206,8 +517,10 @@ void main() {
         }
         return _json([]);
       });
-      final text = await LyricsManager(client: client)
-          .fetchLyrics('Artist', 'Song');
+      final text = await LyricsManager(
+        client: client,
+        providers: const [],
+      ).fetchLyrics('Artist', 'Song');
       expect(text, 'la la la\n\n© lyrics.ovh');
     });
 

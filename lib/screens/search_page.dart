@@ -36,19 +36,21 @@ import 'package:musify/services/common_services.dart';
 import 'package:musify/services/data_manager.dart';
 import 'package:musify/services/playlists_manager.dart';
 import 'package:musify/services/router_service.dart';
+import 'package:musify/services/search_bridge.dart';
 import 'package:musify/services/settings_manager.dart';
 import 'package:musify/utilities/app_utils.dart';
 import 'package:musify/utilities/flutter_toast.dart';
 import 'package:musify/widgets/artist_bar.dart';
-import 'package:musify/widgets/confirmation_dialog.dart';
-import 'package:musify/widgets/custom_bar.dart';
-import 'package:musify/widgets/custom_search_bar.dart';
+import 'package:musify/widgets/explore/explore_feed_view.dart';
+import 'package:musify/widgets/glass/glass_sheet_style.dart';
 import 'package:musify/widgets/mini_player_bottom_space.dart';
 import 'package:musify/widgets/playlist_bar.dart';
 import 'package:musify/widgets/radio_station_card.dart';
 import 'package:musify/widgets/section_title.dart';
 import 'package:musify/widgets/song_bar.dart';
 
+/// Explore owns the search branch. With no query it shows the discovery feed;
+/// a query from the dock's inline search replaces it with results.
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
 
@@ -67,48 +69,85 @@ void reloadSearchHistoryFromStorage() {
 }
 
 class _SearchPageState extends State<SearchPage> {
-  final TextEditingController _searchBar = TextEditingController();
-  final FocusNode _inputNode = FocusNode();
   final ValueNotifier<bool> _fetchingSongs = ValueNotifier(false);
   int maxSongsInList = 15;
+  String _query = '';
   List<dynamic> _songsSearchResult = [];
   List<Map<String, dynamic>> _artistsSearchResult = [];
   List<dynamic> _albumsSearchResult = [];
   List<dynamic> _playlistsSearchResult = [];
   List<RadioStation> _radioStationsSearchResult = [];
-  List<String> _suggestionsList = [];
-  Timer? _debounce;
-  int _latestSuggestionRequest = 0;
   int _latestSearchRequest = 0;
 
+  bool get _isExploring => _query.trim().isEmpty;
+
+  @override
+  void initState() {
+    super.initState();
+    InlineSearchBridge.request.addListener(_handleInlineSearch);
+    InlineSearchBridge.clearRequest.addListener(_handleInlineClear);
+    // Consume a query that was typed in the bar while this branch was cold.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final pending = InlineSearchBridge.takePending();
+      if (pending != null) {
+        unawaited(_submitSearch(pending));
+        return;
+      }
+      if (InlineSearchBridge.takeClearRequest()) _resetToExplore();
+    });
+  }
+
+  void _handleInlineSearch() {
+    final pending = InlineSearchBridge.takePending();
+    if (pending == null || !mounted) return;
+    unawaited(_submitSearch(pending));
+  }
+
+  void _handleInlineClear() {
+    if (!InlineSearchBridge.takeClearRequest() || !mounted) return;
+    if (_isExploring) return;
+    _resetToExplore();
+  }
+
   Future<void> _submitSearch([String? query]) async {
-    if (query != null) {
-      _searchBar.text = query;
-      _searchBar.selection = TextSelection.fromPosition(
-        TextPosition(offset: _searchBar.text.length),
-      );
+    final nextQuery = (query ?? _query).trim();
+    if (!mounted) return;
+
+    if (nextQuery.isEmpty) {
+      _resetToExplore();
+      return;
     }
 
-    _latestSuggestionRequest++;
-    _debounce?.cancel();
-    _suggestionsList = [];
-    if (mounted) setState(() {});
-
+    setState(() => _query = nextQuery);
     await search();
-    _inputNode.unfocus();
+  }
+
+  void _resetToExplore() {
+    _latestSearchRequest++;
+    _query = '';
+    _songsSearchResult = [];
+    _artistsSearchResult = [];
+    _albumsSearchResult = [];
+    _playlistsSearchResult = [];
+    _radioStationsSearchResult = [];
+    _fetchingSongs.value = false;
+    FocusManager.instance.primaryFocus?.unfocus();
+    // The dock owns its own field; ask it to collapse back to the pill.
+    InlineSearchBridge.requestCollapse();
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
-    _searchBar.dispose();
-    _inputNode.dispose();
+    InlineSearchBridge.request.removeListener(_handleInlineSearch);
+    InlineSearchBridge.clearRequest.removeListener(_handleInlineClear);
     _fetchingSongs.dispose();
-    _debounce?.cancel();
     super.dispose();
   }
 
   Future<void> search() async {
-    final query = _searchBar.text.trim();
+    final query = _query.trim();
     final requestId = ++_latestSearchRequest;
 
     if (query.isEmpty) {
@@ -117,7 +156,6 @@ class _SearchPageState extends State<SearchPage> {
       _albumsSearchResult = [];
       _playlistsSearchResult = [];
       _radioStationsSearchResult = [];
-      _suggestionsList = [];
       _fetchingSongs.value = false;
       if (mounted) setState(() {});
       return;
@@ -266,148 +304,58 @@ class _SearchPageState extends State<SearchPage> {
 
   @override
   Widget build(BuildContext context) {
-    final primaryColor = Theme.of(context).colorScheme.primary;
-    final canPop = Navigator.canPop(context);
+    if (_isExploring) {
+      return ValueListenableBuilder<List>(
+        valueListenable: searchHistoryNotifier,
+        builder: (context, history, _) {
+          final recent = history
+              .map((item) => item.toString().trim())
+              .where((item) => item.isNotEmpty)
+              .take(8)
+              .toList(growable: false);
+          return ValueListenableBuilder<bool>(
+            valueListenable: InlineSearchBridge.active,
+            builder: (context, searchActive, _) => ExploreFeedView(
+              recentSearches: recent,
+              onSearch: (query) => unawaited(_submitSearch(query)),
+              searchActive: searchActive,
+            ),
+          );
+        },
+      );
+    }
+
+    return _buildResultsPage(context);
+  }
+
+  Widget _buildResultsPage(BuildContext context) {
     final topPadding = MediaQuery.paddingOf(context).top;
 
     return GlassScaffold(
       contentAwareBrightness: true,
-      appBar: canPop
-          ? GlassAppBar(
-              leading: GlassIconButton(
-                icon: const Icon(CupertinoIcons.back),
-                onPressed: () => Navigator.pop(context),
-              ),
-              title: Text(
-                context.l10n?.search ?? 'Search',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
-                  color: CupertinoColors.white,
-                ),
-              ),
-            )
-          : null,
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
-        padding: EdgeInsets.fromLTRB(
-          16,
-          canPop ? 16 : topPadding + 16,
-          16,
-          40,
-        ),
+        padding: EdgeInsets.fromLTRB(16, topPadding + 10, 16, 40),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            if (!canPop)
-              Padding(
-                padding: const EdgeInsets.only(left: 4, bottom: 16, top: 4),
-                child: Text(
-                  context.l10n?.search ?? 'Search',
-                  style: const TextStyle(
-                    fontSize: 34,
-                    fontWeight: FontWeight.bold,
-                    color: CupertinoColors.white,
-                    letterSpacing: -0.6,
-                  ),
-                ),
-              ),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final isWide = constraints.maxWidth > 600;
-                final bar = ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxWidth: isWide ? 600 : double.infinity,
-                  ),
-                  child: CustomSearchBar(
-                    loadingProgressNotifier: _fetchingSongs,
-                    controller: _searchBar,
-                    focusNode: _inputNode,
-                    labelText: '${context.l10n!.search}...',
-                    onChanged: (value) {
-                      // debounce suggestions to avoid rapid API calls
-                      _debounce?.cancel();
-                      final query = value;
-                      final requestId = ++_latestSuggestionRequest;
-
-                      // An emptied field goes back to the search history, and
-                      // the history only shows while nothing has been found
-                      // yet. Dropping the suggestions is not enough: the
-                      // results of the last search have to go with them.
-                      if (query.isEmpty) {
-                        unawaited(search());
-                        return;
-                      }
-
-                      _debounce = Timer(
-                        const Duration(milliseconds: 300),
-                        () async {
-                          final searchSuggestions = await getSearchSuggestions(
-                            query,
-                          );
-
-                          if (!mounted ||
-                              requestId != _latestSuggestionRequest ||
-                              _searchBar.text != query) {
-                            return;
-                          }
-
-                          _suggestionsList = List<String>.from(
-                            searchSuggestions,
-                          );
-                          if (mounted) setState(() {});
-                        },
-                      );
-                    },
-                    onSubmitted: (String value) {
-                      _submitSearch();
-                    },
-                  ),
-                );
-                if (isWide) {
-                  return Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [bar],
-                  );
-                } else {
-                  return bar;
-                }
-              },
+          children: [
+            _SearchResultsHeader(
+              query: _query,
+              fetching: _fetchingSongs,
+              onBack: _resetToExplore,
             ),
-
+            const SizedBox(height: 10),
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 200),
-              child:
-                  (_suggestionsList.isNotEmpty ||
-                      (_songsSearchResult.isEmpty &&
-                          _artistsSearchResult.isEmpty &&
-                          _albumsSearchResult.isEmpty &&
-                          _playlistsSearchResult.isEmpty &&
-                          _radioStationsSearchResult.isEmpty))
-                  ? ValueListenableBuilder<List>(
-                      valueListenable: searchHistoryNotifier,
-                      builder: (context, searchHistory, _) {
-                        final items = _suggestionsList.isEmpty
-                            ? searchHistory
-                            : _suggestionsList;
-
-                        return _suggestionsList.isEmpty
-                            ? _buildAppleBrowseSection(context, searchHistory)
-                            : Column(
-                                key: ValueKey('suggestions-${_suggestionsList.length}'),
-                                children: [
-                                  for (int index = 0; index < _suggestionsList.length; index++)
-                                    CustomBar(
-                                      _suggestionsList[index],
-                                      FluentIcons.search_24_regular,
-                                      borderRadius: getItemBorderRadius(index, _suggestionsList.length),
-                                      onTap: () => _submitSearch(_suggestionsList[index]),
-                                    ),
-                                ],
-                              );
-                      },
+              child: _hasResults
+                  ? _buildSearchResults(
+                      context,
+                      Theme.of(context).colorScheme.primary,
                     )
-                  : _buildSearchResults(context, primaryColor),
+                  : _SearchResultsEmpty(
+                      query: _query,
+                      fetching: _fetchingSongs,
+                    ),
             ),
             const MiniPlayerBottomSpace(),
           ],
@@ -415,6 +363,13 @@ class _SearchPageState extends State<SearchPage> {
       ),
     );
   }
+
+  bool get _hasResults =>
+      _songsSearchResult.isNotEmpty ||
+      _artistsSearchResult.isNotEmpty ||
+      _albumsSearchResult.isNotEmpty ||
+      _playlistsSearchResult.isNotEmpty ||
+      _radioStationsSearchResult.isNotEmpty;
 
   Widget _buildSearchResults(BuildContext context, Color primaryColor) {
     final widgets = <Widget>[];
@@ -629,132 +584,6 @@ class _SearchPageState extends State<SearchPage> {
     return [...studioList, ...liveList];
   }
 
-  Widget _buildAppleBrowseSection(BuildContext context, List searchHistory) {
-    final isDark = CupertinoTheme.of(context).brightness == Brightness.dark;
-    final titleColor = isDark ? Colors.white : const Color(0xFF1C1C1E);
-    final subColor = isDark ? Colors.white : const Color(0xFF2C2C2E);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (searchHistory.isNotEmpty) ...[
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Recent Searches',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: titleColor,
-                  ),
-                ),
-                CupertinoButton(
-                  padding: EdgeInsets.zero,
-                  minSize: 0,
-                  onPressed: () => _showConfirmationDialog(context).then((confirmed) {
-                    if (confirmed == true) {
-                      searchHistoryNotifier.value = [];
-                      unawaited(addOrUpdateData<List>('user', 'searchHistory', []));
-                    }
-                  }),
-                  child: const Text(
-                    'Clear',
-                    style: TextStyle(color: Color(0xFFFF2D55), fontSize: 14),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          GlassGroupedSection(
-            surfaceStyle: GlassSurfaceStyle.solid,
-            children: [
-              for (int i = 0; i < searchHistory.length && i < 5; i++)
-                GlassListTile(
-                  leading: Icon(CupertinoIcons.search, color: isDark ? Colors.white70 : Colors.black54, size: 18),
-                  title: Text(
-                    searchHistory[i].toString(),
-                    style: TextStyle(color: subColor, fontSize: 15),
-                  ),
-                  trailing: Icon(CupertinoIcons.arrow_up_left, color: isDark ? Colors.white38 : Colors.black38, size: 16),
-                  onTap: () => _submitSearch(searchHistory[i].toString()),
-                ),
-            ],
-          ),
-          const SizedBox(height: 20),
-        ],
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          child: Text(
-            'Browse Categories',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: titleColor,
-            ),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: 1.8,
-            children: [
-              _buildCategoryTile('Bollywood Hits', const [Color(0xFFFF2D55), Color(0xFFFF375F)], CupertinoIcons.music_note_2),
-              _buildCategoryTile('Top 100 Global', const [Color(0xFF5856D6), Color(0xFFAF52DE)], CupertinoIcons.chart_bar_fill),
-              _buildCategoryTile('Chill & Acoustic', const [Color(0xFF007AFF), Color(0xFF5AC8FA)], CupertinoIcons.headphones),
-              _buildCategoryTile('Party & Dance', const [Color(0xFFFF9500), Color(0xFFFFCC00)], CupertinoIcons.flame_fill),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCategoryTile(String title, List<Color> gradientColors, IconData icon) {
-    return GestureDetector(
-      onTap: () {
-        _searchBar.text = title;
-        _submitSearch(title);
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14),
-          gradient: LinearGradient(
-            colors: gradientColors,
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 15,
-              ),
-            ),
-            Align(
-              alignment: Alignment.bottomRight,
-              child: Icon(icon, color: Colors.white.withOpacity(0.8), size: 22),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   void _handleSearchSongPlay(dynamic song, int index) {
     if (song is! Map) return;
     final mode = searchQueueMode.value;
@@ -769,120 +598,277 @@ class _SearchPageState extends State<SearchPage> {
     }
   }
 
-  void _showSearchQueueChoiceSheet(BuildContext context, Map song, int index) {
-    showCupertinoModalPopup(
+  Future<void> _showSearchQueueChoiceSheet(
+    BuildContext context,
+    Map song,
+    int index,
+  ) {
+    return GlassModalSheet.show<void>(
       context: context,
-      builder: (ctx) => GlassModalSheet(
-        child: SafeArea(
+      detents: const {GlassSheetDetent.medium},
+      settings: glassSheetSettings(context),
+      builder: (sheetContext) {
+        final labelColor = glassSheetLabelColor(sheetContext);
+        final subtitleColor = glassSheetSubtitleColor(sheetContext);
+        final isDark =
+            GlassTheme.brightnessOf(sheetContext) == Brightness.dark;
+        final rowColor = isDark
+            ? CupertinoColors.white.withValues(alpha: 0.09)
+            : CupertinoColors.black.withValues(alpha: 0.045);
+        final selectedColor = isDark
+            ? CupertinoColors.white.withValues(alpha: 0.14)
+            : CupertinoColors.black.withValues(alpha: 0.08);
+
+        Widget actionRow({
+          required IconData icon,
+          required String title,
+          required String subtitle,
+          required VoidCallback onTap,
+        }) {
+          return CupertinoButton(
+            padding: EdgeInsets.zero,
+            onPressed: onTap,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+              decoration: BoxDecoration(
+                color: rowColor,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: selectedColor,
+                      borderRadius: BorderRadius.circular(11),
+                    ),
+                    child: Icon(icon, size: 20, color: labelColor),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: -0.2,
+                            color: labelColor,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle,
+                          style: TextStyle(
+                            fontSize: 12,
+                            height: 1.25,
+                            color: subtitleColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    CupertinoIcons.chevron_right,
+                    size: 15,
+                    color: subtitleColor,
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return SafeArea(
           top: false,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            padding: const EdgeInsets.fromLTRB(20, 22, 20, 24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
                   song['title']?.toString() ?? 'Play Song',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: CupertinoColors.white,
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.4,
+                    color: labelColor,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 3),
                 Text(
                   song['artist']?.toString() ?? '',
                   style: TextStyle(
                     fontSize: 14,
-                    color: CupertinoColors.white.withValues(alpha: 0.7),
+                    color: subtitleColor,
                   ),
                   maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 20),
-                CupertinoButton(
-                  padding: EdgeInsets.zero,
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    final songsList = _songsSearchResult.whereType<Map>().toList();
-                    audioHandler.addPlaylistToQueue(songsList, replace: true, startIndex: index);
+                actionRow(
+                  icon: CupertinoIcons.list_bullet,
+                  title: 'Play with Search Queue',
+                  subtitle: 'Keep the whole result list lined up next',
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    final songsList =
+                        _songsSearchResult.whereType<Map>().toList();
+                    audioHandler.addPlaylistToQueue(
+                      songsList,
+                      replace: true,
+                      startIndex: index,
+                    );
                   },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    decoration: BoxDecoration(
-                      color: CupertinoColors.white.withValues(alpha: 0.14),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: CupertinoColors.white.withValues(alpha: 0.20),
-                        width: 0.8,
-                      ),
-                    ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(CupertinoIcons.list_bullet, color: CupertinoColors.white, size: 20),
-                        SizedBox(width: 8),
-                        Text(
-                          'Play with Search Queue',
-                          style: TextStyle(color: CupertinoColors.white, fontWeight: FontWeight.w600),
-                        ),
-                      ],
-                    ),
-                  ),
                 ),
-                const SizedBox(height: 12),
-                CupertinoButton(
-                  padding: EdgeInsets.zero,
-                  onPressed: () {
-                    Navigator.pop(ctx);
+                const SizedBox(height: 10),
+                actionRow(
+                  icon: CupertinoIcons.radiowaves_right,
+                  title: 'Play with Related Songs',
+                  subtitle: 'Let the algorithm do its little dance',
+                  onTap: () {
+                    Navigator.pop(sheetContext);
                     audioHandler.playSongWithRelated(song);
                   },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    decoration: BoxDecoration(
-                      color: CupertinoColors.white.withValues(alpha: 0.14),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: CupertinoColors.white.withValues(alpha: 0.20),
-                        width: 0.8,
-                      ),
-                    ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(CupertinoIcons.radiowaves_right, color: CupertinoColors.white, size: 20),
-                        SizedBox(width: 8),
-                        Text(
-                          'Play with Related Songs',
-                          style: TextStyle(color: CupertinoColors.white, fontWeight: FontWeight.w600),
-                        ),
-                      ],
-                    ),
-                  ),
                 ),
-                const SizedBox(height: 14),
               ],
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
+}
 
-  Future<bool?> _showConfirmationDialog(BuildContext context) {
-    return showDialog<bool>(
-      context: context,
-      builder: (BuildContext context) {
-        return ConfirmationDialog(
-          confirmationMessage: context.l10n!.removeSearchQueryQuestion,
-          submitMessage: context.l10n!.confirm,
-          onCancel: () {
-            Navigator.of(context).pop(false);
-          },
-          onSubmit: () {
-            Navigator.of(context).pop(true);
-          },
+class _SearchResultsHeader extends StatelessWidget {
+  const _SearchResultsHeader({
+    required this.query,
+    required this.fetching,
+    required this.onBack,
+  });
+
+  final String query;
+  final ValueNotifier<bool> fetching;
+  final VoidCallback onBack;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = CupertinoTheme.of(context).brightness == Brightness.dark;
+    final titleColor = isDark ? CupertinoColors.white : const Color(0xFF1C1C1E);
+    final subColor = isDark
+        ? CupertinoColors.white.withValues(alpha: 0.6)
+        : const Color(0xFF8E8E93);
+
+    return Row(
+      children: [
+        GlassIconButton(
+          icon: Icon(CupertinoIcons.back, color: titleColor),
+          onPressed: onBack,
+          size: 42,
+          iconSize: 19,
+          semanticLabel: 'Back to Explore',
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Search results',
+                style: TextStyle(fontSize: 12, color: subColor),
+              ),
+              Text(
+                query,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 23,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: -0.4,
+                  color: titleColor,
+                ),
+              ),
+            ],
+          ),
+        ),
+        ValueListenableBuilder<bool>(
+          valueListenable: fetching,
+          builder: (context, loading, _) => AnimatedOpacity(
+            opacity: loading ? 1 : 0,
+            duration: const Duration(milliseconds: 150),
+            child: const CupertinoTheme(
+              data: CupertinoThemeData(brightness: Brightness.dark),
+              child: CupertinoActivityIndicator(radius: 9),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SearchResultsEmpty extends StatelessWidget {
+  const _SearchResultsEmpty({required this.query, required this.fetching});
+
+  final String query;
+  final ValueNotifier<bool> fetching;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = CupertinoTheme.of(context).brightness == Brightness.dark;
+    final titleColor = isDark ? CupertinoColors.white : const Color(0xFF1C1C1E);
+    final subColor = isDark
+        ? CupertinoColors.white.withValues(alpha: 0.6)
+        : const Color(0xFF8E8E93);
+
+    return ValueListenableBuilder<bool>(
+      valueListenable: fetching,
+      builder: (context, loading, _) {
+        if (loading) {
+          return const Padding(
+            padding: EdgeInsets.only(top: 80),
+            child: Center(
+              child: CupertinoTheme(
+                data: CupertinoThemeData(brightness: Brightness.dark),
+                child: CupertinoActivityIndicator(radius: 16),
+              ),
+            ),
+          );
+        }
+
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(24, 70, 24, 20),
+          child: Column(
+            children: [
+              Icon(
+                FluentIcons.search_24_regular,
+                size: 44,
+                color: subColor,
+              ),
+              const SizedBox(height: 14),
+              Text(
+                'No results for “$query”',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: titleColor,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Try the dock search with a different spelling, artist or album.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 13, height: 1.35, color: subColor),
+              ),
+            ],
+          ),
         );
       },
     );

@@ -321,14 +321,19 @@ class _ImportSpotifyPlaylistPageState extends State<ImportSpotifyPlaylistPage> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return GlassScaffold(
+      extendBody: false,
       contentAwareBrightness: true,
       appBar: GlassAppBar(
-        leading: Padding(
-          padding: const EdgeInsets.all(6.0),
-          child: GlassIconButton(
-            icon: const Icon(CupertinoIcons.chevron_back, color: CupertinoColors.white, size: 20),
-            onPressed: () => Navigator.of(context).pop(),
+        leading: GlassIconButton(
+          size: 40,
+          iconSize: 19,
+          semanticLabel: 'Back',
+          icon: const Icon(
+            CupertinoIcons.chevron_back,
+            color: CupertinoColors.white,
+            size: 19,
           ),
+          onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(context.l10n!.importSpotifyPlaylistTitle),
       ),

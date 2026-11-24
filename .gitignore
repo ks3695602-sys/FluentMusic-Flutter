@@ -50,3 +50,6 @@ lib/localization/app_*.dart
 
 # Generated untranslated messages file
 lib/localization/untranslated.json
+
+# Local build output kept for manual installs
+downloads/

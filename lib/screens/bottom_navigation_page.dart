@@ -27,11 +27,15 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:musify/constants/app_constants.dart';
+import 'package:musify/desktop/windows_window.dart';
 import 'package:musify/extensions/l10n.dart';
 import 'package:musify/main.dart';
+import 'package:musify/services/search_bridge.dart';
 import 'package:musify/services/settings_manager.dart';
+import 'package:musify/theme/glass_config_controller.dart';
 import 'package:musify/utilities/flutter_bottom_sheet.dart'
     show closeCurrentBottomSheet;
+import 'package:musify/widgets/desktop/desktop_glass_sidebar.dart';
 import 'package:musify/widgets/mini_player.dart';
 
 class BottomNavigationPage extends StatefulWidget {
@@ -53,6 +57,49 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
   /// Track the previously selected shell branch to detect reselects.
   int? _previousShellIndex;
 
+  /// Inline search state driven by [GlassTabBar.searchable].
+  bool _isSearchActive = false;
+  final TextEditingController _inlineSearchController = TextEditingController();
+  final FocusNode _inlineSearchFocusNode = FocusNode();
+
+  /// Scroll-driven dock collapse. The searchable placement only gained this
+  /// hook through the vendored package patch, so search and minimise can now
+  /// coexist without swapping bar constructors mid-gesture.
+  final GlassTabBarMinimizeController _dockMinimizeController =
+      GlassTabBarMinimizeController(
+        behavior: GlassBarMinimizeBehavior.onScrollDown,
+      );
+
+  @override
+  void initState() {
+    super.initState();
+    InlineSearchBridge.collapseRequest.addListener(_handleCollapseRequest);
+  }
+
+  @override
+  void dispose() {
+    InlineSearchBridge.collapseRequest.removeListener(_handleCollapseRequest);
+    _inlineSearchController.dispose();
+    _inlineSearchFocusNode.dispose();
+    _dockMinimizeController.dispose();
+    super.dispose();
+  }
+
+  /// A page asked the dock to leave its searchable state (for example the
+  /// "Back to Explore" button on the results page).
+  void _handleCollapseRequest() {
+    if (!mounted || !_isSearchActive) return;
+    _setSearchActive(false);
+    _inlineSearchFocusNode.unfocus();
+  }
+
+  /// Keeps the dock state and the Explore landing bridge in lockstep.
+  void _setSearchActive(bool active) {
+    if (_isSearchActive == active) return;
+    setState(() => _isSearchActive = active);
+    InlineSearchBridge.setActive(active);
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -61,6 +108,11 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
         if (didPop) return;
 
         final currentIndex = widget.child.currentIndex;
+        if (_isSearchActive) {
+          _setSearchActive(false);
+          _inlineSearchFocusNode.unfocus();
+          InlineSearchBridge.requestClear();
+        }
         if (currentIndex != 0) {
           widget.child.goBranch(0);
         } else {
@@ -81,124 +133,242 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
           return LayoutBuilder(
             builder: (context, constraints) {
               final isLargeScreen = MediaQuery.of(context).size.width >= 600;
+              final useDesktopSidebar =
+                  isWindowsDesktop && constraints.maxWidth >= 900;
               final items = _getNavigationItems(isOfflineMode);
 
               final isLight = Theme.of(context).brightness == Brightness.light;
+              final glassConfig = GlassConfigScope.of(context).config;
+              final baseBackgroundColors = isLight
+                  ? const [
+                      Color(0xFFF0EBF8),
+                      Color(0xFFF7F7FA),
+                      Color(0xFFE8EEF5),
+                      Color(0xFFFFFFFF),
+                    ]
+                  : const [
+                      Color(0xFF1F122B),
+                      Color(0xFF120D1A),
+                      Color(0xFF09070D),
+                      Color(0xFF000000),
+                    ];
+              // A page-owned text field (rename, search inside a page) owns the
+              // keyboard viewport. Drop the dock entirely so GlassScaffold does
+              // not reserve its 60 px or paint the bottom edge fade behind the
+              // keyboard; searches started from the dock keep it visible.
+              final dockHiddenForKeyboard =
+                  MediaQuery.viewInsetsOf(context).bottom > 0 &&
+                  !_isSearchActive;
 
               return GlassScaffold(
-                contentAwareBrightness: true,
+                // The bottom fade was washing the dock's backdrop grey, which
+                // killed the rim/refraction that makes the glass read as a
+                // lens. Let the capsule sample the real page artwork instead.
+                contentAwareBrightness: false,
+                edgeFade: true,
+                bottomEdgeFade: false,
+                statusBarStyle: isLight
+                    ? GlassStatusBarStyle.dark
+                    : GlassStatusBarStyle.light,
                 background: Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: isLight
-                          ? const [
-                              Color(0xFFF0EBF8),
-                              Color(0xFFF7F7FA),
-                              Color(0xFFE8EEF5),
-                              Color(0xFFFFFFFF),
-                            ]
-                          : const [
-                              Color(0xFF1F122B),
-                              Color(0xFF120D1A),
-                              Color(0xFF09070D),
-                              Color(0xFF000000),
-                            ],
+                      // On Windows the client area is transparent so the
+                      // native Mica/Acrylic material shows through. A light
+                      // tint keeps artwork and text readable on top of it.
+                      colors: useDesktopSidebar
+                          ? baseBackgroundColors
+                                .map((color) => color.withValues(alpha: 0.80))
+                                .toList(growable: false)
+                          : baseBackgroundColors,
                       stops: const [0.0, 0.35, 0.70, 1.0],
                     ),
                   ),
                 ),
                 body: SafeArea(
-                  child: Row(
-                    children: [
-                      if (isLargeScreen)
-                        NavigationRail(
-                          labelType: NavigationRailLabelType.selected,
-                          destinations: items
-                              .map(
-                                (item) => NavigationRailDestination(
-                                  icon: Icon(item.icon),
-                                  selectedIcon: Icon(item.selectedIcon),
-                                  label: Text(item.label),
+                  child: Padding(
+                    padding: EdgeInsets.only(top: useDesktopSidebar ? 6 : 0),
+                    child: Row(
+                      children: [
+                        if (useDesktopSidebar)
+                          DesktopGlassSidebar(
+                            items: [
+                              for (var i = 0; i < items.length; i++)
+                                DesktopNavItem(
+                                  icon: items[i].icon,
+                                  selectedIcon: items[i].selectedIcon,
+                                  label: items[i].label,
+                                  index: i,
                                 ),
-                              )
-                              .toList(),
-                          selectedIndex: _getCurrentIndex(items, isOfflineMode),
-                          onDestinationSelected: (index) =>
-                              _onTabTapped(index, items),
+                            ],
+                            selectedIndex: _getCurrentIndex(
+                              items,
+                              isOfflineMode,
+                            ),
+                            onSelect: (index) => _onTabTapped(index, items),
+                            isDark: !isLight,
+                          )
+                        else if (isLargeScreen)
+                          NavigationRail(
+                            labelType: NavigationRailLabelType.selected,
+                            destinations: items
+                                .map(
+                                  (item) => NavigationRailDestination(
+                                    icon: Icon(item.icon),
+                                    selectedIcon: Icon(item.selectedIcon),
+                                    label: Text(item.label),
+                                  ),
+                                )
+                                .toList(),
+                            selectedIndex: _getCurrentIndex(
+                              items,
+                              isOfflineMode,
+                            ),
+                            onDestinationSelected: (index) =>
+                                _onTabTapped(index, items),
+                          ),
+                        Expanded(
+                          child: NotificationListener<ScrollNotification>(
+                            onNotification: (notification) {
+                              // The search field owns the screen while it is
+                              // open; scrolling results must not tuck the dock
+                              // away underneath the keyboard. Same for any
+                              // other keyboard session (dialogs, rename fields).
+                              final keyboardOpen =
+                                  MediaQuery.viewInsetsOf(context).bottom > 0;
+                              if (!_isSearchActive && !keyboardOpen) {
+                                _dockMinimizeController.handleNotification(
+                                  notification,
+                                );
+                              }
+                              return false;
+                            },
+                            child: widget.child,
+                          ),
                         ),
-                      Expanded(
-                        child: widget.child,
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-                bottomBar: !isLargeScreen
+                bottomBar: !isLargeScreen && !dockHiddenForKeyboard
                     ? StreamBuilder<bool>(
                         initialData: audioHandler.mediaItem.value != null,
                         stream: _miniPlayerVisibilityStream,
                         builder: (context, snapshot) {
                           final isMiniPlayerVisible = snapshot.data ?? false;
-                          final isSearching = widget.child.currentIndex == 1;
+                          final searchExpanded = _isSearchActive;
 
-                          return GlassBackdropGroup(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (isMiniPlayerVisible)
-                                  const Padding(
-                                    padding: EdgeInsets.only(bottom: 4),
-                                    child: MiniPlayer(),
+                          return GlassTabBar.searchable(
+                            isSearchActive: searchExpanded,
+                            minimizeController: _dockMinimizeController,
+                            selectedIndex: _getCurrentIndex(
+                              items,
+                              isOfflineMode,
+                            ),
+                            onTabSelected: (index) {
+                              if (_isSearchActive) {
+                                _setSearchActive(false);
+                                _inlineSearchFocusNode.unfocus();
+                              }
+                              _onTabTapped(index, items);
+                            },
+                            tabs: items
+                                .map(
+                                  (item) => GlassTab(
+                                    icon: Icon(item.icon),
+                                    activeIcon: Icon(item.selectedIcon),
+                                    label: item.label,
                                   ),
-                                GlassTabBar.searchable(
-                                  isSearchActive: isSearching,
-                                  selectedIndex:
-                                      _getCurrentIndex(items, isOfflineMode),
-                                  onTabSelected: (index) {
-                                    _onTabTapped(index, items);
-                                  },
-                                  tabs: items
-                                      .map(
-                                        (item) => GlassTab(
-                                          icon: Icon(item.icon),
-                                          activeIcon: Icon(item.selectedIcon),
-                                          label: item.label,
-                                        ),
-                                      )
-                                      .toList(),
-                                  barHeight: 64.0,
-                                  searchBarHeight: 50.0,
-                                  horizontalPadding: 16.0,
-                                  verticalPadding: 8.0,
-                                  spacing: 8.0,
-                                  selectedIconColor: const Color(0xFFFF2D55),
-                                  unselectedIconColor: isLight
-                                      ? CupertinoColors.black.withValues(alpha: 0.65)
-                                      : CupertinoColors.white.withValues(alpha: 0.85),
-                                  labelFontSize: 10,
-                                  iconSize: 26,
-                                  iconLabelSpacing: 0,
-                                  quality: GlassQuality.premium,
-                                  interactionBehavior: GlassInteractionBehavior.full,
-                                  searchConfig: GlassSearchBarConfig(
-                                    expandWhenActive: false,
-                                    hintText: context.l10n?.search ?? 'Search',
-                                    onSearchToggle: (active) {
-                                      if (active && !isOfflineMode) {
-                                        closeCurrentBottomSheet();
-                                        widget.child.goBranch(1);
-                                      } else if (!active &&
-                                          widget.child.currentIndex == 1) {
-                                        widget.child.goBranch(0);
-                                      }
-                                    },
-                                    searchIconColor: isLight
-                                        ? CupertinoColors.black.withValues(alpha: 0.85)
-                                        : CupertinoColors.white.withValues(alpha: 0.9),
-                                  ),
-                                ),
-                              ],
+                                )
+                                .toList(),
+                            barHeight: 64.0,
+                            searchBarHeight: 50.0,
+                            horizontalPadding: 16.0,
+                            verticalPadding: 8.0,
+                            spacing: 8.0,
+                            settings: getEffectiveDockGlassSettings(
+                              isDark: !isLight,
+                            ),
+                            selectedIconColor: const Color(0xFFFF2D55),
+                            unselectedIconColor: isLight
+                                ? CupertinoColors.black.withValues(alpha: 0.65)
+                                : CupertinoColors.white.withValues(alpha: 0.85),
+                            labelFontSize: 10,
+                            iconSize: 26,
+                            iconLabelSpacing: 0,
+                            quality: parseGlassQuality(
+                              liquidGlassQualitySetting.value,
+                            ),
+                            interactionBehavior: GlassInteractionBehavior.full,
+                            pressScale: 0.96,
+                            // Dynamic tint OFF freezes the dock to the chosen
+                            // colour; ON lets it sample the backdrop. The
+                            // content-aware scope is off, so keep this tied to
+                            // the explicit toggle instead of a grey wash.
+                            adaptiveBrightness: false,
+                            barBorderRadius:
+                                glassConfig.barRadius ??
+                                GlassDefaults.capsuleRadius,
+                            indicatorBorderRadius: glassConfig.indicatorRadius,
+                            indicatorPinchStrength: glassConfig.pinchStrength,
+                            indicatorExpansion: EdgeInsets.symmetric(
+                              horizontal: glassConfig.expansionH,
+                              vertical: glassConfig.expansionV,
+                            ),
+                            // One accessory, two native placements: a full row
+                            // above the expanded dock, a compact strip inside
+                            // the minimised one. No external backdrop group —
+                            // the accessory paints its content on the dock
+                            // glass instead of stacking a second surface.
+                            bottomAccessory:
+                                isMiniPlayerVisible && !searchExpanded
+                                ? const MiniPlayer()
+                                : null,
+                            bottomAccessoryHeight: MiniPlayer.playerHeight + 8,
+                            bottomAccessorySpacing: 6,
+                            searchConfig: GlassSearchBarConfig(
+                              controller: _inlineSearchController,
+                              focusNode: _inlineSearchFocusNode,
+                              expandWhenActive: true,
+                              // Floating search pill: tap → the dock morphs
+                              // into a searchable bar and grabs the keyboard.
+                              // Explore shows the pill too, since its feed has
+                              // no in-page text field of its own.
+                              showPill: !isOfflineMode,
+                              autoFocusOnExpand: true,
+                              hintText: context.l10n?.search ?? 'Search',
+                              textInputAction: TextInputAction.search,
+                              onSubmitted: _submitInlineSearch,
+                              onSearchToggle: (active) {
+                                if (active && isOfflineMode) return;
+                                _setSearchActive(active);
+                                if (active) {
+                                  closeCurrentBottomSheet();
+                                  if (_dockMinimizeController.minimized) {
+                                    _dockMinimizeController.expand();
+                                  }
+                                  if (widget.child.currentIndex != 1) {
+                                    widget.child.goBranch(1);
+                                  }
+                                } else {
+                                  _inlineSearchFocusNode.unfocus();
+                                  // Explore keeps working as the landing tab:
+                                  // closing search just restores its feed.
+                                  InlineSearchBridge.requestClear();
+                                  if (widget.child.currentIndex != 1) {
+                                    widget.child.goBranch(0);
+                                  }
+                                }
+                              },
+                              searchIconColor: isLight
+                                  ? CupertinoColors.black.withValues(
+                                      alpha: 0.85,
+                                    )
+                                  : CupertinoColors.white.withValues(
+                                      alpha: 0.9,
+                                    ),
                             ),
                           );
                         },
@@ -213,12 +383,20 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
   }
 
   List<_NavigationItem> _getNavigationItems(bool isOfflineMode) {
+    // Four tents, no Search tab: discovery lives behind the Explore compass
+    // and the floating search pill morphs the dock instead of owning a slot.
     final items = <_NavigationItem>[
       _NavigationItem(
         icon: CupertinoIcons.house,
         selectedIcon: CupertinoIcons.house_fill,
         label: context.l10n?.home ?? 'Home',
         shellIndex: 0,
+      ),
+      _NavigationItem(
+        icon: CupertinoIcons.compass,
+        selectedIcon: CupertinoIcons.compass_fill,
+        label: 'Explore',
+        shellIndex: 1,
       ),
       _NavigationItem(
         icon: CupertinoIcons.music_albums,
@@ -237,8 +415,30 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
     return items;
   }
 
+  /// Sends the inline bar query to [SearchPage] and makes sure its branch is
+  /// visible. The bridge keeps the query queued if the branch is cold.
+  void _submitInlineSearch(String value) {
+    final query = value.trim();
+    if (query.isEmpty) return;
+    InlineSearchBridge.submit(query);
+    // Collapse back to the pill so the results page (and its mini player) gets
+    // the full height as soon as the query is handed over.
+    if (_isSearchActive) {
+      _setSearchActive(false);
+    }
+    FocusScope.of(context).unfocus();
+    if (widget.child.currentIndex != 1) {
+      widget.child.goBranch(1);
+    }
+  }
+
   void _handleOfflineModeChange(bool isOfflineMode) {
     if (!mounted) return;
+
+    // Offline mode has no search branch, so collapse the inline field first.
+    if (isOfflineMode && _isSearchActive) {
+      _setSearchActive(false);
+    }
 
     final currentRoute = GoRouterState.of(context).matchedLocation;
 

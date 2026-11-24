@@ -21,6 +21,7 @@
 
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:go_router/go_router.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:musify/constants/app_constants.dart';
@@ -28,6 +29,7 @@ import 'package:musify/extensions/l10n.dart';
 import 'package:musify/main.dart' show logger, audioHandler;
 import 'package:musify/services/common_services.dart';
 import 'package:musify/services/data_manager.dart';
+import 'package:musify/services/router_service.dart';
 import 'package:musify/services/settings_manager.dart';
 import 'package:musify/utilities/app_utils.dart';
 import 'package:musify/utilities/flutter_toast.dart';
@@ -125,16 +127,20 @@ class _UserSongsPageState extends State<UserSongsPage> {
     return CustomScrollView(
       slivers: [
         PlaylistSliverAppBar(
-          leading: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: GlassIconButton(
-              icon: const Icon(
-                CupertinoIcons.chevron_back,
-                color: CupertinoColors.white,
-                size: 20,
-              ),
-              onPressed: () => Navigator.pop(context),
+          leading: GlassIconButton(
+            size: 40,
+            iconSize: 19,
+            semanticLabel: 'Back',
+            // The header floats over light artwork in light mode, so the
+            // chevron has to follow the theme instead of always being white.
+            icon: Icon(
+              CupertinoIcons.chevron_back,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? CupertinoColors.white
+                  : const Color(0xFF1C1C1E),
+              size: 19,
             ),
+            onPressed: () => Navigator.pop(context),
           ),
           title: title,
           artwork: PlaylistHeroArtwork({'title': title}, cubeIcon: icon),
@@ -252,6 +258,23 @@ class _UserSongsPageState extends State<UserSongsPage> {
                     },
                   ),
                 ),
+                if (widget.page == 'liked') ...[
+                  const SizedBox(width: 10),
+                  SizedBox(
+                    width: 48,
+                    height: 48,
+                    child: FilledButton(
+                      style: FilledButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        backgroundColor: colorScheme.secondaryContainer,
+                        foregroundColor: colorScheme.onSecondaryContainer,
+                      ),
+                      onPressed: () =>
+                          context.go(NavigationManager.searchPath),
+                      child: const Icon(FluentIcons.add_24_filled, size: 20),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -358,6 +381,10 @@ class _UserSongsPageState extends State<UserSongsPage> {
           return EmptyPlaylistState(
             icon: emptyIcon,
             message: context.l10n!.playlistEmpty,
+            actionLabel: isLikedSongs ? 'Find songs' : null,
+            onAction: isLikedSongs
+                ? () => context.go(NavigationManager.searchPath)
+                : null,
           );
         }
 

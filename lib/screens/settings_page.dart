@@ -16,231 +16,263 @@
  */
 
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show Colors, Theme;
+import 'package:flutter/material.dart' show Theme;
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:musify/extensions/l10n.dart';
+import 'package:musify/screens/settings/account_page.dart';
 import 'package:musify/screens/settings/settings_subpages.dart';
+import 'package:musify/screens/settings/updates_page.dart';
 import 'package:musify/widgets/mini_player_bottom_space.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
-  Widget _buildSquircleIcon({
-    required IconData icon,
-    required Color color,
-  }) {
-    return Container(
-      width: 34,
-      height: 34,
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.18),
-        borderRadius: BorderRadius.circular(9),
-      ),
-      child: Center(
-        child: Icon(icon, color: color, size: 20),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final canPop = Navigator.canPop(context);
-    final topPadding = MediaQuery.paddingOf(context).top;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final titleColor = isDark ? Colors.white : const Color(0xFF1C1C1E);
-    final subtitleColor = isDark ? Colors.white60 : const Color(0xFF8E8E93);
+    final titleColor = isDark ? CupertinoColors.white : const Color(0xFF1C1C1E);
+    final subtitleColor = isDark
+        ? CupertinoColors.white.withValues(alpha: 0.6)
+        : const Color(0xFF8E8E93);
+    final topPadding = MediaQuery.paddingOf(context).top;
+
+    void open(Widget page) {
+      Navigator.of(
+        context,
+        rootNavigator: true,
+      ).push(CupertinoPageRoute<void>(builder: (_) => page));
+    }
 
     return GlassScaffold(
       contentAwareBrightness: true,
       background: buildSubpageBackground(isDark),
-      appBar: canPop
-          ? GlassAppBar(
-              leading: buildGlassBackButton(context),
-              title: Text(
-                context.l10n?.settings ?? 'Settings',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
-                  color: titleColor,
-                ),
-              ),
-            )
-          : null,
       body: ListView(
         physics: const BouncingScrollPhysics(),
-        padding: EdgeInsets.fromLTRB(
-          16,
-          canPop ? 16 : topPadding + 16,
-          16,
-          40,
-        ),
+        padding: EdgeInsets.fromLTRB(16, topPadding + 18, 16, 28),
         children: [
-          if (!canPop)
-            Padding(
-              padding: const EdgeInsets.only(left: 4, bottom: 20, top: 4),
-              child: Text(
-                context.l10n?.settings ?? 'Settings',
-                style: TextStyle(
-                  fontSize: 34,
-                  fontWeight: FontWeight.bold,
-                  color: titleColor,
-                  letterSpacing: -0.6,
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.l10n?.settings ?? 'Settings',
+                  style: TextStyle(
+                    fontSize: 34,
+                    fontWeight: FontWeight.bold,
+                    color: titleColor,
+                    letterSpacing: -0.8,
+                  ),
                 ),
-              ),
+                const SizedBox(height: 3),
+                Text(
+                  'FluentMusic 1.5.4 · Liquid Glass edition',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: subtitleColor,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
-          // INSET GROUPED SETTINGS PLATTER
-          GlassGroupedSection(
-            surfaceStyle: GlassSurfaceStyle.solid,
+          ),
+
+          _SettingsSection(
+            header: 'Your stuff',
             children: [
-              // 1. Account
-              GlassListTile(
-                leading: _buildSquircleIcon(
-                  icon: CupertinoIcons.person_fill,
-                  color: const Color(0xFFFF3B30),
-                ),
-                title: Text('Account', style: TextStyle(fontWeight: FontWeight.w600, color: titleColor)),
-                subtitle: Text('Sign in and manage account sync', style: TextStyle(color: subtitleColor, fontSize: 13)),
-                trailing: GlassListTile.chevron,
-                onTap: () {
-                  Navigator.of(context, rootNavigator: true).push(
-                    CupertinoPageRoute(builder: (_) => const AccountSettingsPage()),
-                  );
-                },
+              _SettingsTile(
+                title: 'Account',
+                subtitle: 'Optional sign-in for library sync',
+                icon: CupertinoIcons.person_fill,
+                tint: const Color(0xFFFF453A),
+                onTap: () => open(const AccountSettingsPage()),
               ),
-
-              // 2. Listening Stats
-              GlassListTile(
-                leading: _buildSquircleIcon(
-                  icon: CupertinoIcons.chart_bar_fill,
-                  color: const Color(0xFFFF9500),
-                ),
-                title: Text('Listening Stats', style: TextStyle(fontWeight: FontWeight.w600, color: titleColor)),
-                subtitle: Text('Your top songs, artists, and playback history', style: TextStyle(color: subtitleColor, fontSize: 13)),
-                trailing: GlassListTile.chevron,
-                onTap: () {
-                  Navigator.of(context, rootNavigator: true).push(
-                    CupertinoPageRoute(builder: (_) => const ListeningStatsSettingsPage()),
-                  );
-                },
-              ),
-
-              // 3. Appearance & Liquid Glass
-              GlassListTile(
-                leading: _buildSquircleIcon(
-                  icon: CupertinoIcons.paintbrush_fill,
-                  color: const Color(0xFFAF52DE),
-                ),
-                title: Text('Appearance', style: TextStyle(fontWeight: FontWeight.w600, color: titleColor)),
-                subtitle: Text('Themes, layout, and visual styles', style: TextStyle(color: subtitleColor, fontSize: 13)),
-                trailing: GlassListTile.chevron,
-                onTap: () {
-                  Navigator.of(context, rootNavigator: true).push(
-                    CupertinoPageRoute(builder: (_) => const AppearanceSettingsPage()),
-                  );
-                },
-              ),
-
-              // 4. Playback
-              GlassListTile(
-                leading: _buildSquircleIcon(
-                  icon: CupertinoIcons.music_note_2,
-                  color: const Color(0xFF007AFF),
-                ),
-                title: Text('Playback', style: TextStyle(fontWeight: FontWeight.w600, color: titleColor)),
-                subtitle: Text('Audio behavior, crossfade, and background', style: TextStyle(color: subtitleColor, fontSize: 13)),
-                trailing: GlassListTile.chevron,
-                onTap: () {
-                  Navigator.of(context, rootNavigator: true).push(
-                    CupertinoPageRoute(builder: (_) => const PlaybackSettingsPage()),
-                  );
-                },
-              ),
-
-              // 5. FluentMusic Canvas
-              GlassListTile(
-                leading: _buildSquircleIcon(
-                  icon: CupertinoIcons.circle_grid_hex_fill,
-                  color: const Color(0xFF5856D6),
-                ),
-                title: Text('FluentMusic Canvas', style: TextStyle(fontWeight: FontWeight.w600, color: titleColor)),
-                subtitle: Text('Sources, mobile data and cache', style: TextStyle(color: subtitleColor, fontSize: 13)),
-                trailing: GlassListTile.chevron,
-                onTap: () {
-                  Navigator.of(context, rootNavigator: true).push(
-                    CupertinoPageRoute(builder: (_) => const CanvasSettingsPage()),
-                  );
-                },
-              ),
-
-              // 6. Lyrics
-              GlassListTile(
-                leading: _buildSquircleIcon(
-                  icon: CupertinoIcons.doc_text_fill,
-                  color: const Color(0xFFFF2D55),
-                ),
-                title: Text('Lyrics', style: TextStyle(fontWeight: FontWeight.w600, color: titleColor)),
-                subtitle: Text('Lyrics providers and translation', style: TextStyle(color: subtitleColor, fontSize: 13)),
-                trailing: GlassListTile.chevron,
-                onTap: () {
-                  Navigator.of(context, rootNavigator: true).push(
-                    CupertinoPageRoute(builder: (_) => const LyricsSettingsPage()),
-                  );
-                },
-              ),
-
-              // 7. Content
-              GlassListTile(
-                leading: _buildSquircleIcon(
-                  icon: CupertinoIcons.globe,
-                  color: const Color(0xFF34C759),
-                ),
-                title: Text('Content', style: TextStyle(fontWeight: FontWeight.w600, color: titleColor)),
-                subtitle: Text('Language, country, and recommendations', style: TextStyle(color: subtitleColor, fontSize: 13)),
-                trailing: GlassListTile.chevron,
-                onTap: () {
-                  Navigator.of(context, rootNavigator: true).push(
-                    CupertinoPageRoute(builder: (_) => const ContentSettingsPage()),
-                  );
-                },
-              ),
-
-              // 8. Behavior
-              GlassListTile(
-                leading: _buildSquircleIcon(
-                  icon: CupertinoIcons.slider_horizontal_3,
-                  color: const Color(0xFFFFCC00),
-                ),
-                title: Text('Behavior', style: TextStyle(fontWeight: FontWeight.w600, color: titleColor)),
-                subtitle: Text('History, defaults, and privacy behavior', style: TextStyle(color: subtitleColor, fontSize: 13)),
-                trailing: GlassListTile.chevron,
-                onTap: () {
-                  Navigator.of(context, rootNavigator: true).push(
-                    CupertinoPageRoute(builder: (_) => const BehaviorSettingsPage()),
-                  );
-                },
-              ),
-
-              // 9. Android Auto
-              GlassListTile(
-                leading: _buildSquircleIcon(
-                  icon: CupertinoIcons.car_fill,
-                  color: const Color(0xFF30D158),
-                ),
-                title: Text('Android Auto', style: TextStyle(fontWeight: FontWeight.w600, color: titleColor)),
-                subtitle: Text('Driving playback, browsing and data', style: TextStyle(color: subtitleColor, fontSize: 13)),
-                trailing: GlassListTile.chevron,
-                onTap: () {
-                  Navigator.of(context, rootNavigator: true).push(
-                    CupertinoPageRoute(builder: (_) => const AndroidAutoSettingsPage()),
-                  );
-                },
+              _SettingsTile(
+                title: 'Listening Stats',
+                subtitle: 'Top songs, artists and history',
+                icon: CupertinoIcons.chart_bar_fill,
+                tint: const Color(0xFFFF9F0A),
+                onTap: () => open(const ListeningStatsSettingsPage()),
               ),
             ],
           ),
 
-          const SizedBox(height: 32),
+          _SettingsSection(
+            header: 'Look & sound',
+            children: [
+              _SettingsTile(
+                title: 'Appearance',
+                subtitle: 'Themes, layout and Glass Lab',
+                icon: CupertinoIcons.paintbrush_fill,
+                tint: const Color(0xFFBF5AF2),
+                onTap: () => open(const AppearanceSettingsPage()),
+              ),
+              _SettingsTile(
+                title: 'Playback',
+                subtitle: 'Crossfade and background play',
+                icon: CupertinoIcons.music_note_2,
+                tint: const Color(0xFF0A84FF),
+                onTap: () => open(const PlaybackSettingsPage()),
+              ),
+              _SettingsTile(
+                title: 'FluentMusic Canvas',
+                subtitle: 'Sources, mobile data and cache',
+                icon: CupertinoIcons.circle_grid_hex_fill,
+                tint: const Color(0xFF5E5CE6),
+                onTap: () => open(const CanvasSettingsPage()),
+              ),
+              _SettingsTile(
+                title: 'Lyrics',
+                subtitle: 'Providers, translation and timed lyrics',
+                icon: CupertinoIcons.doc_text_fill,
+                tint: const Color(0xFFFF375F),
+                onTap: () => open(const LyricsSettingsPage()),
+              ),
+            ],
+          ),
+
+          _SettingsSection(
+            header: 'Preferences',
+            children: [
+              _SettingsTile(
+                title: 'Content',
+                subtitle: 'Language, country, recommendations',
+                icon: CupertinoIcons.globe,
+                tint: const Color(0xFF32D74B),
+                onTap: () => open(const ContentSettingsPage()),
+              ),
+              _SettingsTile(
+                title: 'Behaviour',
+                subtitle: 'History, defaults and privacy',
+                icon: CupertinoIcons.slider_horizontal_3,
+                tint: const Color(0xFFEAB308),
+                onTap: () => open(const BehaviorSettingsPage()),
+              ),
+              _SettingsTile(
+                title: 'Android Auto',
+                subtitle: 'Driving playback and data use',
+                icon: CupertinoIcons.car_fill,
+                tint: const Color(0xFF30D158),
+                onTap: () => open(const AndroidAutoSettingsPage()),
+              ),
+              _SettingsTile(
+                title: 'Updates',
+                subtitle: 'Automatic checks and release notes',
+                icon: CupertinoIcons.arrow_down_circle_fill,
+                tint: const Color(0xFFFF2D55),
+                onTap: () => open(const UpdatesSettingsPage()),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 10),
+          Center(
+            child: Text(
+              'v1.5.4 (18) · built with an unhealthy amount of glass',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 11.5,
+                color: subtitleColor.withValues(alpha: 0.85),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
           const MiniPlayerBottomSpace(),
         ],
+      ),
+    );
+  }
+}
+
+/// One iOS inset-grouped card. Solid surfaces keep the nested pages and the
+/// root page visually identical, and stop refractive glass stacking on glass.
+class _SettingsSection extends StatelessWidget {
+  const _SettingsSection({required this.header, required this.children});
+
+  final String header;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return GlassGroupedSection(
+      surfaceStyle: GlassSurfaceStyle.solid,
+      margin: const EdgeInsets.only(bottom: 14),
+      dividerIndent: 58,
+      header: Text(
+        header.toUpperCase(),
+        style: TextStyle(
+          fontSize: 11.5,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.7,
+          color: isDark
+              ? CupertinoColors.white.withValues(alpha: 0.48)
+              : const Color(0xFF6C6C70),
+        ),
+      ),
+      children: children,
+    );
+  }
+}
+
+/// A single row inside a [_SettingsSection]. Uses [GlassListTile] rather than a
+/// nested [GlassContainer] so the row never paints a second glass layer.
+class _SettingsTile extends StatelessWidget {
+  const _SettingsTile({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.tint,
+    required this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color tint;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return GlassListTile(
+      onTap: onTap,
+      leading: Container(
+        width: 34,
+        height: 34,
+        decoration: BoxDecoration(
+          color: tint.withValues(alpha: isDark ? 0.24 : 0.14),
+          borderRadius: BorderRadius.circular(9),
+        ),
+        child: Icon(icon, size: 19, color: tint),
+      ),
+      title: Text(
+        title,
+        style: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          letterSpacing: -0.2,
+          color: isDark ? CupertinoColors.white : const Color(0xFF1C1C1E),
+        ),
+      ),
+      subtitle: Text(
+        subtitle,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          fontSize: 12.5,
+          height: 1.25,
+          color: isDark
+              ? CupertinoColors.white.withValues(alpha: 0.55)
+              : const Color(0xFF6C6C70),
+        ),
+      ),
+      trailing: Icon(
+        CupertinoIcons.chevron_forward,
+        size: 15,
+        color: isDark
+            ? CupertinoColors.white.withValues(alpha: 0.35)
+            : const Color(0xFFC7C7CC),
       ),
     );
   }

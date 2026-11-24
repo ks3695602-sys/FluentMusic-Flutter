@@ -27,10 +27,10 @@ import 'package:musify/main.dart';
 import 'package:musify/services/common_services.dart';
 import 'package:musify/services/playlist_download_service.dart';
 import 'package:musify/services/settings_manager.dart';
-import 'package:musify/utilities/flutter_bottom_sheet.dart';
 import 'package:musify/utilities/flutter_toast.dart';
 import 'package:musify/utilities/mediaitem.dart';
 import 'package:musify/utilities/playlist_dialogs.dart';
+import 'package:musify/widgets/glass/glass_sheet_style.dart';
 import 'package:musify/widgets/queue_list_view.dart';
 
 class BottomActionsRow extends StatelessWidget {
@@ -76,13 +76,76 @@ class BottomActionsRow extends StatelessWidget {
           ),
 
           // 2. AirPlay / Audio Output Device
-          GlassIconButton(
+          DarkGlassMenuTheme(
+            child: GlassPullDownButton(
             icon: const Icon(
               FluentIcons.speaker_2_24_regular,
               size: 20,
               color: CupertinoColors.white,
             ),
-            onPressed: () => _showAudioOutputSheet(context),
+            semanticLabel: 'Audio output',
+            buttonWidth: 44,
+            buttonHeight: 44,
+            menuWidth: 300,
+            maxStackHeight: MediaQuery.sizeOf(context).height * 0.62,
+            settings: glassSheetSettings(context, brightness: Brightness.dark),
+            items: [
+              const GlassMenuLabel(title: 'Audio output'),
+              GlassMenuItem(
+                title: 'System Default Output',
+                subtitle: 'Follows device audio route',
+                icon: const Icon(CupertinoIcons.speaker_2_fill),
+                isSelected: true,
+                semanticsSelected: true,
+                onTap: () => showToast(
+                  context,
+                  'Use the device volume buttons to change output level',
+                  duration: const Duration(seconds: 2),
+                ),
+              ),
+              GlassMenuItem(
+                title: 'Audio Quality',
+                subtitle: 'Source stream, unchanged',
+                icon: const Icon(CupertinoIcons.music_note),
+                onTap: () {},
+                submenu: [
+                  GlassMenuItem(
+                    title: 'Source Audio',
+                    subtitle: 'Unmodified source stream',
+                    icon: const Icon(CupertinoIcons.waveform),
+                    isSelected: true,
+                    semanticsSelected: true,
+                    onTap: () => showToast(
+                      context,
+                      'FluentMusic streams the source audio without a lossless claim',
+                      duration: const Duration(seconds: 2),
+                    ),
+                  ),
+                  GlassMenuItem(
+                    title: 'No Upscaling',
+                    subtitle: 'Played at source quality',
+                    icon: const Icon(CupertinoIcons.info_circle),
+                    onTap: () => showToast(
+                      context,
+                      'Audio is never upscaled or re-encoded for show',
+                      duration: const Duration(seconds: 2),
+                    ),
+                  ),
+                ],
+              ),
+              const GlassMenuDivider(),
+              GlassMenuItem(
+                title: 'Connection Info',
+                subtitle: 'Set by system audio route',
+                icon: const Icon(CupertinoIcons.antenna_radiowaves_left_right),
+                onTap: () => showToast(
+                  context,
+                  'Change AirPods / speaker routing from the system picker',
+                  duration: const Duration(seconds: 2),
+                ),
+              ),
+            ],
+          ),
           ),
 
           // 3. Queue List Button
@@ -93,9 +156,17 @@ class BottomActionsRow extends StatelessWidget {
               color: CupertinoColors.white,
             ),
             onPressed: () {
-              showCustomBottomSheet(
-                context,
-                const QueueWidget(isBottomSheet: true),
+              GlassModalSheet.show<void>(
+                context: context,
+                useRootNavigator: true,
+                halfSize: 0.68,
+                fullSize: 0.92,
+                enableInteractionGlow: true,
+                detents: const {
+                  GlassSheetDetent.medium,
+                  GlassSheetDetent.large,
+                },
+                builder: (_) => const QueueWidget(isBottomSheet: true),
               );
             },
           ),
@@ -104,45 +175,7 @@ class BottomActionsRow extends StatelessWidget {
     );
   }
 
-  void _showAudioOutputSheet(BuildContext context) {
-    showCupertinoModalPopup(
-      context: context,
-      builder: (ctx) => CupertinoActionSheet(
-        title: const Text(
-          'FluentMusic Lossless Output',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        message: const Text(
-          'Active: Built-in Audio Device\nFormat: 24-bit 48kHz Hi-Res Lossless Audio',
-        ),
-        actions: [
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.pop(ctx);
-              showToast(
-                context,
-                'Audio routing through system high-res mixer',
-                duration: const Duration(seconds: 2),
-              );
-            },
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(CupertinoIcons.speaker_2_fill),
-                SizedBox(width: 8),
-                Text('Device Speaker / Headphones (Default)'),
-              ],
-            ),
-          ),
-        ],
-        cancelButton: CupertinoActionSheetAction(
-          isDefaultAction: true,
-          onPressed: () => Navigator.pop(ctx),
-          child: const Text('Done'),
-        ),
-      ),
-    );
-  }
+
 }
 
 Future<void> toggleSongOffline(

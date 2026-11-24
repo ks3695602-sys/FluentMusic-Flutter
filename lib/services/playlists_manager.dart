@@ -32,6 +32,8 @@ import 'package:musify/services/data_manager.dart';
 import 'package:musify/services/playlist_download_service.dart';
 import 'package:musify/services/proxy_manager.dart';
 import 'package:musify/services/settings_manager.dart';
+import 'package:musify/services/ytmusic_auth_service.dart';
+import 'package:musify/services/ytmusic_library_service.dart';
 import 'package:musify/utilities/app_utils.dart';
 import 'package:musify/utilities/flutter_toast.dart';
 import 'package:musify/utilities/formatter.dart';
@@ -1229,6 +1231,50 @@ Future<List> getSongsFromPlaylist(
   final songList = await getData('cache', 'playlistSongs$playlistId') ?? [];
 
   if (songList.isEmpty) {
+    // Account-sourced playlists (and albums) can be private, so YouTube
+    // Explode cannot read them. Fetch those through the signed-in InnerTube
+    // session first; fall back to the public extractor for everything else.
+    final normalizedId = playlistId?.toString();
+    final isAccountPlaylist = userLikedPlaylists.value.any(
+      (playlist) =>
+          playlist['ytid']?.toString() == normalizedId &&
+          playlist['source'] == 'ytmusic',
+    );
+    if (isAccountPlaylist && ytMusicAuthService.isConnected) {
+      try {
+        final ytMusicSongs = await ytMusicLibraryService.fetchPlaylistSongs(
+          normalizedId!,
+          limit: 500,
+        );
+        if (ytMusicSongs.isNotEmpty) {
+          final songs = playlistImage == null
+              ? ytMusicSongs
+              : ytMusicSongs
+                    .map(
+                      (song) => Map<String, dynamic>.from(song)
+                        ..['image'] = playlistImage
+                        ..['lowResImage'] = playlistImage
+                        ..['highResImage'] = playlistImage,
+                    )
+                    .toList();
+          unawaited(
+            addOrUpdateData<List>(
+              'cache',
+              'playlistSongs$playlistId',
+              songs,
+            ),
+          );
+          return songs;
+        }
+      } catch (e, stackTrace) {
+        logger.log(
+          'InnerTube playlist fetch failed for $playlistId',
+          error: e,
+          stackTrace: stackTrace,
+        );
+      }
+    }
+
     try {
       await for (final song in ytClient.playlists.getVideos(playlistId)) {
         songList.add(

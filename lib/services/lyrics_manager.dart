@@ -25,12 +25,18 @@ import 'dart:developer' as developer;
 
 import 'package:html/parser.dart' as html_parser;
 import 'package:http/http.dart' as http;
+import 'package:musify/services/lyrics/binimum_provider.dart';
+import 'package:musify/services/lyrics/bit_chord_providers.dart';
 import 'package:musify/services/lyrics/lrc_parser.dart';
 import 'package:musify/services/lyrics/lyrics_models.dart';
 import 'package:musify/services/lyrics/lyrics_query.dart';
+import 'package:musify/services/lyrics/lyrics_settings.dart';
 import 'package:musify/services/lyrics/ttml_parser.dart';
+import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 
 export 'package:musify/services/lyrics/lyrics_models.dart';
+export 'package:musify/services/lyrics/lyrics_settings.dart'
+    show LyricsProvider;
 
 class _CacheEntry {
   _CacheEntry(this.value) : storedAt = DateTime.now();
@@ -44,12 +50,25 @@ class _CacheEntry {
 /// fallbacks lyrics.ovh, paroles.net and lyricsmania.com, which are queried
 /// concurrently and consumed in priority order.
 class LyricsManager {
-  LyricsManager({this._client});
+  LyricsManager({
+    http.Client? client,
+    YoutubeExplode? youtube,
+    List<LyricsProvider>? providers,
+  }) : _client = client,
+       _youtube = youtube,
+       _providersOverride = providers;
 
   final http.Client? _client;
 
+  /// Used only by the YouTube Subtitle provider; tests leave it null.
+  final YoutubeExplode? _youtube;
+
+  /// Test-only override; production reads the user's settings.
+  final List<LyricsProvider>? _providersOverride;
+
   static const _timeout = Duration(seconds: 8);
-  static const _userAgent = 'Musify (https://github.com/gokadzev/Musify)';
+  static const _userAgent =
+      'FluentMusic (https://github.com/ks3695602-sys/FluentMusic-Flutter)';
   static const _maxCacheEntries = 50;
   static const _hitTtl = Duration(hours: 6);
   static const _missTtl = Duration(minutes: 5);
@@ -67,6 +86,7 @@ class LyricsManager {
     String title, {
     Duration? duration,
     String? album,
+    String? videoId,
   }) async {
     final lyrics = await fetchLyricsResult(
       TrackInfo(
@@ -74,6 +94,7 @@ class LyricsManager {
         artist: artistName,
         album: album,
         duration: duration,
+        videoId: videoId,
       ),
     );
     if (lyrics == null) return null;
@@ -89,39 +110,50 @@ class LyricsManager {
     final variants = buildSearchVariants(track);
     if (variants.isEmpty) return null;
 
-    final cacheKey = _cacheKey(variants.first);
+    final cacheKey =
+        '${_cacheKey(variants.first, track.videoId)}|${_providerConfigKey()}';
     final cached = _readCache(cacheKey);
     if (cached != null) return cached.value;
 
-    final result = await _search(variants);
+    final result = await _search(variants, track);
     _writeCache(cacheKey, result);
     return result;
   }
 
-  Future<Lyrics?> _search(List<TrackInfo> variants) async {
-    // 1. Priority 1: YouLyPlus (Word/Syllable synchronized lyrics)
-    for (final variant in variants.take(2)) {
-      final youly = await _fetchFromYouLyPlus(variant);
-      if (youly != null && youly.synced != null && youly.synced!.isNotEmpty) {
-        return youly;
+  Future<Lyrics?> _search(List<TrackInfo> variants, TrackInfo track) async {
+    // Providers run in the user's order. A synced result wins immediately; a
+    // plain result is held until every enabled provider has had a chance to
+    // return timestamps. The overall budget stops one dead host from making
+    // the player wait through the whole chain.
+    final providers = _providersOverride ?? enabledLyricsProviders();
+    final deadline = DateTime.now().add(const Duration(seconds: 20));
+    Lyrics? firstPlain;
+
+    for (final provider in providers) {
+      final remaining = deadline.difference(DateTime.now());
+      if (remaining <= Duration.zero) break;
+      if (provider.requiresApiKey && paxsenixApiKey.value.trim().isEmpty) {
+        continue;
+      }
+      final providerBudget = remaining < _timeout ? remaining : _timeout;
+      try {
+        final lyrics = await _fetchFromProvider(
+          provider,
+          variants,
+          track,
+        ).timeout(providerBudget, onTimeout: () => null);
+        if (lyrics == null || lyrics.isEmpty) continue;
+        if (lyrics.isSynced) return lyrics;
+        firstPlain ??= lyrics;
+      } catch (e, st) {
+        _logError('${provider.displayName} lookup failed', e, st);
       }
     }
 
-    // 2. Priority 2: BetterLyrics (Apple TTML Word/Syllable synchronized lyrics)
-    for (final variant in variants.take(2)) {
-      final better = await _fetchFromBetterLyrics(variant);
-      if (better != null && better.synced != null && better.synced!.isNotEmpty) {
-        return better;
-      }
-    }
+    if (firstPlain != null) return firstPlain;
 
-    // 3. Priority 3: LRCLIB (Open community synced LRC)
-    for (final variant in variants.take(3)) {
-      final lrclib = await _fetchFromLrclib(variant);
-      if (lrclib != null) return lrclib;
-    }
-
-    // 4. Priority 4: Plain-text scrapers (un-synced fallback)
+    // Plain-text scrapers stay as the last resort: they need no key and no
+    // registry entry, but their output is never synced.
     for (final variant in variants.take(2)) {
       final pending = <Future<Lyrics?>>[
         _fetchFromLyricsOvh(variant),
@@ -136,13 +168,196 @@ class LyricsManager {
     return null;
   }
 
+  Future<Lyrics?> _fetchFromProvider(
+    LyricsProvider provider,
+    List<TrackInfo> variants,
+    TrackInfo track,
+  ) {
+    switch (provider) {
+      case LyricsProvider.betterLyrics:
+        return _tryVariants(
+          variants,
+          (variant) => fetchBetterLyrics(variant, client: _client),
+        );
+      case LyricsProvider.betterLyricsPortato:
+        return _tryVariants(
+          variants,
+          (variant) =>
+              fetchBetterLyrics(variant, client: _client, portato: true),
+        );
+      case LyricsProvider.youLyPlus:
+        return _tryVariants(
+          variants,
+          (variant) => fetchYouLyPlus(variant, client: _client),
+        );
+      case LyricsProvider.binimum:
+        return _tryVariants(variants, _fetchFromBinimum);
+      case LyricsProvider.lrclib:
+        return _tryVariants(variants, _fetchFromLrclib);
+      case LyricsProvider.kuGou:
+        return _tryVariants(
+          variants,
+          (variant) => fetchKuGou(variant, client: _client),
+        );
+      case LyricsProvider.megalobiz:
+        return _tryVariants(
+          variants,
+          (variant) => fetchMegalobiz(variant, client: _client),
+        );
+      case LyricsProvider.simpMusic:
+        return fetchSimpMusic(track, client: _client);
+      case LyricsProvider.unison:
+        return _fetchFromUnison(track);
+      case LyricsProvider.paxsenixAppleMusic:
+        return fetchPaxsenix(
+          track,
+          PaxsenixKind.appleMusic,
+          apiKey: paxsenixApiKey.value,
+          client: _client,
+        );
+      case LyricsProvider.paxsenixSpotify:
+        return fetchPaxsenix(
+          track,
+          PaxsenixKind.spotify,
+          apiKey: paxsenixApiKey.value,
+          client: _client,
+        );
+      case LyricsProvider.paxsenixMusixmatch:
+        return fetchPaxsenix(
+          track,
+          PaxsenixKind.musixmatch,
+          apiKey: paxsenixApiKey.value,
+          client: _client,
+        );
+      case LyricsProvider.youtubeSubtitle:
+        return _fetchYouTubeSubtitle(track);
+      case LyricsProvider.youtubeMusic:
+        return fetchYouTubeMusic(track, client: _client);
+    }
+  }
+
+  Future<Lyrics?> _fetchYouTubeSubtitle(TrackInfo track) async {
+    final youtube = _youtube ?? YoutubeExplode();
+    final shouldClose = _youtube == null;
+    try {
+      return await fetchYouTubeSubtitle(track, youtube);
+    } finally {
+      if (shouldClose) youtube.close();
+    }
+  }
+
+  Future<Lyrics?> _tryVariants(
+    List<TrackInfo> variants,
+    Future<Lyrics?> Function(TrackInfo) fetch,
+  ) async {
+    for (final variant in variants.take(2)) {
+      final lyrics = await fetch(variant);
+      if (lyrics != null && !lyrics.isEmpty) return lyrics;
+    }
+    return null;
+  }
+
+  // ----------------------------------------------------------------- Unison
+
+  /// Looks a track up on Unison, the crowdsourced database Better Lyrics reads
+  /// from.
+  ///
+  /// The lookup is keyed on the YouTube video id, so it needs no fuzzy
+  /// matching. Unison requires attribution: the returned [Lyrics.credit] says
+  /// "Lyrics from Unison" and names the submitter. See
+  /// `THIRD_PARTY_NOTICES.md`.
+  Future<Lyrics?> _fetchFromUnison(TrackInfo track) async {
+    final videoId = track.videoId?.trim();
+    if (videoId == null || videoId.isEmpty) return null;
+
+    try {
+      final uri = Uri.https('unison.betterlyrics.org', '/lyrics', {
+        'v': videoId,
+      });
+      final response = await _get(uri);
+      if (response.statusCode != 200) return null;
+
+      final body = utf8.decode(response.bodyBytes, allowMalformed: true);
+      final json = jsonDecode(body);
+      if (json is! Map || json['success'] != true) return null;
+
+      final data = json['data'];
+      if (data is! Map) {
+        // Accept the API envelope directly as well (used by older mirrors).
+        if (json['lyrics'] is String) {
+          return _parseUnisonData(json);
+        }
+        return null;
+      }
+
+      return _parseUnisonData(data);
+    } catch (e, st) {
+      _logError('Unison lookup failed', e, st);
+      return null;
+    }
+  }
+
+  Lyrics? _parseUnisonData(Map data) {
+    final raw = (data['lyrics'] ?? '').toString();
+    if (raw.trim().isEmpty) return null;
+
+    final envelope = _tryDecodeJson(raw);
+    if (envelope is Map) {
+      final nested = envelope['data'];
+      if (nested is Map) {
+        final nestedLyrics = (nested['lyrics'] ?? '').toString().trim();
+        if (nestedLyrics.isEmpty) return null;
+        return Lyrics(source: 'Unison', plain: nestedLyrics);
+      }
+      return null;
+    }
+
+    final format = (data['format'] ?? '').toString().toLowerCase();
+    final syncType = (data['syncType'] ?? '').toString().toLowerCase();
+
+    List<LyricLine>? synced;
+    if (format == 'ttml' || raw.trimLeft().startsWith('<tt')) {
+      final lines = parseTtml(raw);
+      if (lines.isNotEmpty) synced = lines;
+    } else if (format == 'lrc' ||
+        syncType == 'richsync' ||
+        syncType == 'linesync') {
+      final lines = parseLrc(raw);
+      if (lines.isNotEmpty) synced = lines;
+    }
+
+    final plain = synced != null
+        ? synced.map((line) => line.text).join('\n')
+        : raw.trim();
+    final submitter = data['submitter'];
+    final displayName = submitter is Map
+        ? (submitter['displayName'] ?? '').toString().trim()
+        : '';
+    final credit = displayName.isEmpty
+        ? 'Lyrics from Unison'
+        : 'Lyrics from Unison · submitted by $displayName';
+
+    final lyrics = Lyrics(
+      source: 'Unison',
+      plain: plain.isEmpty ? null : plain,
+      synced: synced,
+      credit: credit,
+    );
+    return lyrics.isEmpty ? null : lyrics;
+  }
+
+  Object? _tryDecodeJson(String input) {
+    try {
+      return jsonDecode(input);
+    } on FormatException {
+      return null;
+    }
+  }
+
   // ------------------------------------------------------------- YouLyPlus
 
   Future<Lyrics?> _fetchFromYouLyPlus(TrackInfo track) async {
-    const mirrors = [
-      'lyricsplus.prjktla.my.id',
-      'lyricsplus.binimum.org',
-    ];
+    const mirrors = ['lyricsplus.prjktla.my.id', 'lyricsplus.binimum.org'];
 
     for (final host in mirrors) {
       try {
@@ -197,8 +412,9 @@ class LyricsManager {
             final lines = <LyricLine>[];
             for (final item in rawLyrics) {
               if (item is Map) {
-                final timeMs =
-                    item['time'] is num ? (item['time'] as num).toInt() : 0;
+                final timeMs = item['time'] is num
+                    ? (item['time'] as num).toInt()
+                    : 0;
                 final text = (item['text'] ?? '').toString().trim();
                 if (text.isNotEmpty) {
                   lines.add(LyricLine(Duration(milliseconds: timeMs), text));
@@ -225,10 +441,7 @@ class LyricsManager {
 
   Future<Lyrics?> _fetchFromBetterLyrics(TrackInfo track) async {
     try {
-      final queryParams = <String, String>{
-        's': track.title,
-        'a': track.artist,
-      };
+      final queryParams = <String, String>{'s': track.title, 'a': track.artist};
       if (track.album != null && track.album!.trim().isNotEmpty) {
         queryParams['al'] = track.album!;
       }
@@ -257,6 +470,17 @@ class LyricsManager {
       );
     } catch (e, st) {
       _logError('BetterLyrics lookup failed', e, st);
+      return null;
+    }
+  }
+
+  // ------------------------------------------------------------- Binimum
+
+  Future<Lyrics?> _fetchFromBinimum(TrackInfo track) async {
+    try {
+      return await fetchFromBinimum(track, client: _client);
+    } catch (e, st) {
+      _logError('Binimum lookup failed', e, st);
       return null;
     }
   }
@@ -404,9 +628,13 @@ class LyricsManager {
     );
   }
 
-  String _cacheKey(TrackInfo t) {
+  String _providerConfigKey() => lyricsProviderConfigSignature();
+
+  String _cacheKey(TrackInfo t, [String? videoId]) {
     final seconds = t.duration?.inSeconds ?? 0;
-    return '${foldDiacritics(t.artist)}|${foldDiacritics(t.title)}|$seconds';
+    final id = (videoId ?? t.videoId)?.trim();
+    final idPart = (id == null || id.isEmpty) ? '' : '|$id';
+    return '${foldDiacritics(t.artist)}|${foldDiacritics(t.title)}|$seconds$idPart';
   }
 
   _CacheEntry? _readCache(String key) {

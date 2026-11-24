@@ -34,6 +34,7 @@ import 'package:musify/services/common_services.dart';
 import 'package:musify/services/data_manager.dart';
 import 'package:musify/services/listening_stats_service.dart';
 import 'package:musify/services/settings_manager.dart';
+import 'package:musify/services/streaming/chunked_stream_proxy.dart';
 import 'package:musify/utilities/map_utils.dart';
 import 'package:musify/utilities/media_duration.dart';
 import 'package:musify/utilities/mediaitem.dart';
@@ -53,9 +54,16 @@ class MusifyAudioHandler extends BaseAudioHandler implements AndroidAutoHost {
           : AudioPipeline(androidAudioEffects: [androidEqualizer]),
       audioLoadConfiguration: const AudioLoadConfiguration(
         androidLoadControl: AndroidLoadControl(
-          maxBufferDuration: Duration(seconds: 60),
+          // BitChord's PlaybackService keeps fifteen minutes ahead and
+          // resumes after a stall with two seconds in hand. The old sixty
+          // second ceiling meant a single slow range could drain the buffer
+          // before the next one arrived.
+          minBufferDuration: Duration(seconds: 30),
+          maxBufferDuration: Duration(minutes: 15),
           bufferForPlaybackDuration: Duration(milliseconds: 500),
-          bufferForPlaybackAfterRebufferDuration: Duration(seconds: 3),
+          bufferForPlaybackAfterRebufferDuration: Duration(seconds: 2),
+          prioritizeTimeOverSizeThresholds: true,
+          backBufferDuration: Duration(seconds: 30),
         ),
       ),
     );
@@ -115,6 +123,12 @@ class MusifyAudioHandler extends BaseAudioHandler implements AndroidAutoHost {
   Timer? _debounceTimer;
   bool sleepTimerExpired = false;
   bool sleepTimerEndOfSong = false;
+
+  // Explore/Shorts preview state. Previews stream the full song and simply
+  // pause at the limit, so "Play Full Song" can upgrade in place without a
+  // second resolve or buffer.
+  StreamSubscription<Duration>? _previewStopSubscription;
+  Duration? _previewLimit;
 
   // Background stream preload state.
   int _activePreloadCount = 0;
@@ -1522,8 +1536,13 @@ class MusifyAudioHandler extends BaseAudioHandler implements AndroidAutoHost {
         preloadUrl = null;
       } else {
         // fetchSongStreamUrl handles caching, freshness checks, and validation
-        preloadUrl = await fetchSongStreamUrl(ytid, nextSong['isLive'] ?? false)
-            .timeout(
+        preloadUrl =
+            await fetchSongStreamUrl(
+              ytid,
+              nextSong['isLive'] ?? false,
+              title: nextSong['title']?.toString(),
+              artist: nextSong['artist']?.toString(),
+            ).timeout(
               const Duration(seconds: 8),
               onTimeout: () {
                 logger.log('Preload timeout for song $ytid');
@@ -1544,6 +1563,20 @@ class MusifyAudioHandler extends BaseAudioHandler implements AndroidAutoHost {
       }
       if (preloadUrl != null && preloadUrl.isNotEmpty) {
         _preloadedYtIds.add(ytid);
+        // Warm the first bounded range of the next track so the transition
+        // into it starts from memory instead of a fresh CDN round trip.
+        unawaited(
+          ChunkedStreamProxy.instance.prefetch(
+            songId: ytid,
+            url: preloadUrl,
+            headers: streamPlaybackHeadersForUrl(ytid, preloadUrl),
+            totalBytes: knownStreamLengthFor(ytid),
+            contentType: knownStreamContentTypeFor(ytid),
+            chunkBytes: knownZenStreamThrottledFor(ytid)
+                ? ChunkedStreamProxy.largeChunkBytes
+                : null,
+          ),
+        );
       }
     }
   }
@@ -1783,6 +1816,7 @@ class MusifyAudioHandler extends BaseAudioHandler implements AndroidAutoHost {
   @override
   Future<void> stop() async {
     _debounceTimer?.cancel();
+    _clearPreviewStop();
     _completionEventPending = false;
     _currentLoadingIndex = -1;
     _currentLoadingTransitionId = -1;
@@ -1904,12 +1938,84 @@ class MusifyAudioHandler extends BaseAudioHandler implements AndroidAutoHost {
     return transitionId != null && transitionId != _currentLoadingTransitionId;
   }
 
+  /// Plays a short preview of [song] for Explore / Shorts.
+  ///
+  /// The preview uses the normal full stream; [positionStream] simply pauses
+  /// playback once [maxDuration] is reached. Keeping the resolved source alive
+  /// means [playFullSong] can continue from the same buffer instead of
+  /// resolving and buffering the track a second time.
+  Future<bool> playPreviewSong(
+    Map song, {
+    Duration maxDuration = const Duration(seconds: 30),
+  }) async {
+    final previewSong = cloneMap(song)
+      ..['isPreview'] = true
+      ..['isLive'] = false;
+    final success = await playSong(previewSong);
+    if (!success) return false;
+    _armPreviewStop(maxDuration);
+    return true;
+  }
+
+  void _armPreviewStop(Duration maxDuration) {
+    _previewStopSubscription?.cancel();
+    _previewLimit = maxDuration;
+    _previewStopSubscription = audioPlayer.positionStream.listen(
+      (position) {
+        if (position < maxDuration) return;
+        _previewStopSubscription?.cancel();
+        _previewStopSubscription = null;
+        unawaited(audioPlayer.pause());
+        unawaited(audioPlayer.seek(maxDuration));
+      },
+      onError: (Object error, StackTrace stackTrace) {
+        logger.log(
+          'Preview position stream error',
+          error: error,
+          stackTrace: stackTrace,
+        );
+      },
+    );
+  }
+
+  void _clearPreviewStop() {
+    _previewStopSubscription?.cancel();
+    _previewStopSubscription = null;
+    _previewLimit = null;
+  }
+
+  /// Upgrades the current preview into normal full-song playback.
+  ///
+  /// The preview stream is already the full track, so this clears the preview
+  /// flag, rewinds if the preview had already stopped at its limit, and
+  /// resumes. No queue or stream resolution work is needed.
+  Future<void> playFullSong() async {
+    final limit = _previewLimit;
+    _clearPreviewStop();
+
+    final current = mediaItem.valueOrNull;
+    if (current != null && current.extras?['isPreview'] == true) {
+      final extras = Map<String, dynamic>.from(
+        current.extras ?? const <String, dynamic>{},
+      )..remove('isPreview');
+      mediaItem.add(current.copyWith(extras: extras));
+    }
+
+    if (limit != null && audioPlayer.position >= limit) {
+      await audioPlayer.seek(Duration.zero);
+    }
+    await play();
+  }
+
   Future<bool> playSong(
     Map song, {
     String? mediaId,
     int? transitionId,
     bool playWhenReady = true,
   }) async {
+    // Any regular song change ends a preview. playPreviewSong re-arms the
+    // stop timer after playSong succeeds.
+    _clearPreviewStop();
     try {
       final songData = cloneMap(song);
 
@@ -2047,6 +2153,8 @@ class MusifyAudioHandler extends BaseAudioHandler implements AndroidAutoHost {
       final onlineUrl = await fetchSongStreamUrl(
         songData['ytid'],
         songData['isLive'] ?? false,
+        title: songData['title']?.toString(),
+        artist: songData['artist']?.toString(),
       );
 
       if (onlineUrl == null || onlineUrl.isEmpty) {
@@ -2065,7 +2173,12 @@ class MusifyAudioHandler extends BaseAudioHandler implements AndroidAutoHost {
       return _getOfflineSongUrl(song);
     }
 
-    return fetchSongStreamUrl(song['ytid'], song['isLive'] ?? false);
+    return fetchSongStreamUrl(
+      song['ytid'],
+      song['isLive'] ?? false,
+      title: song['title']?.toString(),
+      artist: song['artist']?.toString(),
+    );
   }
 
   Future<String?> _getOfflineSongUrl(Map song) async {
@@ -2237,7 +2350,13 @@ class MusifyAudioHandler extends BaseAudioHandler implements AndroidAutoHost {
 
     if (invalidateCache) await invalidateSongStreamCache(songId);
 
-    final freshUrl = await fetchSongStreamUrl(songId, song['isLive'] ?? false);
+    final freshUrl = await fetchSongStreamUrl(
+      songId,
+      song['isLive'] ?? false,
+      skipSignedIn: true,
+      title: song['title']?.toString(),
+      artist: song['artist']?.toString(),
+    );
     if (freshUrl == null || freshUrl.isEmpty) return false;
 
     final freshSource = await buildAudioSource(song, freshUrl, false);
@@ -2394,13 +2513,38 @@ class MusifyAudioHandler extends BaseAudioHandler implements AndroidAutoHost {
       }
 
       final uri = Uri.parse(songUrl);
-      final needsClientHeaders =
+      final songId = song['ytid']?.toString();
+      final isGoogleVideo =
           song['isLive'] != true && uri.host.endsWith('googlevideo.com');
+      final headers = isGoogleVideo
+          ? streamPlaybackHeadersForUrl(songId, songUrl)
+          : null;
+
+      // googlevideo paces an open-ended read down to roughly playback speed.
+      // Serving the player from a loopback proxy that fetches bounded ranges
+      // keeps the download at line rate. When the proxy cannot run, the
+      // direct URL is used unchanged.
+      //
+      // Zen-resolved throttled URLs accept a ~10 MB range, so one request
+      // covers what ten 1 MB chunks would; everything else keeps 1 MB.
+      final zenThrottled =
+          isGoogleVideo && songId != null && knownZenStreamThrottledFor(songId);
+      final proxiedUri = isGoogleVideo && songId != null
+          ? await ChunkedStreamProxy.instance.register(
+              songId: songId,
+              url: songUrl,
+              headers: headers,
+              totalBytes: knownStreamLengthFor(songId),
+              contentType: knownStreamContentTypeFor(songId),
+              chunkBytes: zenThrottled
+                  ? ChunkedStreamProxy.largeChunkBytes
+                  : null,
+            )
+          : null;
+
       final audioSource = AudioSource.uri(
-        uri,
-        headers: needsClientHeaders
-            ? streamPlaybackHeaders(song['ytid']?.toString())
-            : null,
+        proxiedUri ?? uri,
+        headers: proxiedUri == null ? headers : null,
         tag: tag,
       );
 

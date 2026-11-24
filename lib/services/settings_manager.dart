@@ -20,11 +20,14 @@
  */
 
 import 'package:audio_service/audio_service.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
+import 'package:musify/mornye_player/models/player_background_mode.dart';
 import 'package:musify/screens/playlist_page.dart';
 import 'package:musify/screens/user_songs_page.dart';
+import 'package:musify/theme/glass_config_controller.dart';
+import 'package:musify/theme/player_style.dart';
 import 'package:musify/utilities/language_utils.dart';
 
 // Preferences
@@ -123,16 +126,73 @@ final liquidGlassQualitySetting = ValueNotifier<String>(
   Hive.box('settings').get('liquidGlassQuality', defaultValue: 'premium'),
 );
 
+/// Base presentation used by the player and lyrics surfaces.
+///
+/// `mornye` is the BitChord-style stage: lyric preview on the player, the
+/// full-screen word-sweep lyrics mode and the glass transport stack.
+/// `material` keeps the older plain stage for anyone who prefers it.
+final appStyleSetting = ValueNotifier<String>(
+  Hive.box('settings').get('appStyle', defaultValue: 'mornye'),
+);
+
+/// Persists the base app style. Unknown values fall back to `mornye`.
+void setAppStyle(String style) {
+  final normalized = style == 'material' ? 'material' : 'mornye';
+  if (appStyleSetting.value == normalized) return;
+  appStyleSetting.value = normalized;
+  if (Hive.isBoxOpen('settings')) {
+    Hive.box('settings').put('appStyle', normalized).ignore();
+  }
+}
+
+/// Global glow strength for every liquid-glass surface.
+///
+/// `off` removes interaction glow entirely, `subtle` keeps a restrained
+/// specular halo, and `dhruv` pushes blur, spread and opacity for the
+/// signature glow. Buttons, icon buttons, menus and sheets all resolve
+/// their glow from [getEffectiveGlassTheme], so one value drives the app.
+final glowModeSetting = ValueNotifier<String>(
+  Hive.box('settings').get('glowMode', defaultValue: 'subtle'),
+);
+
+/// Persists the glow mode and refreshes the shared glass theme.
+void setGlowMode(String mode) {
+  final normalized = switch (mode) {
+    'off' => 'off',
+    'dhruv' => 'dhruv',
+    _ => 'subtle',
+  };
+  if (glowModeSetting.value == normalized) return;
+  glowModeSetting.value = normalized;
+  if (Hive.isBoxOpen('settings')) {
+    Hive.box('settings').put('glowMode', normalized).ignore();
+  }
+  updateLiquidGlassTheme();
+}
+
+/// How Now Playing stages the artwork. Defaults to the original full-bleed
+/// immersive look, so existing installs see no change after upgrading.
+final playerStyleSetting = ValueNotifier<PlayerStyle>(
+  PlayerStyle.fromStorage(Hive.box('settings').get('playerStyle')),
+);
+
+/// Persists and broadcasts a new Now Playing presentation.
+void setPlayerStyle(PlayerStyle style) {
+  if (playerStyleSetting.value == style) return;
+  playerStyleSetting.value = style;
+  if (Hive.isBoxOpen('settings')) {
+    Hive.box('settings').put('playerStyle', style.storageValue).ignore();
+  }
+}
+
 final liquidGlassBlurSetting = ValueNotifier<double>(
-  (Hive.box('settings').get('liquidGlassBlur', defaultValue: 4.0) as num).toDouble(),
+  (Hive.box('settings').get('liquidGlassBlur', defaultValue: 4.0) as num)
+      .toDouble(),
 );
 
 final liquidGlassThicknessSetting = ValueNotifier<double>(
-  (Hive.box('settings').get('liquidGlassThickness', defaultValue: 40.0) as num).toDouble(),
-);
-
-final liquidGlassDockOpacitySetting = ValueNotifier<double>(
-  (Hive.box('settings').get('liquidGlassDockOpacity', defaultValue: 0.20) as num).toDouble(),
+  (Hive.box('settings').get('liquidGlassThickness', defaultValue: 40.0) as num)
+      .toDouble(),
 );
 
 final wordByWordLyricsEnabled = ValueNotifier<bool>(
@@ -140,7 +200,8 @@ final wordByWordLyricsEnabled = ValueNotifier<bool>(
 );
 
 final crossfadeDurationSetting = ValueNotifier<double>(
-  (Hive.box('settings').get('crossfadeDuration', defaultValue: 0.0) as num).toDouble(),
+  (Hive.box('settings').get('crossfadeDuration', defaultValue: 0.0) as num)
+      .toDouble(),
 );
 
 final gaplessPlaybackEnabled = ValueNotifier<bool>(
@@ -155,6 +216,114 @@ final pauseOnHeadphoneDisconnect = ValueNotifier<bool>(
   Hive.box('settings').get('pauseOnHeadphoneDisconnect', defaultValue: true),
 );
 
+/// Pause when the in-app volume slider reaches zero, and optionally resume
+/// when it is raised again. Playback itself never depends on these.
+final pauseOnVolumeZero = ValueNotifier<bool>(
+  Hive.box('settings').get('pauseOnVolumeZero', defaultValue: true),
+);
+
+final resumeOnVolumeRaise = ValueNotifier<bool>(
+  Hive.box('settings').get('resumeOnVolumeRaise', defaultValue: true),
+);
+
+/// Experimental D2 switch: try the signed-in YouTube Music session first when
+/// resolving a stream. Off by default; the anonymous path is always the
+/// fallback and is never modified.
+final ytMusicSignedInPlayback = ValueNotifier<bool>(
+  Hive.box('settings').get('ytMusicSignedInPlayback', defaultValue: false),
+);
+
+/// Last-resort stream resolution through the Cobalt bridge.
+///
+/// Every InnerTube client is tried first; this is only reached when all of
+/// them refused the track. The request carries the public video id and no
+/// account data, and the returned URL is short-lived.
+final remoteStreamFallbackEnabled = ValueNotifier<bool>(
+  Hive.box('settings').get('remoteStreamFallbackEnabled', defaultValue: true),
+);
+
+void setRemoteStreamFallback(bool value) {
+  remoteStreamFallbackEnabled.value = value;
+  if (Hive.isBoxOpen('settings')) {
+    Hive.box('settings').put('remoteStreamFallbackEnabled', value).ignore();
+  }
+}
+
+/// BotGuard ("WebPO") tokens for YouTube's web clients.
+///
+/// Web clients mint URLs that stop authorising after the first megabyte
+/// unless the request carries a PO token. The token is produced in a headless
+/// WebView; turning this off falls back to the native and TV clients only.
+final webPoTokensEnabled = ValueNotifier<bool>(
+  Hive.box('settings').get('webPoTokensEnabled', defaultValue: true),
+);
+
+void setWebPoTokensEnabled(bool value) {
+  webPoTokensEnabled.value = value;
+  if (Hive.isBoxOpen('settings')) {
+    Hive.box('settings').put('webPoTokensEnabled', value).ignore();
+  }
+}
+
+/// Besides YouTube, the fallback sources in `services/sources`.
+///
+/// Today that means a JioSaavn catalogue match, asked only when every YouTube
+/// identity refused the track. Spotify is listed but cannot stream: its audio
+/// is DRM-protected.
+final crossSourceFallbackEnabled = ValueNotifier<bool>(
+  Hive.box('settings').get('crossSourceFallbackEnabled', defaultValue: true),
+);
+
+void setCrossSourceFallback(bool value) {
+  crossSourceFallbackEnabled.value = value;
+  if (Hive.isBoxOpen('settings')) {
+    Hive.box('settings').put('crossSourceFallbackEnabled', value).ignore();
+  }
+}
+
+/// The drifting colour mesh behind the player.
+///
+/// Kept for the legacy NowPlayingPage; the Mornye player reads
+/// [playerBackgroundMode] instead.
+final playerMeshBackgroundEnabled = ValueNotifier<bool>(
+  Hive.box('settings').get('playerMeshBackgroundEnabled', defaultValue: true),
+);
+
+void setPlayerMeshBackground(bool value) {
+  playerMeshBackgroundEnabled.value = value;
+  if (Hive.isBoxOpen('settings')) {
+    Hive.box('settings').put('playerMeshBackgroundEnabled', value).ignore();
+  }
+}
+
+/// What the full player renders behind its controls.
+///
+/// Existing installs are migrated from [playerMeshBackgroundEnabled]: mesh off
+/// used to mean "blurred cover only", so those users land on
+/// [PlayerBackgroundMode.blurredAlbumArt] instead of being reset to the
+/// gradient.
+final playerBackgroundMode = ValueNotifier<PlayerBackgroundMode>(
+  _loadPlayerBackgroundMode(),
+);
+
+PlayerBackgroundMode _loadPlayerBackgroundMode() {
+  final stored = Hive.box('settings').get('playerBackgroundMode');
+  final parsed = PlayerBackgroundMode.fromStorage(stored);
+  if (parsed != null) return parsed;
+  return PlayerBackgroundMode.fromLegacyMesh(
+    Hive.box('settings').get('playerMeshBackgroundEnabled'),
+  );
+}
+
+void setPlayerBackgroundMode(PlayerBackgroundMode mode) {
+  playerBackgroundMode.value = mode;
+  if (Hive.isBoxOpen('settings')) {
+    Hive.box('settings')
+        .put('playerBackgroundMode', mode.storageValue)
+        .ignore();
+  }
+}
+
 final saveSearchHistoryEnabled = ValueNotifier<bool>(
   Hive.box('settings').get('saveSearchHistoryEnabled', defaultValue: true),
 );
@@ -168,7 +337,8 @@ final keepPlayingAfterDismiss = ValueNotifier<bool>(
 );
 
 final searchQueueMode = ValueNotifier<String>(
-  Hive.box('settings').get('searchQueueMode', defaultValue: 'search_results') as String,
+  Hive.box('settings').get('searchQueueMode', defaultValue: 'search_results')
+      as String,
 );
 
 void updateKeepPlayingAfterDismiss(bool value) {
@@ -186,7 +356,8 @@ final streamingSourceSetting = ValueNotifier<String>(
 );
 
 final cacheLimitMbSetting = ValueNotifier<double>(
-  (Hive.box('settings').get('cacheLimitMb', defaultValue: 2048.0) as num).toDouble(),
+  (Hive.box('settings').get('cacheLimitMb', defaultValue: 2048.0) as num)
+      .toDouble(),
 );
 
 final smartCacheEnabled = ValueNotifier<bool>(
@@ -204,15 +375,115 @@ GlassQuality parseGlassQuality(String q) {
   }
 }
 
+/// Persists the explicit glass quality tier and refreshes the global theme.
+///
+/// The Glass Lab quality selector owns this value; the adaptive scope no
+/// longer overrides it, so what the user picks is what every surface renders.
+void setLiquidGlassQuality(String quality) {
+  final normalized = switch (quality) {
+    'standard' => 'standard',
+    'minimal' => 'minimal',
+    _ => 'premium',
+  };
+  if (liquidGlassQualitySetting.value == normalized) return;
+  liquidGlassQualitySetting.value = normalized;
+  if (Hive.isBoxOpen('settings')) {
+    Hive.box('settings').put('liquidGlassQuality', normalized).ignore();
+  }
+  updateLiquidGlassTheme();
+}
+
+/// Resolves the shared glass theme from the Glass Lab config.
+///
+/// The tint colour is stored as `0xAARRGGBB`; its alpha is the separate
+/// transparency value, so one colour works in both appearances.
 GlassThemeData getEffectiveGlassTheme() {
-  return GlassThemeData.simple(
-    blur: liquidGlassBlurSetting.value,
-    thickness: liquidGlassThicknessSetting.value,
+  final config = glassConfigController.config;
+  final tintColor = Color(config.tintColor).withValues(alpha: config.tint);
+  final saturation = config.dynamicTint ? config.saturation : 1.0;
+  final base = GlassThemeData.simple(
+    blur: config.blur,
+    thickness: config.thickness,
     quality: parseGlassQuality(liquidGlassQualitySetting.value),
+    chromaticAberration: config.chromaticAberration,
+    refractiveIndex: config.refraction,
+    saturation: saturation,
+  );
+
+  // One glow palette for every glass surface. The raw tint stays readable
+  // as the glow hue; only alpha, blur, spread and opacity change per mode.
+  final glowHue = Color(config.tintColor);
+  final glowColors = switch (glowModeSetting.value) {
+    'off' => GlassGlowColors(
+      primary: glowHue.withValues(alpha: 0),
+      glowBlurRadius: 0,
+      glowSpreadRadius: 0,
+      glowOpacity: 0,
+    ),
+    'dhruv' => GlassGlowColors(
+      primary: glowHue.withValues(alpha: 0.8),
+      glowBlurRadius: 16,
+      glowSpreadRadius: 0.2,
+      glowOpacity: 1,
+    ),
+    _ => GlassGlowColors(
+      primary: glowHue.withValues(alpha: 0.35),
+      glowBlurRadius: 6,
+      glowSpreadRadius: 0.05,
+      glowOpacity: 0.8,
+    ),
+  };
+
+  GlassThemeVariant tune(GlassThemeVariant variant) {
+    final settings = variant.settings ?? const GlassThemeSettings();
+    return variant.copyWith(
+      glowColors: glowColors,
+      settings: settings.copyWith(
+        glassColor: tintColor,
+        frost: config.frost,
+        blur: config.blur,
+        thickness: config.thickness,
+        chromaticAberration: config.chromaticAberration,
+        refractiveIndex: config.refraction,
+        saturation: saturation,
+      ),
+    );
+  }
+
+  return GlassThemeData(
+    style: base.style,
+    light: tune(base.light),
+    dark: tune(base.dark),
+    interaction: base.interaction,
+    brightness: base.brightness,
   );
 }
 
-final liquidGlassThemeNotifier = ValueNotifier<GlassThemeData>(getEffectiveGlassTheme());
+/// Dock-specific glass settings, so the tab bar can be tuned independently
+/// from the rest of the app while staying inside the same glass group.
+LiquidGlassSettings getEffectiveDockGlassSettings({required bool isDark}) {
+  final config = glassConfigController.config;
+  final theme = liquidGlassThemeNotifier.value;
+  final variant = isDark ? theme.dark : theme.light;
+  final base = (variant.settings ?? const GlassThemeSettings()).applyTo(
+    const LiquidGlassSettings(),
+  );
+  final color = Color(config.dockTintColor ?? config.tintColor);
+  final alpha = config.dockTint ?? config.tint;
+  return base.copyWith(
+    blur: config.blur,
+    frost: config.frost,
+    thickness: config.thickness,
+    chromaticAberration: config.chromaticAberration,
+    refractiveIndex: config.refraction,
+    saturation: config.dynamicTint ? config.saturation : 1.0,
+    glassColor: color.withValues(alpha: alpha),
+  );
+}
+
+final liquidGlassThemeNotifier = ValueNotifier<GlassThemeData>(
+  getEffectiveGlassTheme(),
+);
 
 void updateLiquidGlassTheme() {
   liquidGlassThemeNotifier.value = getEffectiveGlassTheme();
@@ -270,6 +541,10 @@ void reloadSettingsFromStorage() {
     'showAudioQualityBadge',
     defaultValue: false,
   );
+  ytMusicSignedInPlayback.value = settings.get(
+    'ytMusicSignedInPlayback',
+    defaultValue: false,
+  );
   syncedLyricsEnabled.value = settings.get(
     'syncedLyricsEnabled',
     defaultValue: true,
@@ -321,10 +596,10 @@ void reloadSettingsFromStorage() {
     'liquidGlassQuality',
     defaultValue: 'premium',
   );
-  liquidGlassBlurSetting.value = (settings.get(
-    'liquidGlassBlur',
-    defaultValue: 4.0,
-  ) as num).toDouble();
+  glowModeSetting.value = settings.get('glowMode', defaultValue: 'subtle');
+  appStyleSetting.value = settings.get('appStyle', defaultValue: 'mornye');
+  liquidGlassBlurSetting.value =
+      (settings.get('liquidGlassBlur', defaultValue: 4.0) as num).toDouble();
   liquidGlassThicknessSetting.value = (settings.get(
     'liquidGlassThickness',
     defaultValue: 40.0,
@@ -335,5 +610,6 @@ void reloadSettingsFromStorage() {
       restoredRepeatIndex < AudioServiceRepeatMode.values.length) {
     repeatNotifier.value = AudioServiceRepeatMode.values[restoredRepeatIndex];
   }
+  glassConfigController.reloadFromStorage();
   updateLiquidGlassTheme();
 }
