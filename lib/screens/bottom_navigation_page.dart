@@ -27,6 +27,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:musify/constants/app_constants.dart';
+import 'package:musify/desktop/windows_window.dart';
 import 'package:musify/extensions/l10n.dart';
 import 'package:musify/main.dart';
 import 'package:musify/services/search_bridge.dart';
@@ -34,6 +35,7 @@ import 'package:musify/services/settings_manager.dart';
 import 'package:musify/theme/glass_config_controller.dart';
 import 'package:musify/utilities/flutter_bottom_sheet.dart'
     show closeCurrentBottomSheet;
+import 'package:musify/widgets/desktop/desktop_glass_sidebar.dart';
 import 'package:musify/widgets/mini_player.dart';
 
 class BottomNavigationPage extends StatefulWidget {
@@ -131,10 +133,25 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
           return LayoutBuilder(
             builder: (context, constraints) {
               final isLargeScreen = MediaQuery.of(context).size.width >= 600;
+              final useDesktopSidebar =
+                  isWindowsDesktop && constraints.maxWidth >= 900;
               final items = _getNavigationItems(isOfflineMode);
 
               final isLight = Theme.of(context).brightness == Brightness.light;
               final glassConfig = GlassConfigScope.of(context).config;
+              final baseBackgroundColors = isLight
+                  ? const [
+                      Color(0xFFF0EBF8),
+                      Color(0xFFF7F7FA),
+                      Color(0xFFE8EEF5),
+                      Color(0xFFFFFFFF),
+                    ]
+                  : const [
+                      Color(0xFF1F122B),
+                      Color(0xFF120D1A),
+                      Color(0xFF09070D),
+                      Color(0xFF000000),
+                    ];
               // A page-owned text field (rename, search inside a page) owns the
               // keyboard viewport. Drop the dock entirely so GlassScaffold does
               // not reserve its 60 px or paint the bottom edge fade behind the
@@ -158,62 +175,81 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: isLight
-                          ? const [
-                              Color(0xFFF0EBF8),
-                              Color(0xFFF7F7FA),
-                              Color(0xFFE8EEF5),
-                              Color(0xFFFFFFFF),
-                            ]
-                          : const [
-                              Color(0xFF1F122B),
-                              Color(0xFF120D1A),
-                              Color(0xFF09070D),
-                              Color(0xFF000000),
-                            ],
+                      // On Windows the client area is transparent so the
+                      // native Mica/Acrylic material shows through. A light
+                      // tint keeps artwork and text readable on top of it.
+                      colors: useDesktopSidebar
+                          ? baseBackgroundColors
+                                .map((color) => color.withValues(alpha: 0.80))
+                                .toList(growable: false)
+                          : baseBackgroundColors,
                       stops: const [0.0, 0.35, 0.70, 1.0],
                     ),
                   ),
                 ),
                 body: SafeArea(
-                  child: Row(
-                    children: [
-                      if (isLargeScreen)
-                        NavigationRail(
-                          labelType: NavigationRailLabelType.selected,
-                          destinations: items
-                              .map(
-                                (item) => NavigationRailDestination(
-                                  icon: Icon(item.icon),
-                                  selectedIcon: Icon(item.selectedIcon),
-                                  label: Text(item.label),
+                  child: Padding(
+                    padding: EdgeInsets.only(top: useDesktopSidebar ? 6 : 0),
+                    child: Row(
+                      children: [
+                        if (useDesktopSidebar)
+                          DesktopGlassSidebar(
+                            items: [
+                              for (var i = 0; i < items.length; i++)
+                                DesktopNavItem(
+                                  icon: items[i].icon,
+                                  selectedIcon: items[i].selectedIcon,
+                                  label: items[i].label,
+                                  index: i,
                                 ),
-                              )
-                              .toList(),
-                          selectedIndex: _getCurrentIndex(items, isOfflineMode),
-                          onDestinationSelected: (index) =>
-                              _onTabTapped(index, items),
+                            ],
+                            selectedIndex: _getCurrentIndex(
+                              items,
+                              isOfflineMode,
+                            ),
+                            onSelect: (index) => _onTabTapped(index, items),
+                            isDark: !isLight,
+                          )
+                        else if (isLargeScreen)
+                          NavigationRail(
+                            labelType: NavigationRailLabelType.selected,
+                            destinations: items
+                                .map(
+                                  (item) => NavigationRailDestination(
+                                    icon: Icon(item.icon),
+                                    selectedIcon: Icon(item.selectedIcon),
+                                    label: Text(item.label),
+                                  ),
+                                )
+                                .toList(),
+                            selectedIndex: _getCurrentIndex(
+                              items,
+                              isOfflineMode,
+                            ),
+                            onDestinationSelected: (index) =>
+                                _onTabTapped(index, items),
+                          ),
+                        Expanded(
+                          child: NotificationListener<ScrollNotification>(
+                            onNotification: (notification) {
+                              // The search field owns the screen while it is
+                              // open; scrolling results must not tuck the dock
+                              // away underneath the keyboard. Same for any
+                              // other keyboard session (dialogs, rename fields).
+                              final keyboardOpen =
+                                  MediaQuery.viewInsetsOf(context).bottom > 0;
+                              if (!_isSearchActive && !keyboardOpen) {
+                                _dockMinimizeController.handleNotification(
+                                  notification,
+                                );
+                              }
+                              return false;
+                            },
+                            child: widget.child,
+                          ),
                         ),
-                      Expanded(
-                        child: NotificationListener<ScrollNotification>(
-                          onNotification: (notification) {
-                            // The search field owns the screen while it is
-                            // open; scrolling results must not tuck the dock
-                            // away underneath the keyboard. Same for any
-                            // other keyboard session (dialogs, rename fields).
-                            final keyboardOpen =
-                                MediaQuery.viewInsetsOf(context).bottom > 0;
-                            if (!_isSearchActive && !keyboardOpen) {
-                              _dockMinimizeController.handleNotification(
-                                notification,
-                              );
-                            }
-                            return false;
-                          },
-                          child: widget.child,
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
                 bottomBar: !isLargeScreen && !dockHiddenForKeyboard
@@ -227,8 +263,10 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
                           return GlassTabBar.searchable(
                             isSearchActive: searchExpanded,
                             minimizeController: _dockMinimizeController,
-                            selectedIndex:
-                                _getCurrentIndex(items, isOfflineMode),
+                            selectedIndex: _getCurrentIndex(
+                              items,
+                              isOfflineMode,
+                            ),
                             onTabSelected: (index) {
                               if (_isSearchActive) {
                                 _setSearchActive(false);
@@ -255,30 +293,26 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
                             ),
                             selectedIconColor: const Color(0xFFFF2D55),
                             unselectedIconColor: isLight
-                                ? CupertinoColors.black
-                                    .withValues(alpha: 0.65)
-                                : CupertinoColors.white
-                                    .withValues(alpha: 0.85),
+                                ? CupertinoColors.black.withValues(alpha: 0.65)
+                                : CupertinoColors.white.withValues(alpha: 0.85),
                             labelFontSize: 10,
                             iconSize: 26,
                             iconLabelSpacing: 0,
                             quality: parseGlassQuality(
                               liquidGlassQualitySetting.value,
                             ),
-                            interactionBehavior:
-                                GlassInteractionBehavior.full,
+                            interactionBehavior: GlassInteractionBehavior.full,
                             pressScale: 0.96,
                             // Dynamic tint OFF freezes the dock to the chosen
                             // colour; ON lets it sample the backdrop. The
                             // content-aware scope is off, so keep this tied to
                             // the explicit toggle instead of a grey wash.
                             adaptiveBrightness: false,
-                            barBorderRadius: glassConfig.barRadius ??
+                            barBorderRadius:
+                                glassConfig.barRadius ??
                                 GlassDefaults.capsuleRadius,
-                            indicatorBorderRadius:
-                                glassConfig.indicatorRadius,
-                            indicatorPinchStrength:
-                                glassConfig.pinchStrength,
+                            indicatorBorderRadius: glassConfig.indicatorRadius,
+                            indicatorPinchStrength: glassConfig.pinchStrength,
                             indicatorExpansion: EdgeInsets.symmetric(
                               horizontal: glassConfig.expansionH,
                               vertical: glassConfig.expansionV,
@@ -290,10 +324,9 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
                             // glass instead of stacking a second surface.
                             bottomAccessory:
                                 isMiniPlayerVisible && !searchExpanded
-                                    ? const MiniPlayer()
-                                    : null,
-                            bottomAccessoryHeight:
-                                MiniPlayer.playerHeight + 8,
+                                ? const MiniPlayer()
+                                : null,
+                            bottomAccessoryHeight: MiniPlayer.playerHeight + 8,
                             bottomAccessorySpacing: 6,
                             searchConfig: GlassSearchBarConfig(
                               controller: _inlineSearchController,
@@ -330,10 +363,12 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
                                 }
                               },
                               searchIconColor: isLight
-                                  ? CupertinoColors.black
-                                      .withValues(alpha: 0.85)
-                                  : CupertinoColors.white
-                                      .withValues(alpha: 0.9),
+                                  ? CupertinoColors.black.withValues(
+                                      alpha: 0.85,
+                                    )
+                                  : CupertinoColors.white.withValues(
+                                      alpha: 0.9,
+                                    ),
                             ),
                           );
                         },

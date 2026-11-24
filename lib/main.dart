@@ -33,10 +33,14 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:just_audio_media_kit/just_audio_media_kit.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:musify/desktop/windows_window.dart';
 import 'package:musify/extensions/l10n.dart';
 import 'package:musify/localization/app_localizations.dart';
 import 'package:musify/mornye_player/l10n/l10n.dart' as mornye_l10n;
 import 'package:musify/services/account_service.dart';
+import 'package:musify/services/announcements/announcement_service.dart';
+import 'package:musify/services/updates/update_service.dart';
+import 'package:musify/widgets/updates/update_prompt.dart';
 import 'package:musify/services/ytmusic_auth_service.dart';
 import 'package:musify/services/ytmusic_library_store.dart';
 import 'package:musify/services/audio_service.dart';
@@ -52,7 +56,6 @@ import 'package:musify/services/playlists_manager.dart';
 import 'package:musify/services/router_service.dart';
 import 'package:musify/services/settings_manager.dart';
 import 'package:musify/services/sync_service.dart';
-import 'package:musify/services/update_manager.dart';
 import 'package:musify/services/windows_media_controls.dart';
 import 'package:musify/theme/app_themes.dart';
 import 'package:musify/theme/glass_config_controller.dart';
@@ -74,7 +77,6 @@ final logger = Logger();
 final appLinks = AppLinks();
 
 bool isFdroidBuild = false;
-bool isUpdateChecked = false;
 
 class Musify extends StatefulWidget {
   const Musify({super.key});
@@ -178,30 +180,19 @@ class _MusifyState extends State<Musify> with WidgetsBindingObserver {
       );
     }
 
-    if (!isFdroidBuild && isMobilePlatform) {
-      if (shouldWeCheckUpdates.value == true) {
-        if (!isUpdateChecked && kReleaseMode) {
-          SchedulerBinding.instance.addPostFrameCallback((_) {
-            if (!offlineMode.value) {
-              checkAppUpdates();
-            }
-            isUpdateChecked = true;
-          });
+    if (!isFdroidBuild && UpdateService.instance.autoChecksEnabled) {
+      SchedulerBinding.instance.addPostFrameCallback((_) async {
+        if (offlineMode.value) return;
+        try {
+          final result = await UpdateService.instance.checkForUpdates();
+          if (!mounted || !result.updateAvailable) return;
+          if (!UpdateService.instance.shouldPrompt(result)) return;
+          await UpdatePrompt.show(NavigationManager().context, result);
+        } catch (_) {
+          // Background checks stay silent; the Updates settings page reports
+          // failures when the user asks for them explicitly.
         }
-      } else {
-        if (shouldWeCheckUpdates.value == null) {
-          // show dialog that asks user if they want to enable update checks
-          SchedulerBinding.instance.addPostFrameCallback((_) {
-            showUpdateCheckDialog(NavigationManager().context);
-          });
-        } else {
-          SchedulerBinding.instance.addPostFrameCallback((_) async {
-            if (!offlineMode.value) {
-              await fetchAnnouncementOnly();
-            }
-          });
-        }
-      }
+      });
     }
   }
 
@@ -295,6 +286,10 @@ class _MusifyState extends State<Musify> with WidgetsBindingObserver {
         final isDark = themeMode == ThemeMode.system
             ? (brightness == Brightness.dark)
             : (themeMode == ThemeMode.dark);
+
+        if (isWindowsDesktop) {
+          unawaited(applyDesktopWindowMaterial(dark: isDark));
+        }
 
         return AnnotatedRegion<SystemUiOverlayStyle>(
           value: SystemUiOverlayStyle(
@@ -401,6 +396,13 @@ void main() async {
 
   // Keep the global glass theme in sync with the Glass Lab tuner.
   glassConfigController.addListener(updateLiquidGlassTheme);
+
+  try {
+    await initializeDesktopWindow(dark: brightness == Brightness.dark);
+  } catch (error, stackTrace) {
+    debugPrint('[Desktop] Window setup failed: $error');
+    debugPrintStack(stackTrace: stackTrace);
+  }
 
   runApp(
     ProviderScope(
@@ -581,8 +583,8 @@ Future<void> initialisation() async {
       logger.log('Failed to get initial uri');
     }
 
-    if (isFdroidBuild && !offlineMode.value) {
-      await fetchAnnouncementOnly();
+    if (!offlineMode.value) {
+      unawaited(fetchAnnouncementOnly());
     }
   } catch (e, stackTrace) {
     logger.log('Initialization Error', error: e, stackTrace: stackTrace);

@@ -21,6 +21,7 @@ import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:musify/extensions/l10n.dart';
 import 'package:musify/screens/settings/account_page.dart';
 import 'package:musify/screens/settings/settings_subpages.dart';
+import 'package:musify/screens/settings/updates_page.dart';
 import 'package:musify/widgets/mini_player_bottom_space.dart';
 
 class SettingsPage extends StatelessWidget {
@@ -36,9 +37,10 @@ class SettingsPage extends StatelessWidget {
     final topPadding = MediaQuery.paddingOf(context).top;
 
     void open(Widget page) {
-      Navigator.of(context, rootNavigator: true).push(
-        CupertinoPageRoute<void>(builder: (_) => page),
-      );
+      Navigator.of(
+        context,
+        rootNavigator: true,
+      ).push(CupertinoPageRoute<void>(builder: (_) => page));
     }
 
     return GlassScaffold(
@@ -64,7 +66,7 @@ class SettingsPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  'FluentMusic 1.5.3 · Balanced Glass edition',
+                  'FluentMusic 1.5.4 · Liquid Glass edition',
                   style: TextStyle(
                     fontSize: 13,
                     color: subtitleColor,
@@ -153,13 +155,20 @@ class SettingsPage extends StatelessWidget {
                 tint: const Color(0xFF30D158),
                 onTap: () => open(const AndroidAutoSettingsPage()),
               ),
+              _SettingsTile(
+                title: 'Updates',
+                subtitle: 'Automatic checks and release notes',
+                icon: CupertinoIcons.arrow_down_circle_fill,
+                tint: const Color(0xFFFF2D55),
+                onTap: () => open(const UpdatesSettingsPage()),
+              ),
             ],
           ),
 
           const SizedBox(height: 10),
           Center(
             child: Text(
-              'v1.5.3 (17) · built with an unhealthy amount of glass',
+              'v1.5.4 (18) · built with an unhealthy amount of glass',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 11.5,
