@@ -47,6 +47,11 @@ jobs:
           yes | sdkmanager --licenses || true
           sdkmanager "platforms;android-36" "platforms;android-35" || true
 
+      - name: Install Linux Desktop Dependencies (for native assets in tests)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libgtk-3-dev libx11-dev libxi-dev libxxf86vm-dev libxrandr-dev libxinerama-dev libxcursor-dev libxfixes-dev libxdamage-dev libxext-dev libxrender-dev libxtst-dev libasound2-dev libpulse-dev libudev-dev libdbus-1-dev libwayland-dev libxkbcommon-dev 2>/dev/null | tail -5
+
       - name: Install Dependencies
         run: flutter pub get
 
