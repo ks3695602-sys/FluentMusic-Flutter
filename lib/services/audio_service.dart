@@ -1536,12 +1536,13 @@ class MusifyAudioHandler extends BaseAudioHandler implements AndroidAutoHost {
         preloadUrl = null;
       } else {
         // fetchSongStreamUrl handles caching, freshness checks, and validation
-        preloadUrl = await fetchSongStreamUrl(
-          ytid,
-          nextSong['isLive'] ?? false,
-          title: nextSong['title']?.toString(),
-          artist: nextSong['artist']?.toString(),
-        ).timeout(
+        preloadUrl =
+            await fetchSongStreamUrl(
+              ytid,
+              nextSong['isLive'] ?? false,
+              title: nextSong['title']?.toString(),
+              artist: nextSong['artist']?.toString(),
+            ).timeout(
               const Duration(seconds: 8),
               onTimeout: () {
                 logger.log('Preload timeout for song $ytid');
@@ -1571,6 +1572,9 @@ class MusifyAudioHandler extends BaseAudioHandler implements AndroidAutoHost {
             headers: streamPlaybackHeadersForUrl(ytid, preloadUrl),
             totalBytes: knownStreamLengthFor(ytid),
             contentType: knownStreamContentTypeFor(ytid),
+            chunkBytes: knownZenStreamThrottledFor(ytid)
+                ? ChunkedStreamProxy.largeChunkBytes
+                : null,
           ),
         );
       }
@@ -2512,13 +2516,19 @@ class MusifyAudioHandler extends BaseAudioHandler implements AndroidAutoHost {
       final songId = song['ytid']?.toString();
       final isGoogleVideo =
           song['isLive'] != true && uri.host.endsWith('googlevideo.com');
-      final headers =
-          isGoogleVideo ? streamPlaybackHeadersForUrl(songId, songUrl) : null;
+      final headers = isGoogleVideo
+          ? streamPlaybackHeadersForUrl(songId, songUrl)
+          : null;
 
       // googlevideo paces an open-ended read down to roughly playback speed.
       // Serving the player from a loopback proxy that fetches bounded ranges
       // keeps the download at line rate. When the proxy cannot run, the
       // direct URL is used unchanged.
+      //
+      // Zen-resolved throttled URLs accept a ~10 MB range, so one request
+      // covers what ten 1 MB chunks would; everything else keeps 1 MB.
+      final zenThrottled =
+          isGoogleVideo && songId != null && knownZenStreamThrottledFor(songId);
       final proxiedUri = isGoogleVideo && songId != null
           ? await ChunkedStreamProxy.instance.register(
               songId: songId,
@@ -2526,6 +2536,9 @@ class MusifyAudioHandler extends BaseAudioHandler implements AndroidAutoHost {
               headers: headers,
               totalBytes: knownStreamLengthFor(songId),
               contentType: knownStreamContentTypeFor(songId),
+              chunkBytes: zenThrottled
+                  ? ChunkedStreamProxy.largeChunkBytes
+                  : null,
             )
           : null;
 

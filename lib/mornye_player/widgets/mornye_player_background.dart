@@ -1,8 +1,10 @@
 import 'dart:ui' as ui;
 
 import 'package:material_ui/material_ui.dart';
+import 'package:musify/mornye_player/models/player_background_mode.dart';
 import 'package:musify/mornye_player/theme/app_motion.dart';
 import 'package:musify/mornye_player/theme/cover_palette.dart';
+import 'package:musify/mornye_player/widgets/cached_cover_image.dart';
 
 /// The player's background for a cover whose average is [sourceColor]: three
 /// cover-derived tones, the middle one hue-shifted, so the mesh reads vivid
@@ -71,12 +73,16 @@ class MornyePlayerBackground extends StatelessWidget {
     this.squareArtwork = true,
     this.artworkAspectRatio,
     this.fadeStart = 0.58,
+    this.mode = PlayerBackgroundMode.cinematic,
   });
 
   final Uri? artUri;
   final Widget? artwork;
   final bool squareArtwork;
   final double? artworkAspectRatio;
+
+  /// Which bed renders behind the player.
+  final PlayerBackgroundMode mode;
 
   /// Fraction of the artwork's height that stays sharp before fading out.
   final double fadeStart;
@@ -96,15 +102,19 @@ class MornyePlayerBackground extends StatelessWidget {
       child: CoverSourceColorBuilder(
         imageSource: artUri?.toString(),
         builder: (context, sourceColor) {
-          final motion = mornyePlayerPanelMotion(context);
-          final background = mornyePlayerGradient(
-            sourceColor,
-            fullBleed: artwork != null,
-          );
           final artworkHeight = mornyeArtworkHeight(
             MediaQuery.sizeOf(context),
             squareArtwork: squareArtwork,
             aspectRatio: artworkAspectRatio,
+          );
+          if (mode != PlayerBackgroundMode.cinematic) {
+            return _buildArtworkBed(context, sourceColor, artworkHeight);
+          }
+
+          final motion = mornyePlayerPanelMotion(context);
+          final background = mornyePlayerGradient(
+            sourceColor,
+            fullBleed: artwork != null,
           );
           return TweenAnimationBuilder<LinearGradient>(
             tween: _GradientTween(end: background),
@@ -129,38 +139,114 @@ class MornyePlayerBackground extends StatelessWidget {
                 ],
               ),
             ),
-            child: Positioned(
-              left: 0,
-              right: 0,
-              top: 0,
-              height: artworkHeight,
-              child: HeroMode(
-                // The compact header owns the route hero while the
-                // full cover is fading out behind the lyrics.
-                enabled: artwork != null,
-                child: AnimatedSwitcher(
-                  duration: motion.duration,
-                  switchInCurve: motion.curve,
-                  switchOutCurve: motion.leaving,
-                  layoutBuilder: (current, previous) => Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      for (final child in previous)
-                        HeroMode(enabled: false, child: child),
-                      ?current,
-                    ],
-                  ),
-                  child: artwork == null
-                      ? null
-                      : KeyedSubtree(
-                          key: const ValueKey('full-player-artwork'),
-                          child: artwork!,
-                        ),
-                ),
-              ),
-            ),
+            child: _artworkSwitcher(context, artworkHeight),
           );
         },
+      ),
+    );
+  }
+
+  /// Full-bleed cover bed for [PlayerBackgroundMode.albumArt] and
+  /// [PlayerBackgroundMode.blurredAlbumArt].
+  ///
+  /// The blur is painted once inside a [RepaintBoundary], not per frame, so a
+  /// large sigma costs the same as the static image it replaces.
+  Widget _buildArtworkBed(
+    BuildContext context,
+    Color? sourceColor,
+    double artworkHeight,
+  ) {
+    final provider = coverImageProvider(artUri?.toString());
+    if (provider == null) {
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: mornyePlayerGradient(sourceColor, fullBleed: false),
+            ),
+          ),
+          if (artwork != null) _artworkSwitcher(context, artworkHeight),
+        ],
+      );
+    }
+
+    Widget image = Image(
+      image: provider,
+      fit: BoxFit.cover,
+      gaplessPlayback: true,
+      filterQuality: mode == PlayerBackgroundMode.albumArt
+          ? FilterQuality.high
+          : FilterQuality.medium,
+      errorBuilder: (_, __, ___) => const ColoredBox(color: Colors.black),
+    );
+
+    final blurred = mode == PlayerBackgroundMode.blurredAlbumArt;
+    if (blurred) {
+      image = ImageFiltered(
+        imageFilter: ui.ImageFilter.blur(
+          sigmaX: 70,
+          sigmaY: 70,
+          tileMode: ui.TileMode.clamp,
+        ),
+        child: Transform.scale(scale: 1.18, child: image),
+      );
+    }
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        RepaintBoundary(child: image),
+        // Keeps the white player labels readable over bright covers.
+        DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.black.withValues(alpha: blurred ? 0.30 : 0.12),
+                Colors.black.withValues(alpha: blurred ? 0.48 : 0.30),
+                Colors.black.withValues(alpha: 0.70),
+              ],
+              stops: const [0, 0.55, 1],
+            ),
+          ),
+        ),
+        if (artwork != null) _artworkSwitcher(context, artworkHeight),
+      ],
+    );
+  }
+
+  Widget _artworkSwitcher(BuildContext context, double artworkHeight) {
+    final motion = mornyePlayerPanelMotion(context);
+    return Positioned(
+      left: 0,
+      right: 0,
+      top: 0,
+      height: artworkHeight,
+      child: HeroMode(
+        // The compact header owns the route hero while the full cover is
+        // fading out behind the lyrics.
+        enabled: artwork != null,
+        child: AnimatedSwitcher(
+          duration: motion.duration,
+          switchInCurve: motion.curve,
+          switchOutCurve: motion.leaving,
+          layoutBuilder: (current, previous) => Stack(
+            fit: StackFit.expand,
+            children: [
+              for (final child in previous)
+                HeroMode(enabled: false, child: child),
+              ?current,
+            ],
+          ),
+          child: artwork == null
+              ? const SizedBox.shrink()
+              : KeyedSubtree(
+                  key: const ValueKey('full-player-artwork'),
+                  child: artwork!,
+                ),
+        ),
       ),
     );
   }

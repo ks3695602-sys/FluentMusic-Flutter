@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.5.4+18 - Player backgrounds, Zen Music and configurable lyrics
+
+### Player and streaming
+- Fixed player controls and labels rendering dark in light mode.
+- Added Cinematic, Album Art and Blurred Album Art player background modes, with migration from the previous mesh toggle.
+- Added Zen Music as the preferred stream resolver while preserving the existing fallback ladder; throttled Zen streams receive larger range chunks.
+
+### Lyrics
+- Added configurable BitChord/ArchiveTune lyrics providers with provider enable/disable and priority ordering.
+- Added encrypted Paxsenix API-key storage and settings.
+- Preserved attribution notices for Unison and GPL-3.0 provider ports.
+
 ## 1.5.3+17 - UI recovery, account shelves and a calmer player
 
 ### Player and sheets

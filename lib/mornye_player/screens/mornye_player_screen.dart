@@ -18,6 +18,7 @@ import 'package:musify/mornye_player/widgets/player_artwork.dart';
 import 'package:musify/mornye_player/widgets/player_gesture_regions.dart';
 import 'package:musify/mornye_player/widgets/player_lyrics_section.dart';
 import 'package:musify/screens/artist_page.dart';
+import 'package:musify/services/settings_manager.dart';
 
 /// The full player, hosting Mornye's copied surface on FluentMusic's playback.
 ///
@@ -85,20 +86,27 @@ class _MornyePlayerScreenState extends ConsumerState<MornyePlayerScreen> {
       return const Scaffold(backgroundColor: Colors.black);
     }
 
-    final base = Theme.of(context);
-    final colorScheme = base.colorScheme;
+    // The player is a dark surface even when the app is in light mode. Without
+    // this envelope the inherited scheme stays light, so Material labels
+    // resolve to black over the dark cover (the light-mode bug).
+    final envelope = _mornyeEnvelope(Theme.of(context));
+    final colorScheme = envelope.colorScheme;
     final topInset = MediaQuery.paddingOf(context).top;
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
       child: Theme(
-        data: _mornyeEnvelope(base),
+        data: envelope,
         child: Scaffold(
           backgroundColor: Colors.transparent,
           body: Stack(
             fit: StackFit.expand,
             children: [
-              MornyePlayerBackground(
-                artUri: mediaItem.artUri,
+              ValueListenableBuilder(
+                valueListenable: playerBackgroundMode,
+                builder: (_, mode, __) => MornyePlayerBackground(
+                  artUri: mediaItem.artUri,
+                  mode: mode,
+                ),
               ),
               SafeArea(
                 bottom: false,
@@ -251,12 +259,32 @@ class _MornyePlayerScreenState extends ConsumerState<MornyePlayerScreen> {
   }
 }
 
-/// Keeps FluentMusic's colours and typography while marking the subtree as
-/// Mornye's, so the copied widgets take their liquid-glass and spacing paths.
-ThemeData _mornyeEnvelope(ThemeData base) => base.copyWith(
-  extensions: [
-    for (final extension in base.extensions.values)
-      if (extension is! MornyeTheme) extension,
-    const MornyeTheme(),
-  ],
-);
+/// Keeps FluentMusic's typography while forcing the player subtree dark.
+///
+/// The player always paints a dark cover-derived surface, so inheriting a
+/// light [ColorScheme] made every Material label black on that surface. The
+/// scheme is rebuilt from the app's accent instead of only flipping
+/// `brightness`, which would leave the light surface roles in place.
+ThemeData _mornyeEnvelope(ThemeData base) {
+  final scheme = ColorScheme.fromSeed(
+    seedColor: base.colorScheme.primary,
+    brightness: Brightness.dark,
+  );
+  return base.copyWith(
+    colorScheme: scheme,
+    textTheme: base.textTheme.apply(
+      bodyColor: scheme.onSurface,
+      displayColor: scheme.onSurface,
+    ),
+    primaryTextTheme: base.primaryTextTheme.apply(
+      bodyColor: scheme.onSurface,
+      displayColor: scheme.onSurface,
+    ),
+    iconTheme: base.iconTheme.copyWith(color: scheme.onSurface),
+    extensions: [
+      for (final extension in base.extensions.values)
+        if (extension is! MornyeTheme) extension,
+      const MornyeTheme(),
+    ],
+  );
+}

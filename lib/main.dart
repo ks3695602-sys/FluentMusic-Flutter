@@ -46,6 +46,7 @@ import 'package:musify/services/io_service.dart';
 import 'package:musify/services/linux_media_controls.dart';
 import 'package:musify/services/listening_stats_service.dart';
 import 'package:musify/services/logger_service.dart';
+import 'package:musify/services/lyrics/lyrics_settings.dart';
 import 'package:musify/services/playlist_sharing.dart';
 import 'package:musify/services/playlists_manager.dart';
 import 'package:musify/services/router_service.dart';
@@ -436,8 +437,12 @@ Future<void> initialisation() async {
       Hive.openBox('cache'),
     ]);
 
-    // Hive is finally open: pick up the persisted Glass Lab values and push
-    // them into the global theme before the first frame is built.
+    // Hive is finally open: load the optional provider token from encrypted
+    // storage and migrate older plain-box values before the UI starts.
+    await initializeLyricsSettings();
+
+    // Pick up the persisted Glass Lab values and push them into the global
+    // theme before the first frame is built.
     glassConfigController.reloadFromStorage();
     updateLiquidGlassTheme();
 

@@ -27,52 +27,45 @@ import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 ///
 /// YouTube sometimes accepts one iOS build and refuses another, so the newer
 /// build is kept as its own rung instead of replacing [YoutubeApiClient.ios].
-final _iosRecent = YoutubeApiClient(
-  {
-    'context': {
-      'client': {
-        'clientName': 'IOS',
-        'clientVersion': '21.29.1',
-        'deviceMake': 'Apple',
-        'deviceModel': 'iPhone16,2',
-        'userAgent':
-            'com.google.ios.youtube/21.29.1 (iPhone16,2; U; CPU iOS 18_5 like Mac OS X;)',
-        'hl': 'en',
-        'platform': 'MOBILE',
-        'osName': 'IOS',
-        'osVersion': '18.5.0.22F76',
-        'timeZone': 'UTC',
-        'gl': 'US',
-        'utcOffsetMinutes': 0,
-      },
+final _iosRecent = YoutubeApiClient({
+  'context': {
+    'client': {
+      'clientName': 'IOS',
+      'clientVersion': '21.29.1',
+      'deviceMake': 'Apple',
+      'deviceModel': 'iPhone16,2',
+      'userAgent': 'com.google.ios.youtube/21.29.1 (iPhone16,2; U; CPU iOS 18_5 like Mac OS X;)',
+      'hl': 'en',
+      'platform': 'MOBILE',
+      'osName': 'IOS',
+      'osVersion': '18.5.0.22F76',
+      'timeZone': 'UTC',
+      'gl': 'US',
+      'utcOffsetMinutes': 0,
     },
   },
-  'https://www.youtube.com/youtubei/v1/player?prettyPrint=false',
-);
+}, 'https://www.youtube.com/youtubei/v1/player?prettyPrint=false');
 
 /// The `WEB_REMIX` identity BitChord and Mornye both keep for
 /// `music.youtube.com`.
 ///
 /// It is last in the ladder because anonymous WEB_REMIX playback often needs
 /// a PO token; it is still worth asking once every native client has refused.
-final _webRemix = YoutubeApiClient(
-  {
-    'context': {
-      'client': {
-        'clientName': 'WEB_REMIX',
-        'clientVersion': '1.20260707.12.00',
-        'userAgent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
-            '(KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',
-        'hl': 'en',
-        'gl': 'US',
-        'timeZone': 'UTC',
-        'utcOffsetMinutes': 0,
-      },
+final _webRemix = YoutubeApiClient({
+  'context': {
+    'client': {
+      'clientName': 'WEB_REMIX',
+      'clientVersion': '1.20260707.12.00',
+      'userAgent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
+          '(KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',
+      'hl': 'en',
+      'gl': 'US',
+      'timeZone': 'UTC',
+      'utcOffsetMinutes': 0,
     },
   },
-  'https://music.youtube.com/youtubei/v1/player?prettyPrint=false',
-);
+}, 'https://music.youtube.com/youtubei/v1/player?prettyPrint=false');
 
 /// The player identities tried for a stream, in order.
 ///
@@ -139,6 +132,14 @@ const _maxUnplayableSongs = 32;
 // Client that produced the stream URL of each song, so playback can send
 // the matching headers.
 final Map<String, YoutubeApiClient> _songClients = {};
+
+/// Records the identity that minted [songId]'s stream.
+///
+/// The Zen fast path lives outside this file and must opt in explicitly; the
+/// fallback ladder records its own client when a rung succeeds.
+void rememberSongClient(String songId, YoutubeApiClient client) {
+  _songClients[songId] = client;
+}
 
 /// Tracks every client refused, with the time the verdict expires.
 final Map<String, DateTime> _unplayableUntil = {};
@@ -278,8 +279,9 @@ Future<int?> _probeAudio(
   required Duration timeout,
 }) async {
   final length = stream.size.totalBytes;
-  final start =
-      length > _authBoundaryBytes + _probeBytes ? _authBoundaryBytes : 0;
+  final start = length > _authBoundaryBytes + _probeBytes
+      ? _authBoundaryBytes
+      : 0;
 
   http.StreamedResponse? response;
   try {
@@ -370,8 +372,9 @@ Future<StreamManifest> getManifestWithFallback(
     final remaining = deadline.difference(DateTime.now());
     if (remaining <= const Duration(milliseconds: 500)) break;
 
-    final perClient =
-        remaining < _perClientTimeout ? remaining : _perClientTimeout;
+    final perClient = remaining < _perClientTimeout
+        ? remaining
+        : _perClientTimeout;
     final key = _clientKey(baseClient);
     final started = DateTime.now();
     // The first rung is the fast path. Gyawun's plan named ANDROID_VR for it,
@@ -572,21 +575,19 @@ String _clientVersion(YoutubeApiClient client) {
 /// Native app identities send no origin, and sending one anyway is as wrong as
 /// omitting it from a web client. `Origin`/`Referer` also make the `WEB` and
 /// `TVHTML5` families behave like their real counterparts.
-Map<String, String> _mediaHeaders(
-  YoutubeApiClient client, {
-  String? origin,
-}) {
+Map<String, String> _mediaHeaders(YoutubeApiClient client, {String? origin}) {
   final headers = clientRequestHeaders(client);
   final name = client.clientName;
 
-  final effectiveOrigin = origin ??
+  final effectiveOrigin =
+      origin ??
       (name == 'WEB_REMIX'
           ? 'https://music.youtube.com'
           : (name.startsWith('WEB') ||
-                  name == 'MWEB' ||
-                  name.startsWith('TVHTML5'))
-              ? 'https://www.youtube.com'
-              : null);
+                name == 'MWEB' ||
+                name.startsWith('TVHTML5'))
+          ? 'https://www.youtube.com'
+          : null);
   if (effectiveOrigin != null) {
     headers['origin'] = effectiveOrigin;
     headers['referer'] = '$effectiveOrigin/';

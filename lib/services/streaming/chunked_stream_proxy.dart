@@ -48,9 +48,21 @@ class ChunkedStreamProxy {
   /// `ANDROID_VR` and `TVHTML5_SIMPLY` refuse ranges wider than this.
   static const int narrowChunkBytes = 512 * 1024;
 
+  /// ZenMusic's range width for throttled streams.
+  ///
+  /// A throttled URL is paced by response length, so a wider bounded range is
+  /// one request instead of ten. Only used when the URL was minted by the Zen
+  /// fast path, where the client is known to accept it.
+  static const int largeChunkBytes = 10379935;
+
   /// Chunks kept in memory per stream. Eight covers the first eight minutes
   /// of a 128 kbps track and makes seeking back into the intro instant.
   static const int maxCachedChunksPerStream = 8;
+
+  /// A large chunk is ~10 MB, so three of them already fill most of the
+  /// global budget. Keeping fewer stops one queue transition from evicting
+  /// everything else.
+  static const int maxLargeCachedChunksPerStream = 3;
 
   /// Hard ceiling for all chunk caches together. Oldest chunks are dropped
   /// first, so a long queue cannot turn the proxy into a memory leak.
@@ -120,6 +132,7 @@ class ChunkedStreamProxy {
     Map<String, String>? headers,
     int? totalBytes,
     String? contentType,
+    int? chunkBytes,
   }) async {
     if (!isEnabled) return null;
 
@@ -129,7 +142,6 @@ class ChunkedStreamProxy {
     final key = '$songId|$url';
     var stream = _streams[key];
     if (stream == null) {
-      final chunkBytes = chunkBytesFor(url);
       stream = _ProxyStream(
         key: key,
         songId: songId,
@@ -138,7 +150,7 @@ class ChunkedStreamProxy {
         headers: headers ?? const {},
         totalBytes: totalBytes,
         contentType: contentType,
-        chunkBytes: chunkBytes,
+        chunkBytes: chunkBytes ?? chunkBytesFor(url),
       );
       _streams[key] = stream;
       _byToken[stream.token] = stream;
@@ -178,6 +190,7 @@ class ChunkedStreamProxy {
     Map<String, String>? headers,
     int? totalBytes,
     String? contentType,
+    int? chunkBytes,
   }) async {
     if (!isEnabled) return;
     final upstream = Uri.tryParse(url);
@@ -190,6 +203,7 @@ class ChunkedStreamProxy {
         headers: headers,
         totalBytes: totalBytes,
         contentType: contentType,
+        chunkBytes: chunkBytes,
       );
       if (registered == null) return;
 
@@ -540,7 +554,10 @@ class ChunkedStreamProxy {
     final bytes = await _fetchRange(stream, start, end);
     if (bytes == null) return null;
 
-    if (stream.chunks.length >= maxCachedChunksPerStream) {
+    final cacheLimit = stream.chunkBytes >= largeChunkBytes
+        ? maxLargeCachedChunksPerStream
+        : maxCachedChunksPerStream;
+    while (stream.chunks.length >= cacheLimit) {
       _dropChunk(stream, stream.chunks.keys.first);
     }
     stream.chunks[index] = bytes;

@@ -39,7 +39,12 @@ is a port of BitChord's `PoTokenGenerator`, `PoTokenWebView`, `PoTokenPage`
 and `JavaScriptUtil`. The request flow, the token bindings and the page's
 JavaScript entry points are BitChord's; the transport is Flutter's
 `flutter_inappwebview` bridge instead of Android's `@JavascriptInterface`.
-BitChord's GPL-3.0 notice therefore covers those three files.
+BitChord's GPL-3.0 notice therefore covers those three files. The provider
+request/response handling in `lib/services/lyrics/bit_chord_providers.dart` is
+also a Dart port of the ArchiveTune lyrics modules maintained at
+<https://github.com/rukamori/lyrics> (GPL-3.0), including BetterLyrics,
+YouLy+, SimpMusic, KuGou, Megalobiz, Paxsenix, YouTube Music and YouTube
+Subtitle integrations. FluentMusic's manager, settings and UI glue are its own.
 
 ## Gyawun Music
 

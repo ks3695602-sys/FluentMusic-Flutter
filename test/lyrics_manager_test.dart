@@ -431,13 +431,17 @@ void main() {
           },
         ]);
       });
-      final result = await LyricsManager(client: client).fetchLyricsResult(
-        const TrackInfo(
-          title: 'Song (Official Video)',
-          artist: 'Artist - Topic',
-          duration: Duration(seconds: 200),
-        ),
-      );
+      final result =
+          await LyricsManager(
+            client: client,
+            providers: const [LyricsProvider.lrclib],
+          ).fetchLyricsResult(
+            const TrackInfo(
+              title: 'Song (Official Video)',
+              artist: 'Artist - Topic',
+              duration: Duration(seconds: 200),
+            ),
+          );
       expect(result!.isSynced, isTrue);
       expect(result.source, 'lrclib.net');
       expect(result.synced!.length, 2);
@@ -460,9 +464,17 @@ void main() {
           });
         });
 
-        final result = await LyricsManager(client: client).fetchLyricsResult(
-          const TrackInfo(title: 'Song', artist: 'Artist', videoId: 'abc123'),
-        );
+        final result =
+            await LyricsManager(
+              client: client,
+              providers: const [LyricsProvider.unison],
+            ).fetchLyricsResult(
+              const TrackInfo(
+                title: 'Song',
+                artist: 'Artist',
+                videoId: 'abc123',
+              ),
+            );
 
         expect(result, isNotNull);
         expect(result!.source, 'Unison');
@@ -484,9 +496,13 @@ void main() {
         });
       });
 
-      final result = await LyricsManager(client: client).fetchLyricsResult(
-        const TrackInfo(title: 'Song', artist: 'Artist', videoId: 'abc123'),
-      );
+      final result =
+          await LyricsManager(
+            client: client,
+            providers: const [LyricsProvider.unison],
+          ).fetchLyricsResult(
+            const TrackInfo(title: 'Song', artist: 'Artist', videoId: 'abc123'),
+          );
 
       expect(result, isNotNull);
       expect(result!.isSynced, isFalse);
@@ -501,8 +517,10 @@ void main() {
         }
         return _json([]);
       });
-      final text = await LyricsManager(client: client)
-          .fetchLyrics('Artist', 'Song');
+      final text = await LyricsManager(
+        client: client,
+        providers: const [],
+      ).fetchLyrics('Artist', 'Song');
       expect(text, 'la la la\n\n© lyrics.ovh');
     });
 

@@ -16,22 +16,25 @@
  */
 
 import 'dart:io';
-import 'package:flutter/cupertino.dart';
+
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show Colors, Theme;
-import 'package:material_ui/material_ui.dart' show ThemeMode;
-import 'package:musify/theme/app_themes.dart';
-import 'package:musify/theme/player_style.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
+import 'package:material_ui/material_ui.dart' show ThemeMode;
 import 'package:musify/constants/app_constants.dart';
 import 'package:musify/extensions/l10n.dart';
 import 'package:musify/main.dart';
+import 'package:musify/mornye_player/models/player_background_mode.dart';
 import 'package:musify/screens/equalizer_page.dart';
 import 'package:musify/screens/settings/stream_diagnostics_page.dart';
 import 'package:musify/services/data_manager.dart';
 import 'package:musify/services/listening_stats_service.dart';
+import 'package:musify/services/lyrics/lyrics_settings.dart';
 import 'package:musify/services/settings_manager.dart';
+import 'package:musify/theme/app_themes.dart';
+import 'package:musify/theme/player_style.dart';
 import 'package:musify/utilities/flutter_toast.dart';
 import 'package:musify/utilities/language_utils.dart';
 import 'package:musify/widgets/glass/glass_lab_page.dart';
@@ -328,10 +331,7 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
                     color: Color(0xFFAF52DE),
                   ),
                 ),
-                title: Text(
-                  'Glass Lab',
-                  style: TextStyle(color: titleColor),
-                ),
+                title: Text('Glass Lab', style: TextStyle(color: titleColor)),
                 subtitle: Text(
                   'Clear, Balanced & Frosted presets, plus optics sliders',
                   style: TextStyle(color: subtitleColor, fontSize: 12),
@@ -378,10 +378,7 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
                       color: Color(0xFF0A84FF),
                     ),
                   ),
-                  title: Text(
-                    'App Style',
-                    style: TextStyle(color: titleColor),
-                  ),
+                  title: Text('App Style', style: TextStyle(color: titleColor)),
                   subtitle: Padding(
                     padding: const EdgeInsets.only(top: 8),
                     child: GlassSegmentedControl(
@@ -672,7 +669,10 @@ class PlaybackSettingsPage extends StatelessWidget {
                       title: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('Crossfade', style: TextStyle(color: titleColor)),
+                          Text(
+                            'Crossfade',
+                            style: TextStyle(color: titleColor),
+                          ),
                           Text(
                             crossfadeVal == 0
                                 ? 'Off'
@@ -754,11 +754,7 @@ class PlaybackSettingsPage extends StatelessWidget {
                         value: pauseOnZero,
                         onChanged: (val) {
                           pauseOnVolumeZero.value = val;
-                          addOrUpdateData(
-                            'settings',
-                            'pauseOnVolumeZero',
-                            val,
-                          );
+                          addOrUpdateData('settings', 'pauseOnVolumeZero', val);
                         },
                       ),
                     );
@@ -799,10 +795,7 @@ class PlaybackSettingsPage extends StatelessWidget {
                     CupertinoIcons.slider_horizontal_3,
                     color: Color(0xFFAF52DE),
                   ),
-                  title: Text(
-                    'Equalizer',
-                    style: TextStyle(color: titleColor),
-                  ),
+                  title: Text('Equalizer', style: TextStyle(color: titleColor)),
                   subtitle: Text(
                     'Adjust bass, virtualizer, and frequency bands',
                     style: TextStyle(color: subtitleColor, fontSize: 12),
@@ -940,26 +933,67 @@ class PlaybackSettingsPage extends StatelessWidget {
                 ),
               ),
               children: [
-                ValueListenableBuilder<bool>(
-                  valueListenable: playerMeshBackgroundEnabled,
-                  builder: (_, meshOn, __) {
+                ValueListenableBuilder<PlayerBackgroundMode>(
+                  valueListenable: playerBackgroundMode,
+                  builder: (_, mode, __) {
+                    final index = PlayerBackgroundMode.values.indexOf(mode);
                     return GlassListTile(
                       leading: const Icon(
-                        CupertinoIcons.circle_grid_hex,
+                        CupertinoIcons.photo_fill,
                         color: Color(0xFFAF52DE),
                       ),
                       title: Text(
-                        'Drifting Colour Mesh',
+                        'Player Background',
                         style: TextStyle(color: titleColor),
                       ),
-                      subtitle: Text(
-                        'Four soft blobs from the cover drift behind the '
-                        'player. Paint only — no blur filter runs per frame.',
-                        style: TextStyle(color: subtitleColor, fontSize: 12),
-                      ),
-                      trailing: GlassSwitch(
-                        value: meshOn,
-                        onChanged: setPlayerMeshBackground,
+                      subtitle: Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              switch (mode) {
+                                PlayerBackgroundMode.cinematic =>
+                                  'Cover-derived drifting gradient — the '
+                                      'classic FluentMusic look.',
+                                PlayerBackgroundMode.albumArt =>
+                                  'Full-resolution album art with a dark '
+                                      'scrim for readable labels.',
+                                PlayerBackgroundMode.blurredAlbumArt =>
+                                  'Album art under a heavy static blur, '
+                                      'with no gradient.',
+                              },
+                              style: TextStyle(
+                                color: subtitleColor,
+                                fontSize: 12,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            GlassSegmentedControl(
+                              segments: const [
+                                GlassSegment(label: 'Cinematic'),
+                                GlassSegment(label: 'Album Art'),
+                                GlassSegment(label: 'Blurred'),
+                              ],
+                              selectedTextStyle: TextStyle(
+                                color: isDark
+                                    ? Colors.white
+                                    : const Color(0xFF1C1C1E),
+                                fontWeight: FontWeight.w600,
+                              ),
+                              unselectedTextStyle: TextStyle(
+                                color: isDark
+                                    ? Colors.white70
+                                    : const Color(0xFF3C3C43),
+                              ),
+                              selectedIndex: index < 0 ? 0 : index,
+                              onSegmentSelected: (index) =>
+                                  setPlayerBackgroundMode(
+                                    PlayerBackgroundMode.values[index],
+                                  ),
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   },
@@ -1209,11 +1243,144 @@ class LyricsSettingsPage extends StatelessWidget {
               ),
             ],
           ),
+          const SizedBox(height: 18),
+          GlassGroupedSection(
+            surfaceStyle: GlassSurfaceStyle.solid,
+            header: Text(
+              'LYRICS PROVIDERS',
+              style: TextStyle(
+                color: subtitleColor,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            children: [
+              ValueListenableBuilder<List<LyricsProvider>>(
+                valueListenable: lyricsProviderOrder,
+                builder: (context, order, _) =>
+                    ValueListenableBuilder<Set<LyricsProvider>>(
+                      valueListenable: lyricsEnabledProviders,
+                      builder: (context, enabled, _) => Column(
+                        children: [
+                          for (var index = 0; index < order.length; index++)
+                            GlassListTile(
+                              leading: const Icon(
+                                CupertinoIcons.text_alignleft,
+                                color: Color(0xFF5E5CE6),
+                              ),
+                              title: Text(
+                                order[index].displayName,
+                                style: TextStyle(color: titleColor),
+                              ),
+                              subtitle: Text(
+                                order[index].description,
+                                style: TextStyle(
+                                  color: subtitleColor,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  CupertinoButton(
+                                    padding: EdgeInsets.zero,
+                                    onPressed: index == 0
+                                        ? null
+                                        : () => moveLyricsProvider(
+                                            order[index],
+                                            -1,
+                                          ),
+                                    child: const Icon(
+                                      CupertinoIcons.chevron_up,
+                                    ),
+                                  ),
+                                  CupertinoButton(
+                                    padding: EdgeInsets.zero,
+                                    onPressed: index == order.length - 1
+                                        ? null
+                                        : () => moveLyricsProvider(
+                                            order[index],
+                                            1,
+                                          ),
+                                    child: const Icon(
+                                      CupertinoIcons.chevron_down,
+                                    ),
+                                  ),
+                                  GlassSwitch(
+                                    value: enabled.contains(order[index]),
+                                    onChanged: (value) =>
+                                        setLyricsProviderEnabled(
+                                          order[index],
+                                          value,
+                                        ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Paxsenix API key',
+                      style: TextStyle(
+                        color: titleColor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    _PaxsenixKeyField(isDark: isDark),
+                  ],
+                ),
+              ),
+            ],
+          ),
           const MiniPlayerBottomSpace(),
         ],
       ),
     );
   }
+}
+
+class _PaxsenixKeyField extends StatefulWidget {
+  const _PaxsenixKeyField({required this.isDark});
+
+  final bool isDark;
+
+  @override
+  State<_PaxsenixKeyField> createState() => _PaxsenixKeyFieldState();
+}
+
+class _PaxsenixKeyFieldState extends State<_PaxsenixKeyField> {
+  late final TextEditingController _controller = TextEditingController(
+    text: paxsenixApiKey.value,
+  );
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => CupertinoTextField(
+    controller: _controller,
+    placeholder: 'Optional — enables three Paxsenix providers',
+    obscureText: true,
+    autocorrect: false,
+    enableSuggestions: false,
+    onChanged: setPaxsenixApiKey,
+    decoration: BoxDecoration(
+      color: widget.isDark ? const Color(0x22FFFFFF) : const Color(0x11000000),
+      borderRadius: BorderRadius.circular(12),
+    ),
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+  );
 }
 
 // ---------------------------------------------------------------------------

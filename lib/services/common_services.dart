@@ -32,6 +32,7 @@ import 'package:musify/main.dart' show logger;
 import 'package:musify/services/artist_service.dart';
 import 'package:musify/services/data_manager.dart';
 import 'package:musify/services/io_service.dart';
+import 'package:musify/services/lyrics/lyrics_settings.dart';
 import 'package:musify/services/lyrics_manager.dart';
 import 'package:musify/services/playlists_manager.dart';
 import 'package:musify/services/proxy_manager.dart';
@@ -40,6 +41,7 @@ import 'package:musify/services/sources/jiosaavn_source.dart';
 import 'package:musify/services/sources/music_source.dart';
 import 'package:musify/services/sources/spotify_source.dart';
 import 'package:musify/services/stream_fallback.dart';
+import 'package:musify/services/streaming/zen_stream_resolver.dart';
 import 'package:musify/services/ytmusic_playback_service.dart';
 import 'package:musify/utilities/app_utils.dart';
 import 'package:musify/utilities/formatter.dart';
@@ -218,7 +220,10 @@ Future<List> fetchSongsList(String searchQuery) async {
   try {
     // 1. Prioritize YouTube Music dedicated official "Songs" shelf for clean metadata and 100% lyric hit rate
     try {
-      final musicSongs = await ytMusicClient.music.searchSongs(searchQuery, limit: 25);
+      final musicSongs = await ytMusicClient.music.searchSongs(
+        searchQuery,
+        limit: 25,
+      );
       if (musicSongs.isNotEmpty) {
         final songsList = musicSongs
             .map((video) => returnSongLayout(0, video))
@@ -226,7 +231,9 @@ Future<List> fetchSongsList(String searchQuery) async {
         return songsList;
       }
     } catch (e) {
-      logger.log('YT Music searchSongs failed, falling back to general search: $e');
+      logger.log(
+        'YT Music searchSongs failed, falling back to general search: $e',
+      );
     }
 
     // 2. Fallback to general YouTube video search if official shelf is empty
@@ -243,7 +250,10 @@ Future<List> fetchSongsList(String searchQuery) async {
 }
 
 /// Fetches a list of related songs for the given YouTube video ID.
-Future<List<Map<String, dynamic>>> getRelatedSongsList(String songYtId, {int limit = 15}) async {
+Future<List<Map<String, dynamic>>> getRelatedSongsList(
+  String songYtId, {
+  int limit = 15,
+}) async {
   try {
     final song = await ytClient.videos.get(songYtId);
     final related = await ytClient.videos.getRelatedVideos(song) ?? [];
@@ -256,7 +266,11 @@ Future<List<Map<String, dynamic>>> getRelatedSongsList(String songYtId, {int lim
     }
     return list;
   } catch (e, st) {
-    logger.log('Error fetching related songs list for $songYtId', error: e, stackTrace: st);
+    logger.log(
+      'Error fetching related songs list for $songYtId',
+      error: e,
+      stackTrace: st,
+    );
     return [];
   }
 }
@@ -736,6 +750,10 @@ Future<Map<String, dynamic>?> getSimilarSong(
 final Map<String, ({AudioOnlyStreamInfo stream, DateTime resolvedAt})>
 _selectedAudioStreams = {};
 
+/// The Zen fast-path result behind a song, when that is where its stream came
+/// from. Playback uses it to choose the wider throttled chunk size.
+final Map<String, ZenStream> _zenStreams = {};
+
 const _maxSelectedAudioStreams = 50;
 
 String _selectedAudioStreamKey(String songId) =>
@@ -767,10 +785,24 @@ void _cacheSelectedAudioStream(String songId, AudioOnlyStreamInfo stream) {
   );
 }
 
+/// Whether [songId]'s current stream was minted by the Zen fast path and is
+/// throttled.
+///
+/// Only a still-cached Zen result counts: once the selected stream expires or
+/// the fallback ladder takes over, playback keeps the normal 1 MB range.
+bool knownZenStreamThrottledFor(String songId) {
+  final zen = _zenStreams[songId];
+  if (zen == null || !zen.stream.isThrottled) return false;
+  final selected = _getSelectedAudioStream(songId);
+  return selected != null && selected.url == zen.stream.url;
+}
+
 /// Drops both cached forms of a song's stream, so the next request resolves
 /// it again. Used when a cached URL turns out to be dead.
 Future<void> invalidateSongStreamCache(String songId) async {
   _selectedAudioStreams.remove(_selectedAudioStreamKey(songId));
+  _zenStreams.remove(songId);
+  ZenStreamResolver.instance.invalidate(songId);
   clearUnplayableVerdict(songId);
   await deleteData('cache', 'song_${songId}_${audioQualitySetting.value}_url');
 }
@@ -796,9 +828,7 @@ Future<AudioOnlyStreamInfo?> fetchBestAudioStream(String? songId) {
   final future = _fetchBestAudioStream(songId);
   _inFlightAudioStreams[songId] = future;
   unawaited(
-    future
-        .then<void>((_) {}, onError: (Object _) {})
-        .whenComplete(() {
+    future.then<void>((_) {}, onError: (Object _) {}).whenComplete(() {
       if (identical(_inFlightAudioStreams[songId], future)) {
         _inFlightAudioStreams.remove(songId);
       }
@@ -809,6 +839,21 @@ Future<AudioOnlyStreamInfo?> fetchBestAudioStream(String? songId) {
 
 Future<AudioOnlyStreamInfo?> _fetchBestAudioStream(String songId) async {
   try {
+    // Zen fast path: three tokenless identities, no watch page and no
+    // boundary probe. The full ladder below still runs when they all refuse
+    // the track, so nothing is lost.
+    if (!useProxy.value) {
+      final zen = await ZenStreamResolver.instance.resolve(
+        songId,
+        youtube: ytClient,
+      );
+      if (zen != null) {
+        _zenStreams[songId] = zen;
+        _cacheSelectedAudioStream(songId, zen.stream);
+        return zen.stream;
+      }
+    }
+
     final manifest = await _fetchStreamManifest(songId);
     final audioStream = manifest?.audioOnly;
     if (audioStream == null || audioStream.isEmpty) {
@@ -897,8 +942,7 @@ Future<String?> fetchSongStreamUrl(
     return Future.value();
   }
 
-  final key =
-      '$songId|${audioQualitySetting.value}|$skipSignedIn|$isLive';
+  final key = '$songId|${audioQualitySetting.value}|$skipSignedIn|$isLive';
   final inFlight = _inFlightSongUrls[key];
   if (inFlight != null) return inFlight;
 
@@ -927,9 +971,7 @@ Future<String?> fetchSongStreamUrl(
     ),
   );
   unawaited(
-    future
-        .then<void>((_) {}, onError: (Object _) {})
-        .whenComplete(() {
+    future.then<void>((_) {}, onError: (Object _) {}).whenComplete(() {
       if (identical(_inFlightSongUrls[key], future)) {
         _inFlightSongUrls.remove(key);
       }
@@ -1079,7 +1121,8 @@ Future<Lyrics?> getSongLyricsResult(
 }) async {
   if (artist == null) return null;
   final key = '$artist - $title - ${videoId ?? ''}';
-  if (lastFetchedLyrics == key) return _lastLyricsResult;
+  final configuredKey = '$key - ${lyricsProviderConfigSignature()}';
+  if (lastFetchedLyrics == configuredKey) return _lastLyricsResult;
 
   lyrics.value = null;
   final requestId = ++_lyricsRequestCounter;
@@ -1098,7 +1141,7 @@ Future<Lyrics?> getSongLyricsResult(
   if (requestId == _lyricsRequestCounter) {
     _lastLyricsResult = result;
     lyrics.value = formatPlainLyrics(result);
-    lastFetchedLyrics = key;
+    lastFetchedLyrics = configuredKey;
   }
   return result;
 }

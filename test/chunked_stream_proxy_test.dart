@@ -144,6 +144,24 @@ void main() {
       }
     });
 
+    test('a caller override wins over the client default', () async {
+      final uri = await ChunkedStreamProxy.instance.register(
+        songId: 'song-large',
+        url: 'http://127.0.0.1:${upstream.port}/media',
+        totalBytes: payload.length,
+        contentType: 'audio/mp4',
+        chunkBytes: 512 * 1024,
+      );
+      expect(uri, isNotNull);
+
+      final bytes = await read(uri!, 'bytes=0-');
+      expect(bytes, payload);
+
+      // Four 512 KiB chunks plus the 77-byte remainder.
+      expect(ranges.length, 5);
+      expect(ranges.first, 'bytes=0-524287');
+    });
+
     test('a second read and a seek are served from the chunk cache', () async {
       final uri = await ChunkedStreamProxy.instance.register(
         songId: 'song-2',

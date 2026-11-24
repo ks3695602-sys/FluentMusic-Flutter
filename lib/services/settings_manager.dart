@@ -20,9 +20,10 @@
  */
 
 import 'package:audio_service/audio_service.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
+import 'package:musify/mornye_player/models/player_background_mode.dart';
 import 'package:musify/screens/playlist_page.dart';
 import 'package:musify/screens/user_songs_page.dart';
 import 'package:musify/theme/glass_config_controller.dart';
@@ -185,11 +186,13 @@ void setPlayerStyle(PlayerStyle style) {
 }
 
 final liquidGlassBlurSetting = ValueNotifier<double>(
-  (Hive.box('settings').get('liquidGlassBlur', defaultValue: 4.0) as num).toDouble(),
+  (Hive.box('settings').get('liquidGlassBlur', defaultValue: 4.0) as num)
+      .toDouble(),
 );
 
 final liquidGlassThicknessSetting = ValueNotifier<double>(
-  (Hive.box('settings').get('liquidGlassThickness', defaultValue: 40.0) as num).toDouble(),
+  (Hive.box('settings').get('liquidGlassThickness', defaultValue: 40.0) as num)
+      .toDouble(),
 );
 
 final wordByWordLyricsEnabled = ValueNotifier<bool>(
@@ -197,7 +200,8 @@ final wordByWordLyricsEnabled = ValueNotifier<bool>(
 );
 
 final crossfadeDurationSetting = ValueNotifier<double>(
-  (Hive.box('settings').get('crossfadeDuration', defaultValue: 0.0) as num).toDouble(),
+  (Hive.box('settings').get('crossfadeDuration', defaultValue: 0.0) as num)
+      .toDouble(),
 );
 
 final gaplessPlaybackEnabled = ValueNotifier<bool>(
@@ -279,8 +283,8 @@ void setCrossSourceFallback(bool value) {
 
 /// The drifting colour mesh behind the player.
 ///
-/// Off leaves the player on the blurred cover only, which some low-end devices
-/// prefer for battery.
+/// Kept for the legacy NowPlayingPage; the Mornye player reads
+/// [playerBackgroundMode] instead.
 final playerMeshBackgroundEnabled = ValueNotifier<bool>(
   Hive.box('settings').get('playerMeshBackgroundEnabled', defaultValue: true),
 );
@@ -289,6 +293,34 @@ void setPlayerMeshBackground(bool value) {
   playerMeshBackgroundEnabled.value = value;
   if (Hive.isBoxOpen('settings')) {
     Hive.box('settings').put('playerMeshBackgroundEnabled', value).ignore();
+  }
+}
+
+/// What the full player renders behind its controls.
+///
+/// Existing installs are migrated from [playerMeshBackgroundEnabled]: mesh off
+/// used to mean "blurred cover only", so those users land on
+/// [PlayerBackgroundMode.blurredAlbumArt] instead of being reset to the
+/// gradient.
+final playerBackgroundMode = ValueNotifier<PlayerBackgroundMode>(
+  _loadPlayerBackgroundMode(),
+);
+
+PlayerBackgroundMode _loadPlayerBackgroundMode() {
+  final stored = Hive.box('settings').get('playerBackgroundMode');
+  final parsed = PlayerBackgroundMode.fromStorage(stored);
+  if (parsed != null) return parsed;
+  return PlayerBackgroundMode.fromLegacyMesh(
+    Hive.box('settings').get('playerMeshBackgroundEnabled'),
+  );
+}
+
+void setPlayerBackgroundMode(PlayerBackgroundMode mode) {
+  playerBackgroundMode.value = mode;
+  if (Hive.isBoxOpen('settings')) {
+    Hive.box('settings')
+        .put('playerBackgroundMode', mode.storageValue)
+        .ignore();
   }
 }
 
@@ -305,7 +337,8 @@ final keepPlayingAfterDismiss = ValueNotifier<bool>(
 );
 
 final searchQueueMode = ValueNotifier<String>(
-  Hive.box('settings').get('searchQueueMode', defaultValue: 'search_results') as String,
+  Hive.box('settings').get('searchQueueMode', defaultValue: 'search_results')
+      as String,
 );
 
 void updateKeepPlayingAfterDismiss(bool value) {
@@ -323,7 +356,8 @@ final streamingSourceSetting = ValueNotifier<String>(
 );
 
 final cacheLimitMbSetting = ValueNotifier<double>(
-  (Hive.box('settings').get('cacheLimitMb', defaultValue: 2048.0) as num).toDouble(),
+  (Hive.box('settings').get('cacheLimitMb', defaultValue: 2048.0) as num)
+      .toDouble(),
 );
 
 final smartCacheEnabled = ValueNotifier<bool>(
@@ -381,23 +415,23 @@ GlassThemeData getEffectiveGlassTheme() {
   final glowHue = Color(config.tintColor);
   final glowColors = switch (glowModeSetting.value) {
     'off' => GlassGlowColors(
-        primary: glowHue.withValues(alpha: 0),
-        glowBlurRadius: 0,
-        glowSpreadRadius: 0,
-        glowOpacity: 0,
-      ),
+      primary: glowHue.withValues(alpha: 0),
+      glowBlurRadius: 0,
+      glowSpreadRadius: 0,
+      glowOpacity: 0,
+    ),
     'dhruv' => GlassGlowColors(
-        primary: glowHue.withValues(alpha: 0.8),
-        glowBlurRadius: 16,
-        glowSpreadRadius: 0.2,
-        glowOpacity: 1,
-      ),
+      primary: glowHue.withValues(alpha: 0.8),
+      glowBlurRadius: 16,
+      glowSpreadRadius: 0.2,
+      glowOpacity: 1,
+    ),
     _ => GlassGlowColors(
-        primary: glowHue.withValues(alpha: 0.35),
-        glowBlurRadius: 6,
-        glowSpreadRadius: 0.05,
-        glowOpacity: 0.8,
-      ),
+      primary: glowHue.withValues(alpha: 0.35),
+      glowBlurRadius: 6,
+      glowSpreadRadius: 0.05,
+      glowOpacity: 0.8,
+    ),
   };
 
   GlassThemeVariant tune(GlassThemeVariant variant) {
@@ -431,8 +465,9 @@ LiquidGlassSettings getEffectiveDockGlassSettings({required bool isDark}) {
   final config = glassConfigController.config;
   final theme = liquidGlassThemeNotifier.value;
   final variant = isDark ? theme.dark : theme.light;
-  final base = (variant.settings ?? const GlassThemeSettings())
-      .applyTo(const LiquidGlassSettings());
+  final base = (variant.settings ?? const GlassThemeSettings()).applyTo(
+    const LiquidGlassSettings(),
+  );
   final color = Color(config.dockTintColor ?? config.tintColor);
   final alpha = config.dockTint ?? config.tint;
   return base.copyWith(
@@ -446,7 +481,9 @@ LiquidGlassSettings getEffectiveDockGlassSettings({required bool isDark}) {
   );
 }
 
-final liquidGlassThemeNotifier = ValueNotifier<GlassThemeData>(getEffectiveGlassTheme());
+final liquidGlassThemeNotifier = ValueNotifier<GlassThemeData>(
+  getEffectiveGlassTheme(),
+);
 
 void updateLiquidGlassTheme() {
   liquidGlassThemeNotifier.value = getEffectiveGlassTheme();
@@ -561,10 +598,8 @@ void reloadSettingsFromStorage() {
   );
   glowModeSetting.value = settings.get('glowMode', defaultValue: 'subtle');
   appStyleSetting.value = settings.get('appStyle', defaultValue: 'mornye');
-  liquidGlassBlurSetting.value = (settings.get(
-    'liquidGlassBlur',
-    defaultValue: 4.0,
-  ) as num).toDouble();
+  liquidGlassBlurSetting.value =
+      (settings.get('liquidGlassBlur', defaultValue: 4.0) as num).toDouble();
   liquidGlassThicknessSetting.value = (settings.get(
     'liquidGlassThickness',
     defaultValue: 40.0,
