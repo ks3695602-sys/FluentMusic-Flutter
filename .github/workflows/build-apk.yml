@@ -45,7 +45,19 @@ jobs:
       - name: Accept Android SDK Licenses & Install Android Platforms
         run: |
           yes | sdkmanager --licenses || true
-          sdkmanager "platforms;android-36" "platforms;android-35" "ndk;27.3.13750724" || true
+          sdkmanager "platforms;android-36" "platforms;android-35" || true
+          # The NDK download occasionally arrives corrupted on hosted runners.
+          # Retry up to three times, wiping the partial directory each time.
+          for attempt in 1 2 3; do
+            if sdkmanager "ndk;27.3.13750724"; then
+              echo "NDK 27.3.13750724 installed"
+              break
+            fi
+            echo "NDK install failed (attempt $attempt), cleaning up..."
+            rm -rf "${ANDROID_SDK_ROOT:-$ANDROID_HOME}/ndk/27.3.13750724"
+            sleep 5
+          done
+          sdkmanager --list_installed | grep -i ndk || true
 
       - name: Install Linux Desktop Dependencies (for native assets in tests)
         run: |
@@ -120,7 +132,7 @@ jobs:
           retention-days: 30
 
   build-windows:
-    name: Build Apple Music Demo (Windows Desktop x64)
+    name: Build FluentMusic (Windows Desktop x64)
     runs-on: windows-latest
 
     steps:
@@ -141,7 +153,7 @@ jobs:
         run: flutter pub get
 
       - name: Build Windows Desktop Release
-        run: flutter build windows -t lib/screens/apple_music_demo_screen.dart --release
+        run: flutter build windows --release
 
       - name: Package Windows Release Archive
         shell: powershell
@@ -154,29 +166,45 @@ jobs:
           Write-Host "Found Release bundle at: $targetPath"
           Get-ChildItem -Path $targetPath
 
+          # Ship a friendly executable name; the bundle layout stays intact.
           if (Test-Path "$targetPath\musify.exe") {
-            Copy-Item "$targetPath\musify.exe" "$targetPath\AppleMusicDemo.exe" -Force
-            Write-Host "Created convenience binary AppleMusicDemo.exe"
+            Move-Item "$targetPath\musify.exe" "$targetPath\FluentMusic.exe" -Force
+            Write-Host "Renamed launcher to FluentMusic.exe"
+          }
+          if (-not (Test-Path "$targetPath\FluentMusic.exe")) {
+            Write-Error "FluentMusic.exe missing from the release bundle!"
+            exit 1
           }
 
-          Compress-Archive -Path "$targetPath\*" -DestinationPath "FluentMusic-AppleMusicDemo-windows-x64.zip" -Force
-          Write-Host "Compressed archive created: FluentMusic-AppleMusicDemo-windows-x64.zip"
-          Get-Item FluentMusic-AppleMusicDemo-windows-x64.zip
+          Compress-Archive -Path "$targetPath\*" -DestinationPath "FluentMusic-windows-x64.zip" -Force
+          Write-Host "Compressed archive created: FluentMusic-windows-x64.zip"
+          Get-Item FluentMusic-windows-x64.zip
 
       - name: Upload Windows Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: FluentMusic-AppleMusicDemo-windows-x64
-          path: FluentMusic-AppleMusicDemo-windows-x64.zip
+          name: FluentMusic-windows-x64
+          path: FluentMusic-windows-x64.zip
           retention-days: 30
 
   release:
     name: Publish Release Assets
     needs: [build-apk, build-windows]
-    if: always() && needs.build-apk.result == 'success' && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main')
+    if: always() && needs.build-apk.result == 'success' && needs.build-windows.result == 'success' && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Read Version From pubspec
+        id: version
+        shell: bash
+        run: |
+          VERSION=$(grep -m1 '^version:' pubspec.yaml | sed 's/version:[[:space:]]*//' | cut -d'+' -f1)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Resolved FluentMusic version: $VERSION"
+
       - name: Download APK Artifacts
         uses: actions/download-artifact@v4
         with:
@@ -184,22 +212,47 @@ jobs:
           path: release_artifacts
 
       - name: Download Windows Artifact
-        continue-on-error: true
         uses: actions/download-artifact@v4
         with:
-          name: FluentMusic-AppleMusicDemo-windows-x64
+          name: FluentMusic-windows-x64
           path: release_artifacts
 
       - name: List Release Files
         run: ls -la release_artifacts
 
+      - name: Remove Legacy Demo Asset
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete-asset "v${{ steps.version.outputs.version }}" \
+            FluentMusic-AppleMusicDemo-windows-x64.zip --yes || true
+
       - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v1.3.9' }}
-          name: "FluentMusic ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v1.3.9 (iOS 27 Glass & Word-Sync Lyrics)' }}"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('v{0}', steps.version.outputs.version) }}
+          name: "FluentMusic ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('v{0}', steps.version.outputs.version) }}"
+          body: |
+            FluentMusic v${{ steps.version.outputs.version }} — real Windows desktop build plus a fresh Android APK.
+
+            ## Windows x64 (desktop app, not a demo)
+            - Native Mica on Windows 11, Acrylic on Windows 10, solid fallback
+            - Floating liquid-glass sidebar with macOS-style window controls
+            - Full app: library, search, player, queue, downloads, settings
+            - Install: download `FluentMusic-windows-x64.zip`, extract it anywhere, then run `FluentMusic.exe`
+            - The build is not code-signed yet, so SmartScreen may warn — choose **More info → Run anyway**
+
+            ## Android
+            - `FluentMusic-universal-release.apk` — one universal build for all devices
+
+            ## Updates
+            - In-app update checks now come directly from GitHub Releases
+            - Automatic daily check and manual check live in **Settings → Updates**
+            - Announcements stay separate, so a stale `check.json` can never block updates
+
+            See the full changelog at https://github.com/ks3695602-sys/FluentMusic-Flutter/releases
           files: release_artifacts/*
-          generate_release_notes: true
           draft: false
           prerelease: false
         env:
