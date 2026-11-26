@@ -101,7 +101,7 @@ class _HomePageState extends State<HomePage> {
         : const Color(0xFF000000).withValues(alpha: 0.15);
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: const Color(0xFF000000), // Pure OLED black
       body: SafeArea(
         bottom: false,
         child: CustomScrollView(
@@ -388,7 +388,7 @@ class _HomePageState extends State<HomePage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           ClipRRect(
-                            borderRadius: BorderRadius.circular(18),
+                            borderRadius: BorderRadius.circular(20),
                             child: SizedBox(
                               width: width,
                               height: width * 4 / 3,
@@ -405,49 +405,65 @@ class _HomePageState extends State<HomePage> {
                                       cubeIcon: CupertinoIcons.music_note,
                                     ),
                                   ),
-                                  Positioned(
-                                    right: 10,
-                                    bottom: 10,
-                                    child: Container(
-                                      width: 38,
-                                      height: 38,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: CupertinoColors.black.withValues(
-                                          alpha: 0.58,
+                                  Align(
+                                    alignment: Alignment.bottomCenter,
+                                    child: ClipRect(
+                                      child: BackdropFilter(
+                                        filter: ui.ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                                        child: Container(
+                                          height: (width * 4 / 3) * 0.38,
+                                          decoration: BoxDecoration(
+                                            gradient: LinearGradient(
+                                              begin: Alignment.topCenter,
+                                              end: Alignment.bottomCenter,
+                                              colors: [
+                                                Colors.transparent,
+                                                Colors.black.withOpacity(0.78),
+                                              ],
+                                            ),
+                                          ),
+                                          padding: const EdgeInsets.all(12),
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            mainAxisAlignment: MainAxisAlignment.end,
+                                            children: [
+                                              const Text(
+                                                'Top Pick',
+                                                style: TextStyle(
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: Colors.white70,
+                                                ),
+                                              ),
+                                              Text(
+                                                title,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: const TextStyle(
+                                                  fontSize: 15,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: Colors.white,
+                                                  letterSpacing: -0.3,
+                                                ),
+                                              ),
+                                              Text(
+                                                artist,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: const TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w400,
+                                                  color: Colors.white60,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                         ),
-                                      ),
-                                      child: const Icon(
-                                        CupertinoIcons.play_fill,
-                                        color: CupertinoColors.white,
-                                        size: 16,
                                       ),
                                     ),
                                   ),
                                 ],
                               ),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            artist,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
                             ),
                           ),
                         ],
