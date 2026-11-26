@@ -320,7 +320,7 @@ class _Avatar extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFFFF2D55), Color(0xFF7C3AED)],
+          colors: [Color(0xFFFF3B30), Color(0xFF1C1C1E)],
         ),
       ),
       alignment: Alignment.center,

@@ -1038,7 +1038,7 @@ class _CanvasSettingsPageState extends State<CanvasSettingsPage> {
                 builder: (_, enabled, __) => GlassListTile(
                   leading: const Icon(
                     CupertinoIcons.circle_grid_hex_fill,
-                    color: Color(0xFF5E5CE6),
+                    color: Color(0xFFFF9F0A),
                   ),
                   title: Text(
                     'FluentMusic Canvas',
@@ -1356,7 +1356,7 @@ class LyricsSettingsPage extends StatelessWidget {
                             GlassListTile(
                               leading: const Icon(
                                 CupertinoIcons.text_alignleft,
-                                color: Color(0xFF5E5CE6),
+                                color: Color(0xFFFF9F0A),
                               ),
                               title: Text(
                                 order[index].displayName,

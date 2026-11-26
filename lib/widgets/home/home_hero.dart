@@ -80,9 +80,9 @@ class HomeHero extends StatelessWidget {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    Color(0xFF6D28D9),
-                    Color(0xFFDB2777),
-                    Color(0xFFF97316),
+                    Color(0xFF1C1C1E),
+                    Color(0xFF2C2C2E),
+                    Color(0xFFFF3B30),
                   ],
                   stops: [0.0, 0.62, 1.0],
                 ),

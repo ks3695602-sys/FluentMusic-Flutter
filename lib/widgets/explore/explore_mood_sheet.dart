@@ -52,7 +52,7 @@ const exploreMoods = <ExploreMood>[
     query: 'chill acoustic songs',
     subtitle: 'Slow down with soft acoustics',
     icon: CupertinoIcons.moon_stars_fill,
-    colors: [Color(0xFF5E5CE6), Color(0xFF64D2FF)],
+    colors: [Color(0xFF1C1C1E), Color(0xFF2C2C2E)],
   ),
   ExploreMood(
     label: 'Focus',

@@ -148,7 +148,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: <Color>[Color(0xFF7C3AED), Color(0xFFDB2777)],
+          colors: <Color>[Color(0xFF1C1C1E), Color(0xFF2C2C2E)],
         ),
         border: Border.all(
           color: CupertinoColors.white.withValues(alpha: 0.20),
@@ -156,7 +156,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
         ),
         boxShadow: <BoxShadow>[
           BoxShadow(
-            color: const Color(0xFF7C3AED).withValues(alpha: 0.30),
+            color: const Color(0xFF000000).withValues(alpha: 0.50),
             blurRadius: 24,
             offset: const Offset(0, 10),
           ),
