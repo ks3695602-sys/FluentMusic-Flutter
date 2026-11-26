@@ -1138,6 +1138,7 @@ class MusifyAudioHandler extends BaseAudioHandler implements AndroidAutoHost {
 
       for (var i = 0; i < songs.length; i++) {
         final song = songs[i];
+        logger.log('addPlaylistToQueue: i=$i, songKeys=${song.keys.toList()}, ytid=${song['ytid']}');
         if (song['ytid'] != null && song['ytid'].toString().isNotEmpty) {
           final queueSong = _queueEntryIds.createSong(song);
           if (replace) {
@@ -1146,6 +1147,8 @@ class MusifyAudioHandler extends BaseAudioHandler implements AndroidAutoHost {
           } else {
             _queueList.add(queueSong);
           }
+        } else {
+          logger.log('addPlaylistToQueue: SKIPPED song at index $i - missing ytid');
         }
       }
 
@@ -2399,9 +2402,12 @@ class MusifyAudioHandler extends BaseAudioHandler implements AndroidAutoHost {
     bool? shuffle,
   }) async {
     try {
+      logger.log('playPlaylistSong: playlist=${playlist?['title']}, songIndex=$songIndex, listLen=${playlist?['list']?.length}');
       if (playlist != null && playlist['list'] != null) {
+        final list = List<Map>.from(playlist['list']);
+        logger.log('playPlaylistSong: firstSongKeys=${list.isNotEmpty ? list[0].keys.toList() : []}, firstYtid=${list.isNotEmpty ? list[0]['ytid'] : 'empty'}');
         await addPlaylistToQueue(
-          List<Map>.from(playlist['list']),
+          list,
           replace: true,
           startIndex: songIndex,
           shuffle: shuffle,
