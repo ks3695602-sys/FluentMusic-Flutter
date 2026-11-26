@@ -268,7 +268,7 @@ class _LibraryPageState extends State<LibraryPage> {
               value: '$minutes min',
               caption: 'Member since $joined',
               icon: CupertinoIcons.waveform,
-              colors: const [Color(0xFF8B5CF6), Color(0xFF5B21B6)],
+              colors: const [Color(0xFF2C2C2E), Color(0xFF1C1C1E)],
             ),
             const SizedBox(width: 12),
             _statCard(
@@ -279,7 +279,7 @@ class _LibraryPageState extends State<LibraryPage> {
                   ? 'Play something to discover yours'
                   : '${topEntry.value} plays this month',
               icon: CupertinoIcons.music_mic,
-              colors: const [Color(0xFFFF6B6B), Color(0xFFC2185B)],
+              colors: const [Color(0xFF2C2C2E), Color(0xFF1C1C1E)],
               valueSize: 26,
             ),
             const SizedBox(width: 12),
@@ -289,7 +289,7 @@ class _LibraryPageState extends State<LibraryPage> {
               value: '$totalPlays',
               caption: '${songs.length} songs in rotation',
               icon: CupertinoIcons.play_circle_fill,
-              colors: const [Color(0xFF0A84FF), Color(0xFF0E7490)],
+              colors: const [Color(0xFF1C1C1E), Color(0xFF161618)],
             ),
           ],
         ),

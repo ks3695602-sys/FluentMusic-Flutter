@@ -42,12 +42,12 @@ class HomeQuickPicks extends StatelessWidget {
   static const double _cardHeight = 78;
 
   static const List<List<Color>> _palettes = [
-    [Color(0xFF7C3AED), Color(0xFFDB2777)],
-    [Color(0xFF0EA5E9), Color(0xFF2563EB)],
-    [Color(0xFFF59E0B), Color(0xFFEF4444)],
-    [Color(0xFF10B981), Color(0xFF0D9488)],
-    [Color(0xFFEC4899), Color(0xFF8B5CF6)],
-    [Color(0xFFF97316), Color(0xFFDB2777)],
+    [Color(0xFF1C1C1E), Color(0xFF2C2C2E)],
+    [Color(0xFF1C1C1E), Color(0xFF161618)],
+    [Color(0xFF2C2C2E), Color(0xFF1C1C1E)],
+    [Color(0xFF1C1C1E), Color(0xFF1A1A1C)],
+    [Color(0xFF2C2C2E), Color(0xFF1C1C1E)],
+    [Color(0xFF1C1C1E), Color(0xFF161618)],
   ];
 
   @override
@@ -97,6 +97,7 @@ class HomeQuickPicks extends StatelessWidget {
     final palette = _palettes[index % _palettes.length];
 
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: () => onSongTap(index),
       child: Container(
         height: _cardHeight,

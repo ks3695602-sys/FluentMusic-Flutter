@@ -61,26 +61,7 @@ Widget buildGlassBackButton(BuildContext context) {
 
 Widget buildSubpageBackground(bool isDark) {
   return Container(
-    decoration: BoxDecoration(
-      gradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: isDark
-            ? const [
-                Color(0xFF160E20),
-                Color(0xFF0F0B16),
-                Color(0xFF08060B),
-                Color(0xFF000000),
-              ]
-            : const [
-                Color(0xFFF2ECF9),
-                Color(0xFFF8F8FB),
-                Color(0xFFEBEFF5),
-                Color(0xFFF2F2F7),
-              ],
-        stops: const [0.0, 0.35, 0.70, 1.0],
-      ),
-    ),
+    color: isDark ? const Color(0xFF000000) : const Color(0xFFF2F2F7),
   );
 }
 

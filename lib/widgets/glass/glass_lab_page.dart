@@ -302,7 +302,7 @@ class GlassLabPage extends StatelessWidget {
               GlassListTile(
                 leading: const Icon(
                   CupertinoIcons.circle_lefthalf_fill,
-                  color: Color(0xFFBF5AF2),
+                  color: Color(0xFFFF3B30),
                 ),
                 title: Text(
                   'Dynamic background tint',

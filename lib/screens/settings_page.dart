@@ -104,7 +104,7 @@ class SettingsPage extends StatelessWidget {
                 title: 'Appearance',
                 subtitle: 'Themes, layout and Glass Lab',
                 icon: CupertinoIcons.paintbrush_fill,
-                tint: const Color(0xFFBF5AF2),
+                tint: const Color(0xFFFF3B30),
                 onTap: () => open(const AppearanceSettingsPage()),
               ),
               _SettingsTile(
@@ -118,7 +118,7 @@ class SettingsPage extends StatelessWidget {
                 title: 'FluentMusic Canvas',
                 subtitle: 'Sources, mobile data and cache',
                 icon: CupertinoIcons.circle_grid_hex_fill,
-                tint: const Color(0xFF5E5CE6),
+                tint: const Color(0xFFFF9F0A),
                 onTap: () => open(const CanvasSettingsPage()),
               ),
               _SettingsTile(

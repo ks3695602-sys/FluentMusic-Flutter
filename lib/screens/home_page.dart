@@ -383,12 +383,14 @@ class _HomePageState extends State<HomePage> {
                   return SizedBox(
                     width: width,
                     child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
                       onTap: () => _playQuickPick(data, index),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           ClipRRect(
                             borderRadius: BorderRadius.circular(20),
+                            clipBehavior: Clip.antiAlias,
                             child: SizedBox(
                               width: width,
                               height: width * 4 / 3,
@@ -405,55 +407,61 @@ class _HomePageState extends State<HomePage> {
                                       cubeIcon: CupertinoIcons.music_note,
                                     ),
                                   ),
+                                  // Progressive blur-bleed scrim
                                   Align(
                                     alignment: Alignment.bottomCenter,
                                     child: ClipRect(
                                       child: BackdropFilter(
-                                        filter: ui.ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                                        filter: ui.ImageFilter.blur(sigmaX: 20, sigmaY: 20, tileMode: TileMode.decal),
                                         child: Container(
-                                          height: (width * 4 / 3) * 0.38,
+                                          height: (width * 4 / 3) * 0.40,
                                           decoration: BoxDecoration(
                                             gradient: LinearGradient(
                                               begin: Alignment.topCenter,
                                               end: Alignment.bottomCenter,
                                               colors: [
                                                 Colors.transparent,
-                                                Colors.black.withOpacity(0.78),
+                                                Colors.black.withOpacity(0.85),
                                               ],
+                                              stops: const [0.0, 1.0],
                                             ),
                                           ),
-                                          padding: const EdgeInsets.all(12),
+                                          padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
                                           child: Column(
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             mainAxisAlignment: MainAxisAlignment.end,
                                             children: [
-                                              const Text(
+                                              Text(
                                                 'Top Pick',
                                                 style: TextStyle(
-                                                  fontSize: 10,
-                                                  fontWeight: FontWeight.w500,
-                                                  color: Colors.white70,
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Colors.white.withOpacity(0.9),
+                                                  letterSpacing: 0.2,
                                                 ),
                                               ),
+                                              const SizedBox(height: 4),
                                               Text(
                                                 title,
-                                                maxLines: 1,
+                                                maxLines: 2,
                                                 overflow: TextOverflow.ellipsis,
                                                 style: const TextStyle(
-                                                  fontSize: 15,
+                                                  fontSize: 16,
                                                   fontWeight: FontWeight.w700,
                                                   color: Colors.white,
-                                                  letterSpacing: -0.3,
+                                                  letterSpacing: -0.5,
+                                                  height: 1.2,
                                                 ),
                                               ),
+                                              const SizedBox(height: 3),
                                               Text(
                                                 artist,
                                                 maxLines: 1,
                                                 overflow: TextOverflow.ellipsis,
-                                                style: const TextStyle(
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.w400,
-                                                  color: Colors.white60,
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: Colors.white.withOpacity(0.7),
                                                 ),
                                               ),
                                             ],
@@ -503,11 +511,11 @@ class _HomePageState extends State<HomePage> {
         child: Row(
           children: [
             ClipRRect(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(8),
               child: PlaylistArtwork(
                 playlistArtwork: image?.toString(),
                 playlistTitle: title,
-                size: 60,
+                size: 52,
                 cubeIcon: CupertinoIcons.music_note,
               ),
             ),
@@ -522,8 +530,10 @@ class _HomePageState extends State<HomePage> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: titleColor,
-                      fontSize: 14,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white
+                          : titleColor,
+                      fontSize: 15,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -532,7 +542,12 @@ class _HomePageState extends State<HomePage> {
                     artist,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: subtitleColor, fontSize: 12),
+                    style: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white60
+                          : subtitleColor,
+                      fontSize: 13,
+                    ),
                   ),
                 ],
               ),
@@ -722,7 +737,7 @@ class _HomeHeaderDelegate extends SliverPersistentHeaderDelegate {
   ) {
     final t = (shrinkOffset / (_maxExtent - _minExtent)).clamp(0.0, 1.0);
     final titleColor = isDark ? CupertinoColors.white : const Color(0xFF1C1C1E);
-    final surface = isDark ? const Color(0xFF120D1A) : const Color(0xFFF7F7FA);
+    final surface = isDark ? const Color(0xFF000000) : const Color(0xFFF7F7FA);
     final titleSize = ui.lerpDouble(30, 19, t)!;
     final titleWeight = t > 0.55 ? FontWeight.w700 : FontWeight.w800;
 

@@ -147,9 +147,9 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
                       Color(0xFFFFFFFF),
                     ]
                   : const [
-                      Color(0xFF1F122B),
-                      Color(0xFF120D1A),
-                      Color(0xFF09070D),
+                      Color(0xFF000000),
+                      Color(0xFF000000),
+                      Color(0xFF000000),
                       Color(0xFF000000),
                     ];
               // A page-owned text field (rename, search inside a page) owns the

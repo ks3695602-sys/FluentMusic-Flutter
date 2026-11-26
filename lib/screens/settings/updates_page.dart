@@ -149,9 +149,9 @@ class _UpdatesSettingsPageState extends State<UpdatesSettingsPage> {
               _divider(isDark),
               _UpdateRow(
                 icon: CupertinoIcons.tag_fill,
-                tint: const Color(0xFFBF5AF2),
+                tint: const Color(0xFFFF3B30),
                 title: 'Current version',
-                subtitle: 'Build ${_currentVersion}+18',
+                subtitle: 'Build ${_currentVersion}+19',
                 trailing: Text(
                   'v$_currentVersion',
                   style: TextStyle(
