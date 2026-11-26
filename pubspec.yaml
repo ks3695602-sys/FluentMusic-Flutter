@@ -64,6 +64,8 @@ dependencies:
     path: ./packages/youtube_explode_dart
   youtube_music_explode_dart:
     path: ./packages/youtube_music_explode_dart
+  video_player: ^2.14.1
+  connectivity_plus: ^7.3.2
 
 dev_dependencies:
   flutter_test:

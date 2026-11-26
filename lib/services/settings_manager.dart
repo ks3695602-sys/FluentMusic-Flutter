@@ -364,6 +364,36 @@ final smartCacheEnabled = ValueNotifier<bool>(
   Hive.box('settings').get('smartCacheEnabled', defaultValue: true),
 );
 
+/// Animated cover art in the full player. Off by default on cellular so a
+/// queue never spends a listener's data on clips they did not ask for.
+final canvasEnabled = ValueNotifier<bool>(
+  Hive.box('settings').get('canvasEnabled', defaultValue: true),
+);
+
+final canvasWifiOnly = ValueNotifier<bool>(
+  Hive.box('settings').get('canvasWifiOnly', defaultValue: true),
+);
+
+/// The full player's music-video surface. Canvas and video are independent:
+/// turning one off leaves the other available.
+final musicVideoEnabled = ValueNotifier<bool>(
+  Hive.box('settings').get('musicVideoEnabled', defaultValue: true),
+);
+
+/// Epoch milliseconds of the first launch after install. Library's member
+/// card needs a stable date; deriving it from the account would show the
+/// cloud account's age rather than this device's listening history.
+final firstSeenAt = ValueNotifier<int>(_readFirstSeenAt());
+
+int _readFirstSeenAt() {
+  final box = Hive.box('settings');
+  final stored = box.get('firstSeenAt');
+  if (stored is int && stored > 0) return stored;
+  final now = DateTime.now().millisecondsSinceEpoch;
+  box.put('firstSeenAt', now);
+  return now;
+}
+
 GlassQuality parseGlassQuality(String q) {
   switch (q) {
     case 'premium':

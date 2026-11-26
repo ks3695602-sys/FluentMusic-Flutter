@@ -30,6 +30,7 @@ import 'package:musify/mornye_player/models/player_background_mode.dart';
 import 'package:musify/screens/equalizer_page.dart';
 import 'package:musify/screens/settings/stream_diagnostics_page.dart';
 import 'package:musify/services/data_manager.dart';
+import 'package:musify/services/canvas/canvas_cache.dart';
 import 'package:musify/services/listening_stats_service.dart';
 import 'package:musify/services/lyrics/lyrics_settings.dart';
 import 'package:musify/services/settings_manager.dart';
@@ -1043,6 +1044,94 @@ class _CanvasSettingsPageState extends State<CanvasSettingsPage> {
           GlassGroupedSection(
             surfaceStyle: GlassSurfaceStyle.solid,
             header: Text(
+              'MOTION',
+              style: TextStyle(
+                color: subtitleColor,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            children: [
+              ValueListenableBuilder<bool>(
+                valueListenable: canvasEnabled,
+                builder: (_, enabled, __) => GlassListTile(
+                  leading: const Icon(
+                    CupertinoIcons.circle_grid_hex_fill,
+                    color: Color(0xFF5E5CE6),
+                  ),
+                  title: Text(
+                    'FluentMusic Canvas',
+                    style: TextStyle(color: titleColor),
+                  ),
+                  subtitle: Text(
+                    'Looping motion artwork on the player',
+                    style: TextStyle(color: subtitleColor, fontSize: 12),
+                  ),
+                  trailing: GlassSwitch(
+                    value: enabled,
+                    onChanged: (val) {
+                      canvasEnabled.value = val;
+                      addOrUpdateData('settings', 'canvasEnabled', val);
+                    },
+                  ),
+                ),
+              ),
+              ValueListenableBuilder<bool>(
+                valueListenable: canvasWifiOnly,
+                builder: (_, wifiOnly, __) => GlassListTile(
+                  leading: const Icon(
+                    CupertinoIcons.wifi,
+                    color: Color(0xFF0A84FF),
+                  ),
+                  title: Text(
+                    'Canvas on Wi-Fi only',
+                    style: TextStyle(color: titleColor),
+                  ),
+                  subtitle: Text(
+                    'Keep looping clips off mobile data',
+                    style: TextStyle(color: subtitleColor, fontSize: 12),
+                  ),
+                  trailing: GlassSwitch(
+                    value: wifiOnly,
+                    onChanged: (val) {
+                      canvasWifiOnly.value = val;
+                      addOrUpdateData('settings', 'canvasWifiOnly', val);
+                    },
+                  ),
+                ),
+              ),
+              ValueListenableBuilder<bool>(
+                valueListenable: musicVideoEnabled,
+                builder: (_, enabled, __) => GlassListTile(
+                  leading: const Icon(
+                    CupertinoIcons.play_rectangle_fill,
+                    color: Color(0xFFFF375F),
+                  ),
+                  title: Text(
+                    'Music videos',
+                    style: TextStyle(color: titleColor),
+                  ),
+                  subtitle: Text(
+                    Platform.isAndroid
+                        ? "Play the song's video, silent, in step with the audio"
+                        : 'Available on Android',
+                    style: TextStyle(color: subtitleColor, fontSize: 12),
+                  ),
+                  trailing: GlassSwitch(
+                    value: enabled,
+                    onChanged: (val) {
+                      musicVideoEnabled.value = val;
+                      addOrUpdateData('settings', 'musicVideoEnabled', val);
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          GlassGroupedSection(
+            surfaceStyle: GlassSurfaceStyle.solid,
+            header: Text(
               'STORAGE & CACHE',
               style: TextStyle(
                 color: subtitleColor,
@@ -1092,6 +1181,26 @@ class _CanvasSettingsPageState extends State<CanvasSettingsPage> {
                 ),
                 onTap: () async {
                   showToast(context, 'Audio cache cleared successfully');
+                },
+              ),
+              GlassListTile(
+                leading: const Icon(
+                  CupertinoIcons.circle_grid_hex,
+                  color: Color(0xFFFF3B30),
+                ),
+                title: const Text(
+                  'Clear Canvas Cache',
+                  style: TextStyle(color: Color(0xFFFF3B30)),
+                ),
+                subtitle: Text(
+                  'Remove downloaded looping covers (up to 50 MB)',
+                  style: TextStyle(color: subtitleColor, fontSize: 12),
+                ),
+                onTap: () async {
+                  await CanvasCache.instance.clear();
+                  if (context.mounted) {
+                    showToast(context, 'Canvas cache cleared');
+                  }
                 },
               ),
             ],

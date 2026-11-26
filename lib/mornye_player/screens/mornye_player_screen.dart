@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform;
 import 'package:flutter/services.dart' show SystemUiOverlayStyle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
@@ -19,6 +21,8 @@ import 'package:musify/mornye_player/widgets/player_gesture_regions.dart';
 import 'package:musify/mornye_player/widgets/player_lyrics_section.dart';
 import 'package:musify/screens/artist_page.dart';
 import 'package:musify/services/settings_manager.dart';
+import 'package:musify/services/video/music_video_controller.dart' as mvw;
+import 'package:musify/widgets/player/player_motion_artwork.dart';
 
 /// The full player, hosting Mornye's copied surface on FluentMusic's playback.
 ///
@@ -40,6 +44,8 @@ class _MornyePlayerScreenState extends ConsumerState<MornyePlayerScreen> {
   late final PlayerMetadataController _metadata = PlayerMetadataController();
   final _seekPreview = PlaybackSeekPreview();
   late int _page = widget.initialPage;
+  late final mvw.MusicVideoController _musicVideoController =
+      mvw.MusicVideoController();
 
   final _artworkHeaderKey = GlobalKey();
   final _artworkControlsKey = GlobalKey();
@@ -53,7 +59,10 @@ class _MornyePlayerScreenState extends ConsumerState<MornyePlayerScreen> {
     _mediaItemSub = ref.listenManual<AsyncValue<MediaItem?>>(
       currentMediaItemProvider,
       (previous, next) {
-        if (previous?.value?.id != next.value?.id) _seekPreview.reset();
+        if (previous?.value?.id != next.value?.id) {
+          _seekPreview.reset();
+          unawaited(_loadMusicVideo(next.value));
+        }
         unawaited(_metadata.load(next.value));
       },
     );
@@ -61,7 +70,34 @@ class _MornyePlayerScreenState extends ConsumerState<MornyePlayerScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       unawaited(_metadata.load(ref.read(currentMediaItemProvider).value));
+      unawaited(_loadMusicVideo(ref.read(currentMediaItemProvider).value));
     });
+    musicVideoEnabled.addListener(_onMusicVideoToggle);
+    offlineMode.addListener(_onMusicVideoToggle);
+  }
+
+  void _onMusicVideoToggle() {
+    if (!mounted) return;
+    unawaited(_loadMusicVideo(ref.read(currentMediaItemProvider).value));
+  }
+
+  /// The track's YouTube id: the same clip the audio streams from, whose
+  /// video-only rendition is the music video.
+  String? _ytidOf(MediaItem? item) {
+    final id = item?.extras?['ytid']?.toString();
+    return id == null || id.isEmpty ? null : id;
+  }
+
+  Future<void> _loadMusicVideo(MediaItem? item) async {
+    final videoId = _ytidOf(item);
+    if (videoId == null ||
+        !musicVideoEnabled.value ||
+        offlineMode.value ||
+        defaultTargetPlatform != TargetPlatform.android) {
+      await _musicVideoController.stop();
+      return;
+    }
+    await _musicVideoController.load(videoId);
   }
 
   @override
@@ -69,6 +105,9 @@ class _MornyePlayerScreenState extends ConsumerState<MornyePlayerScreen> {
     _mediaItemSub?.close();
     _metadata.dispose();
     _seekPreview.dispose();
+    musicVideoEnabled.removeListener(_onMusicVideoToggle);
+    offlineMode.removeListener(_onMusicVideoToggle);
+    _musicVideoController.dispose();
     super.dispose();
   }
 
@@ -120,9 +159,13 @@ class _MornyePlayerScreenState extends ConsumerState<MornyePlayerScreen> {
                         seekPreview: _seekPreview,
                         colorScheme: colorScheme,
                         page: _page,
-                        motionArtwork: PlayerArtwork(
-                          artUri: mediaItem.artUri?.toString(),
+                        motionArtwork: PlayerMotionArtwork(
+                          item: mediaItem,
                           colorScheme: colorScheme,
+                          videoController: _musicVideoController,
+                          cacheWidth: PlayerArtwork.transitionCacheWidth(
+                            context,
+                          ),
                         ),
                         insetArtwork: true,
                         artworkTopInset: topInset + 36,

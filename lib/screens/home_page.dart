@@ -61,6 +61,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   late final Future<List> _suggestedPlaylistsFuture;
+  bool _showMore = false;
   late Future<List> _recommendedSongsFuture;
 
   @override
@@ -123,8 +124,6 @@ class _HomePageState extends State<HomePage> {
                 },
               ),
             ),
-            // Big gradient hero so Home opens with real weight.
-            const SliverToBoxAdapter(child: HomeHero()),
             // Announcement (only when a remote message exists)
             SliverToBoxAdapter(
               child: ValueListenableBuilder<String?>(
@@ -154,21 +153,23 @@ class _HomePageState extends State<HomePage> {
                 },
               ),
             ),
-            // Account-powered YTM rails: listen again, speed dial, forgotten
-            // favourites. Hidden entirely while signed out.
-            const SliverToBoxAdapter(child: HomeYtMusicShelves()),
-            // Songs first: recents → quick picks → playlists → recommended.
-            SliverToBoxAdapter(child: _buildRecentlyPlayedSection()),
+            // Top Picks carousel is the primary, artwork-led Home entry point.
             SliverToBoxAdapter(child: _buildQuickPicksSection()),
-            SliverToBoxAdapter(child: _buildSuggestedPlaylists()),
-            SliverToBoxAdapter(
-              child: _buildSuggestedPlaylists(showOnlyLiked: true),
-            ),
-            SliverToBoxAdapter(child: _buildRecommendedSongsSection()),
-            // Artists come after every song rail.
-            SliverToBoxAdapter(child: _buildArtistsSection()),
-            SliverToBoxAdapter(child: _buildCurrentMonthRecapSection()),
-            SliverToBoxAdapter(child: _buildGenresSection()),
+            SliverToBoxAdapter(child: _buildRecentlyPlayedSection()),
+            SliverToBoxAdapter(child: _buildMoreToggle()),
+            if (_showMore) ...[
+              // Retain the original hero actions and every discovery section.
+              const SliverToBoxAdapter(child: HomeHero()),
+              const SliverToBoxAdapter(child: HomeYtMusicShelves()),
+              SliverToBoxAdapter(child: _buildSuggestedPlaylists()),
+              SliverToBoxAdapter(
+                child: _buildSuggestedPlaylists(showOnlyLiked: true),
+              ),
+              SliverToBoxAdapter(child: _buildRecommendedSongsSection()),
+              SliverToBoxAdapter(child: _buildArtistsSection()),
+              SliverToBoxAdapter(child: _buildCurrentMonthRecapSection()),
+              SliverToBoxAdapter(child: _buildGenresSection()),
+            ],
             // Keeps the last row comfortably above the glass dock.
             const SliverMiniPlayerBottomSpace(),
           ],
@@ -190,7 +191,8 @@ class _HomePageState extends State<HomePage> {
       valueListenable: userRecentlyPlayed,
       builder: (context, recents, _) {
         if (recents.isEmpty) return const SizedBox.shrink();
-        final displaySongs = recents.take(12).toList();
+        final displaySongs = recents.take(16).toList();
+        final columnCount = (displaySongs.length / 4).ceil();
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -201,100 +203,33 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             SizedBox(
-              height: 236,
+              height: 280,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 physics: const BouncingScrollPhysics(),
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 clipBehavior: Clip.none,
-                itemCount: displaySongs.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 14),
-                itemBuilder: (context, index) {
-                  final song = displaySongs[index];
-                  final title = song['title']?.toString() ?? '';
-                  final artist = song['artist']?.toString() ?? '';
-                  final image =
-                      song['highResImage'] ??
-                      song['image'] ??
-                      song['lowResImage'];
-
-                  return SizedBox(
-                    width: 168,
-                    child: GestureDetector(
-                      onTap: () async {
-                        await audioHandler.playPlaylistSong(
-                          playlist: {
-                            'title':
-                                context.l10n?.recentlyPlayed ??
-                                'Recently Played',
-                            'list': recents,
-                          },
-                          songIndex: index,
-                        );
-                      },
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(20),
-                            child: Stack(
-                              children: [
-                                PlaylistArtwork(
-                                  playlistArtwork: image,
-                                  size: 168,
-                                  cubeIcon: CupertinoIcons.music_note,
-                                ),
-                                Positioned(
-                                  bottom: 8,
-                                  right: 8,
-                                  child: Container(
-                                    width: 32,
-                                    height: 32,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: CupertinoColors.black.withValues(
-                                        alpha: 0.55,
-                                      ),
-                                      border: Border.all(
-                                        color: CupertinoColors.white.withValues(
-                                          alpha: 0.25,
-                                        ),
-                                        width: 0.8,
-                                      ),
-                                    ),
-                                    child: const Icon(
-                                      CupertinoIcons.play_fill,
-                                      color: CupertinoColors.white,
-                                      size: 14,
-                                    ),
-                                  ),
-                                ),
-                              ],
+                itemCount: columnCount,
+                separatorBuilder: (_, __) => const SizedBox(width: 18),
+                itemBuilder: (context, column) => SizedBox(
+                  width: 286,
+                  child: Column(
+                    children: [
+                      for (var row = 0; row < 4; row++)
+                        if (column * 4 + row < displaySongs.length)
+                          SizedBox(
+                            height: 68,
+                            child: _recentSongTile(
+                              displaySongs[column * 4 + row],
+                              column * 4 + row,
+                              recents,
+                              itemTitleColor,
+                              itemSubColor,
                             ),
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: itemTitleColor,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            artist,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(color: itemSubColor, fontSize: 12),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
+                    ],
+                  ),
+                ),
               ),
             ),
           ],
@@ -412,7 +347,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  static const int _quickPickCount = 8;
+  static const int _quickPickCount = 12;
 
   Widget _buildQuickPicksSection() {
     return AsyncLoader<List<dynamic>>(
@@ -420,11 +355,197 @@ class _HomePageState extends State<HomePage> {
       builder: (context, data) {
         if (data.isEmpty) return const SizedBox.shrink();
         final picks = data.take(_quickPickCount).toList();
-        return HomeQuickPicks(
-          songs: picks,
-          onSongTap: (index) => _playQuickPick(data, index),
+        final width = MediaQuery.sizeOf(context).width * 0.43;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: SectionHeader(title: 'Top Picks'),
+            ),
+            SizedBox(
+              height: width * 4 / 3 + 58,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                clipBehavior: Clip.none,
+                itemCount: picks.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 12),
+                itemBuilder: (context, index) {
+                  final song = picks[index];
+                  final title = song['title']?.toString() ?? '';
+                  final artist = song['artist']?.toString() ?? '';
+                  final artwork =
+                      song['highResImage'] ??
+                      song['image'] ??
+                      song['lowResImage'];
+                  return SizedBox(
+                    width: width,
+                    child: GestureDetector(
+                      onTap: () => _playQuickPick(data, index),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(18),
+                            child: SizedBox(
+                              width: width,
+                              height: width * 4 / 3,
+                              child: Stack(
+                                fit: StackFit.expand,
+                                children: [
+                                  FittedBox(
+                                    fit: BoxFit.cover,
+                                    clipBehavior: Clip.hardEdge,
+                                    child: PlaylistArtwork(
+                                      playlistArtwork: artwork?.toString(),
+                                      playlistTitle: title,
+                                      size: width * 4 / 3,
+                                      cubeIcon: CupertinoIcons.music_note,
+                                    ),
+                                  ),
+                                  Positioned(
+                                    right: 10,
+                                    bottom: 10,
+                                    child: Container(
+                                      width: 38,
+                                      height: 38,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: CupertinoColors.black.withValues(
+                                          alpha: 0.58,
+                                        ),
+                                      ),
+                                      child: const Icon(
+                                        CupertinoIcons.play_fill,
+                                        color: CupertinoColors.white,
+                                        size: 16,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            artist,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
         );
       },
+    );
+  }
+
+  Widget _recentSongTile(
+    dynamic song,
+    int index,
+    List recents,
+    Color titleColor,
+    Color subtitleColor,
+  ) {
+    final title = song['title']?.toString() ?? '';
+    final artist = song['artist']?.toString() ?? '';
+    final image = song['highResImage'] ?? song['image'] ?? song['lowResImage'];
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => audioHandler.playPlaylistSong(
+        playlist: {
+          'title': context.l10n?.recentlyPlayed ?? 'Recently Played',
+          'list': recents,
+        },
+        songIndex: index,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: PlaylistArtwork(
+                playlistArtwork: image?.toString(),
+                playlistTitle: title,
+                size: 60,
+                cubeIcon: CupertinoIcons.music_note,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: titleColor,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    artist,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: subtitleColor, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 6),
+            Icon(CupertinoIcons.ellipsis, size: 18, color: subtitleColor),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMoreToggle() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+      child: TextButton.icon(
+        onPressed: () => setState(() => _showMore = !_showMore),
+        icon: Icon(
+          _showMore ? CupertinoIcons.chevron_up : CupertinoIcons.ellipsis,
+        ),
+        label: Text(_showMore ? 'Less' : 'More'),
+        style: TextButton.styleFrom(
+          foregroundColor: isDark
+              ? CupertinoColors.white
+              : const Color(0xFF1C1C1E),
+          alignment: Alignment.centerLeft,
+        ),
+      ),
     );
   }
 

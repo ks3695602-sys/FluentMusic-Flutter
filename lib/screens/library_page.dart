@@ -29,11 +29,14 @@ import 'package:musify/constants/app_constants.dart';
 import 'package:musify/extensions/l10n.dart';
 import 'package:musify/main.dart' show logger;
 import 'package:musify/services/common_services.dart';
+import 'package:musify/services/listening_stats_service.dart';
 import 'package:musify/services/playlist_download_service.dart';
 import 'package:musify/services/playlists_manager.dart';
 import 'package:musify/services/router_service.dart';
 import 'package:musify/services/settings_manager.dart';
 import 'package:musify/utilities/app_utils.dart';
+import 'package:musify/utilities/listening_stats_utils.dart';
+import 'package:musify/widgets/playlist_artwork.dart';
 import 'package:musify/utilities/async_loader.dart';
 import 'package:musify/utilities/flutter_toast.dart';
 import 'package:musify/utilities/offline_playlist_dialogs.dart';
@@ -53,6 +56,8 @@ class LibraryPage extends StatefulWidget {
 }
 
 class _LibraryPageState extends State<LibraryPage> {
+  bool _showMore = false;
+
   @override
   Widget build(BuildContext context) {
     // Show offline mode message if there is no content
@@ -141,8 +146,11 @@ class _LibraryPageState extends State<LibraryPage> {
                   SliverToBoxAdapter(
                     child: Builder(
                       builder: (ctx) {
-                        final isDark = Theme.of(ctx).brightness == Brightness.dark;
-                        final titleColor = isDark ? CupertinoColors.white : const Color(0xFF1C1C1E);
+                        final isDark =
+                            Theme.of(ctx).brightness == Brightness.dark;
+                        final titleColor = isDark
+                            ? CupertinoColors.white
+                            : const Color(0xFF1C1C1E);
                         final iconBgColor = isDark
                             ? CupertinoColors.white.withValues(alpha: 0.12)
                             : const Color(0xFF000000).withValues(alpha: 0.08);
@@ -174,7 +182,6 @@ class _LibraryPageState extends State<LibraryPage> {
                                     color: iconBgColor,
                                     border: Border.all(
                                       color: iconBorderColor,
-                                      width: 1,
                                     ),
                                   ),
                                   child: Icon(
@@ -190,15 +197,406 @@ class _LibraryPageState extends State<LibraryPage> {
                       },
                     ),
                   ),
-                  ..._buildPinnedSlivers(),
-                  ..._buildUserPlaylistsSlivers(),
-                  if (!offlineMode.value) ..._buildLikedPlaylistsSlivers(),
-                  ..._buildLikedArtistsSlivers(),
+                  SliverToBoxAdapter(child: _buildLibraryOverview()),
+                  SliverToBoxAdapter(child: _buildLibraryShortcuts()),
+                  SliverToBoxAdapter(child: _buildPlaylistRail()),
+                  SliverToBoxAdapter(child: _buildMoreToggle()),
+                  if (_showMore) ...[
+                    SliverToBoxAdapter(
+                      child: SectionHeader(
+                        title: context.l10n?.playlists ?? 'Playlists',
+                        icon: CupertinoIcons.music_albums,
+                      ),
+                    ),
+                    ..._buildPinnedSlivers(),
+                    ..._buildUserPlaylistsSlivers(),
+                    if (!offlineMode.value) ..._buildLikedPlaylistsSlivers(),
+                    ..._buildLikedArtistsSlivers(),
+                  ],
                   const SliverMiniPlayerBottomSpace(),
                 ],
               ),
             );
           },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLibraryOverview() {
+    final monthKey = listeningStatsMonthKey(DateTime.now());
+    final minutes = monthDisplayMinutes(
+      listeningStatsService.monthStats(monthKey),
+    );
+    final firstSeen = DateTime.fromMillisecondsSinceEpoch(firstSeenAt.value);
+    final joined = MaterialLocalizations.of(context).formatMonthYear(firstSeen);
+    final songs = listeningStatsService.monthTopSongs(
+      monthKey,
+      limit: wrappedCurrentMonthSongsLimit,
+    );
+    final artistPlays = <String, int>{};
+    var totalPlays = 0;
+    for (final song in songs) {
+      final plays = song['playCount'] is num
+          ? (song['playCount'] as num).toInt()
+          : int.tryParse(song['playCount']?.toString() ?? '') ?? 0;
+      totalPlays += plays;
+      final artist = song['artist']?.toString().trim() ?? '';
+      if (artist.isEmpty) continue;
+      artistPlays[artist] = (artistPlays[artist] ?? 0) + plays;
+    }
+    final topEntry = artistPlays.isEmpty
+        ? null
+        : artistPlays.entries.reduce((a, b) => a.value >= b.value ? a : b);
+    final cardWidth = ((MediaQuery.sizeOf(context).width - 32) * 0.86).clamp(
+      240.0,
+      340.0,
+    );
+    final cardHeight = cardWidth / 1.586;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 18),
+      child: SizedBox(
+        height: cardHeight,
+        child: ListView(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          clipBehavior: Clip.none,
+          children: [
+            _statCard(
+              width: cardWidth,
+              label: 'Listening this month',
+              value: '$minutes min',
+              caption: 'Member since $joined',
+              icon: CupertinoIcons.waveform,
+              colors: const [Color(0xFF8B5CF6), Color(0xFF5B21B6)],
+            ),
+            const SizedBox(width: 12),
+            _statCard(
+              width: cardWidth,
+              label: 'Top artist',
+              value: topEntry?.key ?? 'No one yet',
+              caption: topEntry == null
+                  ? 'Play something to discover yours'
+                  : '${topEntry.value} plays this month',
+              icon: CupertinoIcons.music_mic,
+              colors: const [Color(0xFFFF6B6B), Color(0xFFC2185B)],
+              valueSize: 26,
+            ),
+            const SizedBox(width: 12),
+            _statCard(
+              width: cardWidth,
+              label: 'Plays this month',
+              value: '$totalPlays',
+              caption: '${songs.length} songs in rotation',
+              icon: CupertinoIcons.play_circle_fill,
+              colors: const [Color(0xFF0A84FF), Color(0xFF0E7490)],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _statCard({
+    required double width,
+    required String label,
+    required String value,
+    required String caption,
+    required IconData icon,
+    required List<Color> colors,
+    double valueSize = 32,
+  }) {
+    return Container(
+      width: width,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: colors,
+        ),
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            right: -14,
+            bottom: -14,
+            child: Icon(
+              icon,
+              size: 104,
+              color: CupertinoColors.white.withValues(alpha: 0.14),
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  color: CupertinoColors.white.withValues(alpha: 0.78),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: CupertinoColors.white,
+                  fontSize: valueSize,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.8,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                caption,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: CupertinoColors.white.withValues(alpha: 0.72),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPlaylistRail() {
+    final playlists = getPlaylistsNotInFolders();
+    const tileSize = 150.0;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionHeader(
+          title: context.l10n?.playlists ?? 'Playlists',
+          icon: CupertinoIcons.music_albums,
+          actionButton: IconButton(
+            onPressed: () => showCreatePlaylistDialog(context),
+            icon: const Icon(CupertinoIcons.add),
+          ),
+        ),
+        SizedBox(
+          height: 207,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.only(bottom: 12),
+            clipBehavior: Clip.none,
+            itemCount: playlists.length + 1,
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            itemBuilder: (context, index) {
+              if (index == 0) {
+                return SizedBox(
+                  width: tileSize,
+                  child: GestureDetector(
+                    onTap: () => showCreatePlaylistDialog(context),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: tileSize,
+                          height: tileSize,
+                          decoration: BoxDecoration(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          child: Icon(
+                            CupertinoIcons.add,
+                            size: 42,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'New playlist',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        Text(
+                          'Start a collection',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+              final playlist = playlists[index - 1];
+              final title = playlist['title']?.toString() ?? '';
+              final id = playlist['ytid']?.toString() ?? '';
+              return SizedBox(
+                width: tileSize,
+                child: GestureDetector(
+                  onTap: () {
+                    if (playlist['source'] == 'user-created' ||
+                        playlist['source'] == 'user-youtube') {
+                      context.push('/home/playlist/${Uri.encodeComponent(id)}');
+                    } else if (id.isNotEmpty) {
+                      context.push('/home/playlist/${Uri.encodeComponent(id)}');
+                    }
+                  },
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(18),
+                        child: PlaylistArtwork(
+                          playlistArtwork:
+                              (playlist['image'] ?? playlist['thumbnail'])
+                                  ?.toString(),
+                          playlistTitle: title,
+                          size: tileSize,
+                          cubeIcon: CupertinoIcons.music_note_list,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      Text(
+                        playlist['isAlbum'] == true ? 'Album' : 'Playlist',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMoreToggle() {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: TextButton.icon(
+        onPressed: () => setState(() => _showMore = !_showMore),
+        icon: Icon(
+          _showMore ? CupertinoIcons.chevron_up : CupertinoIcons.ellipsis,
+        ),
+        label: Text(_showMore ? 'Less' : 'More'),
+      ),
+    );
+  }
+
+  Widget _buildLibraryShortcuts() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surface = isDark
+        ? CupertinoColors.white.withValues(alpha: 0.06)
+        : const Color(0xFFF0F0F5);
+    final divider = isDark
+        ? CupertinoColors.white.withValues(alpha: 0.10)
+        : const Color(0x14000000);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 18),
+      decoration: BoxDecoration(
+        color: surface,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        children: [
+          _shortcutRow(
+            title: 'Downloads',
+            subtitle:
+                '${userOfflineSongs.value.length} songs available offline',
+            icon: CupertinoIcons.arrow_down_circle_fill,
+            color: const Color(0xFF0A84FF),
+            onTap: () =>
+                NavigationManager.router.go('/library/userSongs/offline'),
+          ),
+          Divider(height: 1, indent: 58, color: divider),
+          _shortcutRow(
+            title: 'Local Music',
+            subtitle: 'Local music scanning is not available yet',
+            icon: CupertinoIcons.music_note_list,
+            color: const Color(0xFF30B566),
+            onTap: () =>
+                showToast(context, 'Local music scanning is not available yet'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _shortcutRow({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return InkWell(
+      borderRadius: BorderRadius.circular(18),
+      onTap: onTap,
+      child: SizedBox(
+        height: 68,
+        child: Row(
+          children: [
+            const SizedBox(width: 14),
+            Icon(icon, color: color, size: 25),
+            const SizedBox(width: 13),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: isDark
+                          ? CupertinoColors.white
+                          : const Color(0xFF1C1C1E),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              CupertinoIcons.chevron_right,
+              size: 15,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 14),
+          ],
         ),
       ),
     );
@@ -289,12 +687,17 @@ class _LibraryPageState extends State<LibraryPage> {
                 children: [
                   PlaylistBar(
                     context.l10n!.recentlyPlayed,
-                    onPressed: () =>
-                        NavigationManager.router.go('/library/userSongs/recents'),
+                    onPressed: () => NavigationManager.router.go(
+                      '/library/userSongs/recents',
+                    ),
                     cubeIcon: CupertinoIcons.clock_fill,
                     showBuildActions: false,
                   ),
-                  Divider(color: isDark ? Colors.white10 : Colors.black12, height: 1, indent: 64),
+                  Divider(
+                    color: isDark ? Colors.white10 : Colors.black12,
+                    height: 1,
+                    indent: 64,
+                  ),
                   PlaylistBar(
                     context.l10n!.likedSongs,
                     onPressed: () =>
@@ -302,15 +705,24 @@ class _LibraryPageState extends State<LibraryPage> {
                     cubeIcon: CupertinoIcons.heart_fill,
                     showBuildActions: false,
                   ),
-                  Divider(color: isDark ? Colors.white10 : Colors.black12, height: 1, indent: 64),
+                  Divider(
+                    color: isDark ? Colors.white10 : Colors.black12,
+                    height: 1,
+                    indent: 64,
+                  ),
                   PlaylistBar(
                     context.l10n!.offlineSongs,
-                    onPressed: () =>
-                        NavigationManager.router.go('/library/userSongs/offline'),
+                    onPressed: () => NavigationManager.router.go(
+                      '/library/userSongs/offline',
+                    ),
                     cubeIcon: CupertinoIcons.arrow_down_circle_fill,
                     showBuildActions: false,
                   ),
-                  Divider(color: isDark ? Colors.white10 : Colors.black12, height: 1, indent: 64),
+                  Divider(
+                    color: isDark ? Colors.white10 : Colors.black12,
+                    height: 1,
+                    indent: 64,
+                  ),
                   PlaylistBar(
                     context.l10n!.radioStations,
                     onPressed: () =>
@@ -329,7 +741,10 @@ class _LibraryPageState extends State<LibraryPage> {
               child: Padding(
                 padding: const EdgeInsets.only(bottom: 24),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     color: isDark
                         ? CupertinoColors.white.withValues(alpha: 0.08)
@@ -345,12 +760,18 @@ class _LibraryPageState extends State<LibraryPage> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(CupertinoIcons.sparkles, color: Color(0xFFFF2D55), size: 16),
+                      const Icon(
+                        CupertinoIcons.sparkles,
+                        color: Color(0xFFFF2D55),
+                        size: 16,
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         'Offline Cache Ready',
                         style: TextStyle(
-                          color: isDark ? CupertinoColors.white : const Color(0xFF1C1C1E),
+                          color: isDark
+                              ? CupertinoColors.white
+                              : const Color(0xFF1C1C1E),
                           fontWeight: FontWeight.w600,
                           fontSize: 13,
                           letterSpacing: -0.2,
@@ -381,7 +802,9 @@ class _LibraryPageState extends State<LibraryPage> {
                           onPressed: _showCreateFolderDialog,
                           icon: Icon(
                             CupertinoIcons.folder_badge_plus,
-                            color: isDark ? CupertinoColors.white : const Color(0xFF1C1C1E),
+                            color: isDark
+                                ? CupertinoColors.white
+                                : const Color(0xFF1C1C1E),
                             size: 20,
                           ),
                           tooltip: context.l10n!.createFolder,
@@ -391,7 +814,9 @@ class _LibraryPageState extends State<LibraryPage> {
                           onPressed: () => showCreatePlaylistDialog(context),
                           icon: Icon(
                             CupertinoIcons.add,
-                            color: isDark ? CupertinoColors.white : const Color(0xFF1C1C1E),
+                            color: isDark
+                                ? CupertinoColors.white
+                                : const Color(0xFF1C1C1E),
                             size: 20,
                           ),
                         ),
