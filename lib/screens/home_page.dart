@@ -499,16 +499,13 @@ class _HomePageState extends State<HomePage> {
     final image = song['highResImage'] ?? song['image'] ?? song['lowResImage'];
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () {
-        logger.log('Recent play: index=$index, songKeys=${song.keys.toList()}, ytid=${song['ytid']}, id=${song['id']}, recentsLen=${recents.length}');
-        audioHandler.playPlaylistSong(
-          playlist: {
-            'title': context.l10n?.recentlyPlayed ?? 'Recently Played',
-            'list': recents,
-          },
-          songIndex: index,
-        );
-      },
+      onTap: () => audioHandler.playPlaylistSong(
+        playlist: {
+          'title': context.l10n?.recentlyPlayed ?? 'Recently Played',
+          'list': recents,
+        },
+        songIndex: index,
+      ),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 4),
         child: Row(
@@ -585,8 +582,6 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _playQuickPick(List<dynamic> songs, int index) async {
     if (songs.isEmpty) return;
-    final song = songs[index];
-    logger.log('QuickPick play: index=$index, songKeys=${song.keys.toList()}, ytid=${song['ytid']}, id=${song['id']}');
     await audioHandler.playPlaylistSong(
       playlist: {'title': 'Quick Picks', 'list': songs},
       songIndex: index,
